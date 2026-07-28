@@ -7,7 +7,7 @@ import {
 import { Button, buttonVariants } from '@/design/components/button';
 import { Input } from '@/design/components/input';
 import { Textarea } from '@/design/components/textarea';
-import { mergeTailwindClasses as cn } from '@/utils/tailwind';
+import { mergeTailwindClasses as cn } from '@/design/utils';
 import { Dialog } from '@base-ui/react/dialog';
 import { useActionState, useState } from 'react';
 

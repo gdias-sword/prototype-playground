@@ -1,4 +1,4 @@
-import { mergeTailwindClasses as cn } from '@/utils/tailwind';
+import { mergeTailwindClasses as cn } from '@/design/utils';
 
 interface PlaygroundContainerProps {
   children: React.ReactNode;
