@@ -1,4 +1,4 @@
-import { getPrototypes } from '@/lib/registry';
+import { getPrototypes } from '@/config/registry';
 import Link from 'next/link';
 
 export default function Gallery() {
