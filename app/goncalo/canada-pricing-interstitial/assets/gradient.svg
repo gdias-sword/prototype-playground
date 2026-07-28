@@ -1,0 +1,18 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 2788 2788" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Gradient" opacity="0.4" filter="url(#filter0_f_0_739)">
+<ellipse id="Layer 02" cx="1144" cy="1144" rx="1144" ry="1144" transform="matrix(-1 -8.74228e-08 -8.74228e-08 1 2538 250)" fill="url(#paint0_linear_0_739)"/>
+<ellipse id="Layer 03" cx="234" cy="234" rx="234" ry="234" transform="matrix(-1 8.74228e-08 8.74228e-08 1 2160 305)" fill="var(--fill-0, #4A89E8)"/>
+<ellipse id="Layer 01" cx="115" cy="115.5" rx="115" ry="115.5" transform="matrix(-1 8.74228e-08 8.74228e-08 1 968 320)" fill="var(--fill-0, #A6C9F8)"/>
+</g>
+<defs>
+<filter id="filter0_f_0_739" x="6.79985e-06" y="-6.79988e-06" width="2788" height="2788" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="125" result="effect1_foregroundBlur_0_739"/>
+</filter>
+<linearGradient id="paint0_linear_0_739" x1="112.872" y1="1220.38" x2="2288" y2="1220.38" gradientUnits="userSpaceOnUse">
+<stop stop-color="#4A89E8"/>
+<stop offset="1" stop-color="#EAF2FE"/>
+</linearGradient>
+</defs>
+</svg>
