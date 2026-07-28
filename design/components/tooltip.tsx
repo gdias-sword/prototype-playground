@@ -3,7 +3,7 @@
 import { Tooltip as TooltipPrimitive } from '@base-ui/react/tooltip';
 import * as React from 'react';
 
-import { mergeTailwindClasses as cn } from '@/lib/cn';
+import { mergeTailwindClasses as cn } from '@/design/utils';
 
 function TooltipProvider({
   delay = 80,
