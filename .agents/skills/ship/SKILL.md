@@ -1,16 +1,16 @@
 ---
 name: Ship
-description: Push a prototype to its long-lived branch, watch the Vercel preview, and hand back a stable share link. Each prototype lives on one branch with one open PR — the iteration thread — so the link stays the same every time you ship. Use when the user asks to ship, share, deploy, push, publish, get a link for, or update a prototype.
+description: Squash-merge a prototype into main so it's live on the production domain. Each ship is a short-lived branch that's created fresh from main, gated on a Vercel preview build, then auto-merged and deleted. Use when the user asks to ship, share, deploy, push, publish, get a link for, or update a prototype.
 ---
 
 # Ship
 
-Pushes a prototype to its branch and returns a stable share link. The PR is a long-lived iteration thread: never merge it, never delete the branch.
+Squash-merges a prototype into `main` and returns the production URL. Branch `<username>/<slug>` is created fresh from `main` on every ship, auto-merged once the Vercel preview is green, then deleted. `main` stays clean; the production domain reflects the latest state immediately.
 
 ## Required ambient setup
 
 - `git remote get-url origin` must succeed.
-- Vercel ↔ GitHub integration must be connected via the Vercel dashboard.
+- Vercel ↔ GitHub integration must be connected and a production deployment for `main` must exist.
 
 If either is missing, refuse with a one-line message naming the missing piece and stop.
 
@@ -49,9 +49,14 @@ If invalid, fix it before continuing. Fixes here don't count toward the post-pus
 
 Run `git status --porcelain`.
 
-- Stage only files inside `app/<username>/<slug>/` with explicit `git add <path>` calls. Never `git add .`. Never stage shared files (`design/`, `lib/`, root configs, other contributors' prototypes).
-- If there are dirty files outside the prototype, surface them: `Note: leaving these files unstaged: <list>`. Do not block.
-- If there's nothing to stage, skip the commit and proceed to step 5. Track this — step 9 needs to know.
+- Stage only files inside `app/<username>/<slug>/` with explicit `git add <path>` calls. Never `git add .`.
+- If there are dirty files outside the prototype directory, **refuse and stop**. Surface them clearly:
+
+  > Cannot ship: these files outside `app/<username>/<slug>/` are dirty and must be handled separately before shipping:
+  > `<list>`
+  > Do not proceed until the working tree outside the prototype dir is clean (either committed, stashed, or reverted by the user).
+
+- If there's nothing to stage (the prototype dir is clean), skip the commit and proceed to step 5. Track this — step 9 needs to know.
 
 Pick the commit emoji from the diff:
 
@@ -78,31 +83,38 @@ EOF
 )"
 ```
 
-### 5. Branch + push
+### 5. Branch from main
 
-Branch name: `<username>/<slug>`. One branch per prototype.
-
-- If already on that branch, push: `git push -u origin HEAD`.
-- If on `main` or any other branch, switch with `git switch -c <username>/<slug>` (or `git switch <username>/<slug>` if it exists locally) and push.
-- Never force-push. Never amend. Never delete the branch.
-
-### 6. Open or update the PR
-
-Check for an existing open PR for this branch:
+Every ship starts from a fresh branch off `main`. Never carry over a stale local branch.
 
 ```bash
-gh pr view <username>/<slug> --json number,url,state 2>/dev/null
+git switch main
+git pull
+git branch -D <username>/<slug> 2>/dev/null || true
+git switch -c <username>/<slug>
+git push -u origin HEAD
 ```
 
-- **No PR yet** → create one with `gh pr create`:
-  - Title: `🧪 <title>` (use `title` from `meta.json` verbatim).
-  - Body: `description` from `meta.json` verbatim. If `description` is missing, omit `--body`.
-  - Base branch: `main`.
-  - Track that this run created the PR — step 9 needs to know.
+Never force-push.
 
-- **PR already exists** → no action; the push in step 5 already updated it. Capture the PR number and URL for later steps.
+### 6. Open a PR
 
-### 7. Watch Vercel preview
+Create a PR for each ship. There is no long-lived PR — they're always fresh.
+
+```bash
+gh pr create \
+  --title "🧪 <title>" \
+  --body "<description or empty>" \
+  --base main
+```
+
+- Title: `🧪 <title>` (use `title` from `meta.json` verbatim).
+- Body: `description` from `meta.json` verbatim. If `description` is missing, omit `--body`.
+- Base branch: `main`.
+
+Capture the PR number and URL.
+
+### 7. Wait for Vercel preview
 
 Wait for Vercel's deployment status to settle:
 
@@ -117,65 +129,91 @@ Cap the wait at 180 seconds. While waiting, print:
 ```
 
 - **All checks green** → continue to step 8.
-- **Any check red** → fetch the failed run's log via `gh run view <run-id> --log-failed`, identify the issue (almost always inside `app/<username>/<slug>/`), fix it, repeat from step 4. **Cap at 3 post-push attempts.**
-- **Cap exhausted** → leave the PR open. Output:
+- **Any check red** → fetch the failed run's log via `gh run view <run-id> --log-failed`, identify the issue (almost always inside `app/<username>/<slug>/`), fix it, re-stage, re-commit, re-push, and repeat from this step. **Cap at 3 post-push attempts.**
+- **Cap exhausted** → close the PR (`gh pr close <pr-number>`), delete the remote branch (`git push origin --delete <username>/<slug>`), clean up locally (`git switch main && git branch -D <username>/<slug>`), output:
 
-  > Vercel build keeps failing after 3 attempts. PR is open at `<url>` with full logs. Take a look manually.
+  > Build keeps failing after 3 attempts. The branch has been cleaned up. Fix the issue and run /ship again.
 
   Stop.
 
-- **Timeout (180s, no resolution)** → output `Vercel hasn't reported back yet. PR: <url>. Check the deployment tab when you have a moment.` and stop.
+- **Timeout (180s, no resolution)** → output `Vercel hasn't reported back yet. Run /ship again once the preview settles.` and stop.
 
-### 8. Resolve the share link
+### 8. Auto-merge
 
-Fetch the latest Vercel bot comment on the PR and extract the branch-alias preview URL:
+Squash-merge the PR and delete the remote branch:
 
 ```bash
-gh pr view <pr-number> --json comments \
-  --jq '[.comments[] | select(.author.login == "vercel" or .author.login == "vercel[bot]")] | last | .body'
+gh pr merge <pr-number> --squash --auto --delete-branch
 ```
 
-The comment contains a Markdown table with a "Visit Preview" link. Extract the URL matching `https://<project>-git-<sanitized-branch>-<scope>.vercel.app` — the branch alias, stable across pushes.
+Wait for the merge to complete by polling `gh pr view <pr-number> --json state` until `state` is `MERGED` (poll every 5s, cap at 60s).
+
+### 9. Wait for production deploy
+
+After merge, Vercel builds `main`. Wait for the production deployment to settle:
+
+```bash
+# Poll until a deployment matching the post-merge SHA appears and is READY
+# Use the GitHub deployments API:
+gh api "repos/{owner}/{repo}/deployments?environment=Production&per_page=5" \
+  --jq '.[0] | {id: .id, sha: .sha}'
+```
+
+Poll `gh api "repos/{owner}/{repo}/deployments/<id>/statuses" --jq '.[0].state'` every 10s until state is `success`. Cap at 180s.
+
+While waiting, print:
+
+```
+→ Deploying to production... (typically ~90s)
+```
+
+- **`success`** → continue to step 10.
+- **`failure` or `error`** → output:
+
+  > Production deploy failed. Check the Vercel dashboard and run /ship again once it's resolved.
+
+  Stop.
+
+- **Timeout** → output `Production deploy is still running. The prototype should be live shortly at <share-link>.` and stop (share the link anyway).
+
+### 10. Resolve the share link
+
+Use the production URL from the deployment record:
+
+```bash
+gh api "repos/{owner}/{repo}/deployments?environment=Production&per_page=1" \
+  --jq '.[0].payload.web_url // empty'
+```
+
+If `web_url` is absent from the payload, fall back to extracting the URL from the latest deployment status:
+
+```bash
+gh api "repos/{owner}/{repo}/deployments/<id>/statuses" \
+  --jq '.[0].target_url // empty'
+```
 
 Compose the final share link:
 
 ```
-<branch-alias>/<username>/<slug>
+<prod-url>/<username>/<slug>
 ```
 
-If comment parsing fails (e.g. the bot hasn't posted yet despite checks being green), fall back to extracting a deployment URL from `gh pr view <pr-number> --json statusCheckRollup` and warn the user once that this link may rotate.
+### 11. Local cleanup
 
-### 9. Hand back the link
-
-Use the template that matches the situation, verbatim.
-
-**First ship** (PR was created in this run):
-
-```
-🎉 <title> is live!
-
-Live: <share-link>
-Feedback: <pr-url>
-
-Keep editing and run /ship again to update.
+```bash
+git switch main
+git pull
+git branch -D <username>/<slug> 2>/dev/null || true
 ```
 
-**Re-ship with new commits:**
+### 12. Hand back the link
+
+Single output for every ship, regardless of whether it was the first or a re-ship:
 
 ```
 🚀 Shipped <title>.
 
 Live: <share-link>
-Feedback: <pr-url>
-```
-
-**Re-ship with no new commits** (step 4 created no commit):
-
-```
-Nothing new to ship.
-
-Live: <share-link>
-Feedback: <pr-url>
 ```
 
 Stop.
@@ -184,6 +222,6 @@ Stop.
 
 - Never run the Vercel CLI. The repo is wired via Vercel's GitHub integration.
 - Stage files explicitly with `git add <path>`. Never `git add .`.
-- Never merge the PR. Never delete the branch.
-- Engineering handoff is out of scope.
+- Prototypes must not touch shared code (`design/`, `components/`, `config/`, `utils/`, root configs, other contributors' prototypes). If dirty files outside `app/<username>/<slug>/` exist, refuse — don't warn.
+- Never merge `main`-targeted app improvements (gallery, design system, shared utils) via this skill. Those are separate PRs in a separate lane.
 - When surfacing build or deploy errors, summarise in plain English. Never paste raw stack traces unless the user asks.
