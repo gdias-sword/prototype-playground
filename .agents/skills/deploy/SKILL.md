@@ -146,13 +146,17 @@ Cap the wait at 180 seconds. Print phased progress so the user knows it isn't st
 Look for `playground.config.json` at the repo root.
 
 - **Exists with `productionUrl`** → use it.
-- **Missing or empty** → discover via:
+- **Missing or empty** → derive Vercel's stable project alias from the GitHub repo name:
 
   ```bash
-  gh api repos/<owner>/<repo>/deployments?environment=Production --jq '.[0].url'
+  gh repo view --json name --jq '.name'
   ```
 
-  Dereference to get `target_url`. Write the result to `playground.config.json` using the [template below](#playgroundconfigjson-template). Don't include the config file in the current PR — leave it staged for the user to commit separately. Tell the user: `Discovered production URL <url> and wrote it to playground.config.json — please commit it.`
+  Build `https://<repo-name>.vercel.app` — Vercel's default alias for projects connected via the GitHub integration. This domain auto-redirects to whichever deployment is currently flagged Production, so it stays valid across deploys.
+
+  Write the alias to `playground.config.json` using the [template below](#playgroundconfigjson-template). Don't include the config file in the current PR — leave it staged for the user to commit separately. Tell the user:
+
+  > Wrote production URL `<url>` to `playground.config.json`. This is Vercel's default project alias — if you've configured a custom domain or a non-default Vercel project name, edit it before committing.
 
 ### 10. Auto-merge with rebase
 
@@ -181,7 +185,7 @@ Stop.
 
 ```json
 {
-  "productionUrl": "https://playground-sword.vercel.app"
+  "productionUrl": "https://<repo-name>.vercel.app"
 }
 ```
 
