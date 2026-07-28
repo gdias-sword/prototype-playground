@@ -1,9 +1,9 @@
 ---
-name: Ship Prototype
+name: Ship
 description: Push a prototype to its long-lived branch, watch the Vercel preview, and hand back a stable share link. Each prototype lives on one branch with one open PR — the iteration thread — so the link stays the same every time you ship. Use when the user asks to ship, share, deploy, push, publish, get a link for, or update a prototype.
 ---
 
-# Ship Prototype
+# Ship
 
 Pushes a prototype to its branch and returns a stable share link. The PR is a long-lived iteration thread: never merge it, never delete the branch.
 

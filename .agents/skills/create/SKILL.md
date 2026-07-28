@@ -1,9 +1,9 @@
 ---
-name: Create Prototype
+name: Create
 description: Scaffold a new playground prototype under app/<username>/<slug>/ with meta.json and a minimal page.tsx, bootstrapping the contributor's local profile (.playground) on first run. Use when the user asks to create, scaffold, spin up, add, or make a new prototype.
 ---
 
-# Create Prototype
+# Create
 
 Scaffolds a new playground prototype under `app/<username>/<slug>/` with `meta.json` and a minimal `page.tsx`.
 
