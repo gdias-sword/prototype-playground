@@ -17,7 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${font.className} bg-background-neutral-default text-foreground-neutral-default antialiased`}
+        className={`${font.className} bg-background-neutral-default text-foreground-neutral-default flex min-h-dvh flex-col antialiased lg:flex-row lg:overscroll-none`}
       >
         {children}
       </body>
