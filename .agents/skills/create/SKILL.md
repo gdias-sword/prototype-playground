@@ -5,7 +5,7 @@ description: Scaffold a new playground prototype under app/<username>/<slug>/ wi
 
 # Create Prototype
 
-Scaffolds a new playground prototype so the contributor doesn't manually create the folder, `meta.json`, and `page.tsx`.
+Scaffolds a new playground prototype under `app/<username>/<slug>/` with `meta.json` and a minimal `page.tsx`.
 
 ## Workflow
 
