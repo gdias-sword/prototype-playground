@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sword Playground
 
-## Getting Started
+A shared prototype playground for design & product experimentation, powered by Sword.
 
-First, run the development server:
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to browse all prototypes.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Creating a prototype
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create a folder at `app/[your-name]/[prototype-name]/`
+2. Add a `page.tsx` with a default-exported React component
+3. Add a `meta.json` with title, description, and createdAt
 
-## Learn More
+```
+app/
+└── goncalo/
+    └── my-new-prototype/
+        ├── page.tsx
+        └── meta.json
+```
 
-To learn more about Next.js, take a look at the following resources:
+### `meta.json`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```json
+{
+  "title": "Your New Prototype",
+  "description": "What you're exploring",
+  "createdAt": "2026-04-23"
+}
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### `page.tsx`
 
-## Deploy on Vercel
+```tsx
+export default function MyNewPrototype() {
+  return <div className="p-8">{/* your prototype here */}</div>;
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Your prototype will appear in the gallery automatically at `localhost:3000/[your-name]/[prototype-name]`. No registration needed.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Folders without a `meta.json` are ignored by the gallery — useful for WIP work you're not ready to surface yet.
+
+## Design system
+
+The Sword design system lives in `design/` at the root of the repo:
+
+```
+design/
+├── components/   # React components (Button, …)
+├── tokens/       # Colors, typography, breakpoints as CSS variables
+├── icons/        # Icon components
+├── brand/        # Sword logos and brand assets
+└── lib/          # cn() and other DS utilities
+```
+
+Tokens are exposed as Tailwind utilities (e.g. `bg-background-brand-default`, `text-body-medium-strong`). To use a component:
+
+```tsx
+import { Button } from '@/phoenix/components/button';
+
+<Button variant="solid">Click me</Button>;
+```
+
+## Formatting
+
+```bash
+npm run format
+```
