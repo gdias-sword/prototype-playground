@@ -1,8 +1,9 @@
 import { getPrototypes } from '@/config/registry';
-import Link from 'next/link';
+import { readPlaygroundUsername } from '@/config/user';
 
 export default function Gallery() {
   const prototypes = getPrototypes();
+  const playgroundUsername = readPlaygroundUsername();
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
