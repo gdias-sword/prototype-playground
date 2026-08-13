@@ -113,6 +113,9 @@
   --color-border-neutral-subtle: var(--color-border-neutral-subtle);
   --color-border-neutral-strong: var(--color-border-neutral-strong);
 
+  --font-sans: var(--font-figtree), ui-sans-serif;
+  --font-serif: var(--font-lora), ui-serif;
+
   --text-*: initial;
   --text-body-small-default: 12px;
   --text-body-small-default--line-height: 16px;
