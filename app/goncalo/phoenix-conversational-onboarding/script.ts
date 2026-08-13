@@ -1,0 +1,136 @@
+export const MEMBER = 'Alex';
+export const PT = 'Lauren';
+
+export const BODY_AREAS = [
+  'Neck',
+  'Shoulder',
+  'Upper back',
+  'Lower back',
+  'Hip',
+  'Knee',
+  'Ankle',
+  'Wrist',
+  'Elbow',
+  'Head',
+] as const;
+
+export const DURATIONS = [
+  'A few days',
+  'A few weeks',
+  'A few months',
+  'Longer than that',
+] as const;
+
+export type DoorId = 'assessment' | 'how' | 'question';
+
+export const WORLD_BEATS = [
+  {
+    title: `Meet ${PT}`,
+    body: 'She’ll support your recovery with clinical expertise — a real physical therapist, with you.',
+  },
+  {
+    title: 'Care, together',
+    body: `${PT} and Phoenix work as one team, so your care stays personal.`,
+  },
+  {
+    title: 'Sessions that fit',
+    body: 'Your plan meets you where you are, and it adjusts as you do.',
+  },
+  {
+    title: 'One thread',
+    body: `You, ${PT}, and Phoenix — sessions, questions, check-ins. All in one place.`,
+  },
+] as const;
+
+export const GUIDE_LINES = [
+  `Hi ${MEMBER}, I’m Phoenix.`,
+  `I’ll be with you in sessions, alongside ${PT}.`,
+] as const;
+
+export const DOORS: { id: DoorId; label: string }[] = [
+  { id: 'assessment', label: 'Start my assessment' },
+  { id: 'how', label: 'How it works' },
+  { id: 'question', label: 'I have a question' },
+];
+
+export type Answers = {
+  area: string | null;
+  duration: string | null;
+  intensity: number | null;
+  tingling: boolean | null;
+};
+
+export function areaQuestion() {
+  return 'Let’s start with where you’re hurting most.';
+}
+
+export function durationQuestion(area: string) {
+  return `${area}. When did that start?`;
+}
+
+export function intensityQuestion(duration: string) {
+  const shortened =
+    duration === 'Longer than that'
+      ? 'A while, then'
+      : duration.replace(/^A /, 'A ');
+  return `${shortened.charAt(0).toLowerCase() + shortened.slice(1)}. And the intensity lately?`;
+}
+
+export function followUpQuestion(area: string) {
+  if (area === 'Neck' || area === 'Shoulder') {
+    return 'Do you feel tingling or numbness down your arm?';
+  }
+  if (area === 'Lower back' || area === 'Hip') {
+    return 'Does it travel down your leg?';
+  }
+  return 'Does it change when you move?';
+}
+
+export function doorsLine() {
+  return 'Let’s get you started.';
+}
+
+export function chatIntro(
+  door: DoorId,
+  answers: Answers,
+): { from: 'Phoenix' | 'Lauren'; text: string }[] {
+  const area = answers.area ?? 'that pain';
+  const duration = (answers.duration ?? 'a while').toLowerCase();
+  const intensity = answers.intensity ?? 5;
+  const tingling = answers.tingling;
+
+  if (door === 'assessment') {
+    const tinglingBit =
+      tingling === true
+        ? ', with some tingling down the arm'
+        : tingling === false
+          ? ', no tingling'
+          : '';
+    return [
+      {
+        from: 'Phoenix',
+        text: `${MEMBER} — ${area.toLowerCase()}, ${duration}, around a ${intensity}${tinglingBit}. I’ll set up an assessment around that.`,
+      },
+      {
+        from: 'Lauren',
+        text: 'I’ll take a look before we start. You’re in good hands.',
+      },
+    ];
+  }
+
+  if (door === 'how') {
+    return [
+      {
+        from: 'Phoenix',
+        text: `This thread is us — you, me, and ${PT}. Sessions, questions, check-ins. All here.`,
+      },
+    ];
+  }
+
+  return [
+    {
+      from: 'Phoenix',
+      text: `Go ahead. I’m here, and ${PT} can jump in whenever you need her.`,
+    },
+  ];
+}
