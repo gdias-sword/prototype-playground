@@ -23,10 +23,6 @@
   animation: phoenix-ring 5.5s ease-in-out infinite;
 }
 
-.font-phoenix {
-  font-family: var(--font-phoenix-serif), ui-serif, serif;
-}
-
 @keyframes phoenix-mesh-a {
   0%,
   100% {

@@ -14,7 +14,7 @@ function LaurenMark({ size = 160 }: { size?: number }) {
       <span className="absolute inset-[-18%] rounded-full border border-[#c5d4f5]/50" />
       <span className="absolute inset-[-8%] rounded-full border border-[#c5d4f5]/70" />
       <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[linear-gradient(160deg,#d7e4ff_0%,#e8eefc_45%,#f3e6dc_100%)]">
-        <span className="font-phoenix text-[56px] text-[#5a6a8a]">
+        <span className="font-serif text-[56px] font-medium tracking-[-0.04em] text-[#5a6a8a]">
           {PT[0]}
         </span>
       </div>
@@ -64,7 +64,7 @@ export function WorldScene({
         <ProgressDots count={4} index={index} />
       </div>
       <div className="flex flex-1 flex-col px-4 pt-8">
-        <h1 className="text-foreground-neutral-default font-phoenix text-[28px] leading-[34px]">
+        <h1 className="text-foreground-neutral-default font-serif text-[28px] leading-[34px] font-medium tracking-[-0.04em]">
           {beat.title}
         </h1>
         <p className="text-body-large-default text-foreground-neutral-faded mt-3">
@@ -76,7 +76,7 @@ export function WorldScene({
           ) : index === 2 ? (
             <div className="relative h-40 w-40">
               <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_180deg_at_50%_50%,rgba(255,176,160,0.35),rgba(140,160,245,0.35),rgba(255,176,160,0.35))] blur-2xl" />
-              <div className="text-foreground-neutral-subtle relative flex h-full items-center justify-center font-phoenix text-[22px]">
+              <div className="text-foreground-neutral-subtle relative flex h-full items-center justify-center font-serif text-[22px] font-medium tracking-[-0.04em]">
                 Today
               </div>
             </div>

@@ -35,7 +35,7 @@ function SpokenLine({
     <p
       key={appearKey}
       className={cn(
-        'text-foreground-neutral-default font-phoenix text-[26px] leading-[32px]',
+        'text-foreground-neutral-default font-serif text-[26px] leading-[32px] font-medium tracking-[-0.04em]',
         faded && 'text-foreground-neutral-faded text-[18px] leading-6',
       )}
       style={{
