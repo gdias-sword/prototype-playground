@@ -2,17 +2,10 @@
 
 import { Popover } from '@base-ui/react/popover';
 import { RotateCcw, Settings2, Volume2, VolumeX } from 'lucide-react';
-import { Instrument_Serif } from 'next/font/google';
 import { useEffect, useState } from 'react';
 import { DeviceFrame } from './device-frame';
 import { Experience } from './experience';
 import './motion.css';
-
-const serif = Instrument_Serif({
-  weight: '400',
-  subsets: ['latin'],
-  variable: '--font-phoenix-serif',
-});
 
 export default function PhoenixConversationalOnboarding() {
   const [isMuted, setIsMuted] = useState(false);
@@ -55,7 +48,7 @@ export default function PhoenixConversationalOnboarding() {
 
   return (
     <div
-      className={`${serif.variable} relative flex min-h-dvh w-full min-w-0 flex-1 items-center justify-center overflow-auto p-6`}
+      className="relative flex min-h-dvh w-full min-w-0 flex-1 items-center justify-center overflow-auto p-6"
     >
       <div className="phoenix-device-stage">
         <DeviceFrame>
