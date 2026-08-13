@@ -1,5 +1,5 @@
 ---
-name: Diverge
+name: diverge
 description: Generate multiple structurally-different UI variants in a single artifact, switchable via a floating bottom bar, so a designer can flip between them in the browser and either commit to one or cherry-pick parts from several. Use when the user asks to "explore approaches," "see a few options," "try different layouts," "show me variations," or anything else that suggests they want to see the design problem solved more than one way before committing.
 ---
 

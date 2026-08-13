@@ -1,5 +1,5 @@
 ---
-name: Ship
+name: ship
 description: Squash-merge a prototype into main so it's live on the production domain. Each ship is a short-lived branch that's created fresh from main, gated on a Vercel preview build, then auto-merged and deleted. Use when the user asks to ship, share, deploy, push, publish, get a link for, or update a prototype.
 ---
 
