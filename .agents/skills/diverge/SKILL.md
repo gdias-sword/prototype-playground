@@ -103,7 +103,8 @@ Surface the variant keys and names in the response so the designer knows what th
 ## Anti-patterns
 
 - **Recoloring as "variants."** Three takes that differ only in palette, spacing, or copy are not variants — they're a tweak. Real variants disagree about structure.
-- **Sharing a `<Layout>` wrapper across variants.** Defeats the point. Each variant should be free to throw out the layout entirely.
+- **Sharing a** `<Layout>` **wrapper across variants.** Defeats the point. Each variant should be free to throw out the layout entirely.
 - **Variants that converge mid-draft.** If A and B are starting to look alike, stop and redo one. Don't ship a near-duplicate.
 - **Skipping step 2.** If the axes of divergence aren't written down before drafting, the variants will quietly collapse into the same idea three times.
+- **Replacing existing variants.** When a new direction emerges (e.g. content-first sequencing), add it as a new variant key — don't overwrite labels, delete files, or repurpose A–D slots that already hold a design exploration.
 - **More than 5 variants.** Past five, the designer can't hold them in their head and the exercise stops working.
