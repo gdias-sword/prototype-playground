@@ -80,14 +80,6 @@ Then:
 - If the user's original prompt described what to build inside the prototype, **continue immediately** by editing the new `page.tsx` to implement it.
 - If the user only asked to scaffold, stop and wait.
 
-## Templates
-
-### .playground template
-
-```sh
-USERNAME=<username>
-```
-
 The file is a tiny env-style document (one `KEY=VALUE` per line). It is gitignored. Edit freely or delete to re-bootstrap.
 
 ## Notes
