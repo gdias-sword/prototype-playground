@@ -23,29 +23,12 @@ export const DURATIONS = [
 
 export type DoorId = 'assessment' | 'how' | 'question';
 
-export const WORLD_BEATS = [
-  {
-    title: `Meet ${PT}`,
-    body: 'She’ll support your recovery with clinical expertise — a real physical therapist, with you.',
-  },
-  {
-    title: 'Care, together',
-    body: `${PT} and Phoenix work as one team, so your care stays personal.`,
-  },
-  {
-    title: 'Sessions that fit',
-    body: 'Your plan meets you where you are, and it adjusts as you do.',
-  },
-  {
-    title: 'One thread',
-    body: `You, ${PT}, and Phoenix — sessions, questions, check-ins. All in one place.`,
-  },
-] as const;
-
 export const GUIDE_LINES = [
   `Hi ${MEMBER}, I’m Phoenix.`,
-  `I’ll be with you in sessions, alongside ${PT}.`,
+  'I’ll be guiding your care, alongside a real physical therapist.',
 ] as const;
+
+export const THERAPIST_PHRASE = 'real physical therapist';
 
 export const DOORS: { id: DoorId; label: string }[] = [
   { id: 'assessment', label: 'Start my assessment' },

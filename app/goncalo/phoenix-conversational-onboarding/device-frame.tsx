@@ -1,49 +1,92 @@
 import { mergeTailwindClasses as cn } from '@/design/utils';
 import type { ReactNode } from 'react';
 
-export function StatusBar({ light = true }: { light?: boolean }) {
-  const fill = light ? 'black' : 'white';
-
+function CellularSignal() {
   return (
-    <div className="flex h-12 shrink-0 items-end justify-between px-7 pb-1.5">
-      <span
-        className={cn(
-          'text-[15px] font-semibold',
-          light ? 'text-foreground-neutral-default' : 'text-white',
-        )}
-      >
+    <svg
+      width="17"
+      height="12"
+      viewBox="0 0 17 12"
+      fill="currentColor"
+      aria-hidden
+    >
+      <rect x="0" y="7.5" width="3" height="4.5" rx="0.6" />
+      <rect x="4.5" y="5.2" width="3" height="6.8" rx="0.6" />
+      <rect x="9" y="2.6" width="3" height="9.4" rx="0.6" />
+      <rect x="13.5" y="0" width="3" height="12" rx="0.6" />
+    </svg>
+  );
+}
+
+function WifiSignal() {
+  return (
+    <svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden>
+      <path
+        d="M1.2 3.95a9.1 9.1 0 0 1 13.6 0"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M3.4 6.4a5.8 5.8 0 0 1 9.2 0"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M5.6 8.8a2.65 2.65 0 0 1 4.8 0"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <circle cx="8" cy="11.05" r="1.05" fill="currentColor" />
+    </svg>
+  );
+}
+
+function BatteryLevel() {
+  return (
+    <svg width="25" height="12" viewBox="0 0 25 12" fill="none" aria-hidden>
+      <rect
+        x="0.5"
+        y="0.5"
+        width="21"
+        height="11"
+        rx="2.5"
+        stroke="currentColor"
+        strokeOpacity="0.36"
+        strokeWidth="1"
+      />
+      <rect x="2" y="2" width="18" height="8" rx="1.35" fill="currentColor" />
+      <rect
+        x="23"
+        y="3.8"
+        width="1.6"
+        height="4.4"
+        rx="0.8"
+        fill="currentColor"
+        fillOpacity="0.4"
+      />
+    </svg>
+  );
+}
+
+export function StatusBar({ light = true }: { light?: boolean }) {
+  return (
+    <div
+      className={cn(
+        'flex h-12 shrink-0 items-end justify-between px-7 pb-1.5',
+        light ? 'text-foreground-neutral-default' : 'text-white',
+      )}
+    >
+      <span className="text-[15px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
         9:41
       </span>
-      <svg width="68" height="12" viewBox="0 0 68 12" fill="none" aria-hidden>
-        <path
-          d="M1 8.5C1 8.5 3 3.5 8 3.5C13 3.5 14 8.5 14 8.5"
-          stroke={fill}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M16 8.5C16 8.5 18 3.5 23 3.5C28 3.5 29 8.5 29 8.5"
-          stroke={fill}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M31 8.5C31 8.5 33 3.5 38 3.5C43 3.5 44 8.5 44 8.5"
-          stroke={fill}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-        <rect
-          x="48"
-          y="1"
-          width="18"
-          height="10"
-          rx="2"
-          stroke={fill}
-          strokeWidth="1.2"
-        />
-        <rect x="50" y="3" width="12" height="6" rx="0.8" fill={fill} />
-      </svg>
+      <div className="flex items-center gap-[6px] pb-[1px]">
+        <CellularSignal />
+        <WifiSignal />
+        <BatteryLevel />
+      </div>
     </div>
   );
 }

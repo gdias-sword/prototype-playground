@@ -1,8 +1,8 @@
 'use client';
 
 import { mergeTailwindClasses as cn } from '@/design/utils';
-import { useEffect, useMemo, useState } from 'react';
-import { GlassChip, GlassField } from './glass';
+import { useEffect, useState, type ReactNode } from 'react';
+import { GlassChip } from './glass';
 import {
   BODY_AREAS,
   DOORS,
@@ -15,6 +15,7 @@ import {
   doorsLine,
   DURATIONS,
   GUIDE_LINES,
+  THERAPIST_PHRASE,
 } from './script';
 
 export type PhoenixStep =
@@ -23,11 +24,11 @@ export type PhoenixStep =
   | { kind: 'doors' };
 
 function SpokenLine({
-  text,
+  children,
   faded,
   appearKey,
 }: {
-  text: string;
+  children: ReactNode;
   faded?: boolean;
   appearKey: string;
 }) {
@@ -44,8 +45,26 @@ function SpokenLine({
           : 'line-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both',
       }}
     >
-      {text}
+      {children}
     </p>
+  );
+}
+
+function TherapistGuideLine() {
+  const [lead, trail] = GUIDE_LINES[1].split(THERAPIST_PHRASE);
+  const [isShimmering, setIsShimmering] = useState(true);
+
+  return (
+    <>
+      {lead}
+      <span
+        className={isShimmering ? 'phoenix-shimmer' : undefined}
+        onAnimationEnd={() => setIsShimmering(false)}
+      >
+        {THERAPIST_PHRASE}
+      </span>
+      {trail}
+    </>
   );
 }
 
@@ -60,7 +79,7 @@ function ToolShell({
 
   return (
     <div
-      className="mt-6"
+      className="mt-6 -mx-4 flex min-h-0 flex-1 flex-col px-4"
       style={{ animation: 'rise-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both' }}
     >
       {children}
@@ -69,28 +88,13 @@ function ToolShell({
 }
 
 function AreaTool({ onCommit }: { onCommit: (area: string) => void }) {
-  const [query, setQuery] = useState('');
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return BODY_AREAS.slice(0, 5);
-    return BODY_AREAS.filter((area) => area.toLowerCase().includes(q));
-  }, [query]);
-
   return (
-    <div className="flex flex-col gap-3">
-      <GlassField
-        autoFocus
-        value={query}
-        placeholder="e.g. neck, shoulder…"
-        onChange={(event) => setQuery(event.target.value)}
-      />
-      <div className="flex flex-col gap-2">
-        {matches.map((area) => (
-          <GlassChip key={area} onClick={() => onCommit(area)}>
-            {area}
-          </GlassChip>
-        ))}
-      </div>
+    <div className="phoenix-chip-scroller -mx-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 py-5">
+      {BODY_AREAS.map((area) => (
+        <GlassChip key={area} onClick={() => onCommit(area)}>
+          {area}
+        </GlassChip>
+      ))}
     </div>
   );
 }
@@ -202,14 +206,22 @@ export function PhoenixCopy({
 
   return (
     <div
-      className="flex flex-1 flex-col px-5 pt-2"
+      className="flex min-h-0 flex-1 flex-col px-5 pt-2"
       onClick={step.kind === 'guide' ? onGuideAdvance : undefined}
     >
       <div className="min-h-[92px]">
         {previous ? (
-          <SpokenLine faded appearKey={`prev-${previous}`} text={previous} />
+          <SpokenLine faded appearKey={`prev-${previous}`}>
+            {previous}
+          </SpokenLine>
         ) : null}
-        <SpokenLine appearKey={line} text={line} />
+        <SpokenLine appearKey={line}>
+          {step.kind === 'guide' && step.index === 1 ? (
+            <TherapistGuideLine />
+          ) : (
+            line
+          )}
+        </SpokenLine>
       </div>
       <ToolShell show={showTool}>
         {step.kind === 'know' && step.index === 0 ? (

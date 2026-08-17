@@ -10,7 +10,6 @@ import { PhoenixCopy, type PhoenixStep, useDelayedTool } from './phoenix-scene';
 import {
   type Answers,
   type DoorId,
-  WORLD_BEATS,
   GUIDE_LINES,
   areaQuestion,
   durationQuestion,
@@ -18,9 +17,9 @@ import {
   followUpQuestion,
   doorsLine,
 } from './script';
-import { WorldBackdrop, WorldScene } from './world-scene';
+import { WorldBackdrop } from './world-scene';
 
-type Phase = 'world' | 'entering' | 'phoenix' | 'exiting' | 'chat';
+type Phase = 'entering' | 'phoenix' | 'exiting' | 'chat';
 type Layout = 'seed' | 'hero' | 'hero-compact' | 'avatar';
 
 const EMPTY_ANSWERS: Answers = {
@@ -39,32 +38,6 @@ function currentLine(step: PhoenixStep, answers: Answers) {
   return followUpQuestion(answers.area ?? 'Neck');
 }
 
-function WorldSwipe({
-  onBack,
-  onNext,
-}: {
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  const origin = useRef<number | null>(null);
-
-  return (
-    <div
-      className="absolute inset-x-0 top-0 bottom-28 z-20 touch-pan-y"
-      onPointerDown={(event) => {
-        origin.current = event.clientX;
-      }}
-      onPointerUp={(event) => {
-        if (origin.current == null) return;
-        const dx = event.clientX - origin.current;
-        origin.current = null;
-        if (dx < -48) onNext();
-        else if (dx > 48) onBack();
-      }}
-    />
-  );
-}
-
 export function Experience({
   muted,
   replayKey,
@@ -73,12 +46,12 @@ export function Experience({
   replayKey: number;
 }) {
   const audioRef = useRef<ExperienceAudio | null>(null);
-  const [phase, setPhase] = useState<Phase>('world');
-  const [worldIndex, setWorldIndex] = useState(0);
+  const [phase, setPhase] = useState<Phase>('entering');
+  const [isHero, setIsHero] = useState(false);
   const [step, setStep] = useState<PhoenixStep>({ kind: 'guide', index: 0 });
   const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
   const [previous, setPrevious] = useState<string | null>(null);
-  const [mood, setMood] = useState<PhoenixMood>('breath');
+  const [mood, setMood] = useState<PhoenixMood>('think');
   const [door, setDoor] = useState<DoorId | null>(null);
   const [chatCount, setChatCount] = useState(0);
   const toolReady = useDelayedTool(
@@ -99,12 +72,16 @@ export function Experience({
   }, [muted]);
 
   useEffect(() => {
-    const present = phase !== 'world';
-    audioRef.current?.setPresent(present);
+    audioRef.current?.setPresent(true);
     audioRef.current?.setSpeak(
       mood === 'speak' ? 1 : mood === 'think' ? 0.35 : 0.08,
     );
   }, [phase, mood]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setIsHero(true), 40);
+    return () => window.clearTimeout(id);
+  }, []);
 
   useEffect(() => {
     if (phase !== 'entering') return;
@@ -153,17 +130,6 @@ export function Experience({
     audioRef.current?.unlock();
   }
 
-  function goWorld(next: number) {
-    unlock();
-    if (next < 0) return;
-    if (next >= WORLD_BEATS.length) {
-      setPhase('entering');
-      setMood('think');
-      return;
-    }
-    setWorldIndex(next);
-  }
-
   function afterThink(next: PhoenixStep, prev: string) {
     setMood('think');
     window.setTimeout(() => {
@@ -177,38 +143,24 @@ export function Experience({
       ? 'avatar'
       : phase === 'phoenix' && searching
         ? 'hero-compact'
-        : phase === 'world'
+        : phase === 'entering' && !isHero
           ? 'seed'
           : 'hero';
 
-  const showWorld = phase === 'world' || phase === 'entering';
   const showChat = phase === 'exiting' || phase === 'chat';
 
   return (
-    <div className="relative h-full overflow-hidden bg-[#f6f4fb] select-none">
-      <WorldBackdrop index={phase === 'world' ? worldIndex : 3} />
+    <div
+      className="relative h-full overflow-hidden bg-[#f6f4fb] select-none"
+      onPointerDown={unlock}
+    >
+      <WorldBackdrop />
       <div
         className={cn(
           'pointer-events-none absolute inset-0 bg-[#f4f7ff] transition-opacity duration-1000',
           showChat && phase === 'chat' ? 'opacity-100' : 'opacity-0',
         )}
       />
-
-      <div
-        className={cn(
-          'absolute inset-0 transition-opacity duration-700',
-          showWorld && phase !== 'entering' ? 'opacity-100' : 'opacity-0',
-          phase === 'entering' && 'pointer-events-none',
-        )}
-      >
-        {showWorld ? (
-          <WorldScene
-            index={worldIndex}
-            seedReserve
-            onContinue={() => goWorld(worldIndex + 1)}
-          />
-        ) : null}
-      </div>
 
       <div
         className={cn(
@@ -312,13 +264,6 @@ export function Experience({
           <PhoenixOrb mood={mood} className="relative h-full w-full" />
         </div>
       </div>
-
-      {phase === 'world' ? (
-        <WorldSwipe
-          onBack={() => goWorld(worldIndex - 1)}
-          onNext={() => goWorld(worldIndex + 1)}
-        />
-      ) : null}
     </div>
   );
 }
