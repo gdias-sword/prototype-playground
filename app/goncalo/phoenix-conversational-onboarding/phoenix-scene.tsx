@@ -250,7 +250,7 @@ function PhoenixLineText({
 }) {
   const [isComplete, setIsComplete] = useState(!shouldStream);
   const hasCompletedRef = useRef(!shouldStream);
-  const words = useMemo(() => text.match(/\S+\s*/g) ?? [text], [text]);
+  const characters = useMemo(() => Array.from(text), [text]);
 
   function handleStreamEnd(event: AnimationEvent<HTMLSpanElement>) {
     if (event.currentTarget !== event.target || hasCompletedRef.current) return;
@@ -266,24 +266,21 @@ function PhoenixLineText({
     return text;
   }
 
-  let elapsedCharacters = 0;
-
   return (
-    <span aria-label={text}>
+    <span aria-label={text} className="whitespace-pre-wrap">
       <span aria-hidden="true">
-        {words.map((word, index) => {
-          const delay = elapsedCharacters * 24;
-          elapsedCharacters += word.length;
-          const isLast = index === words.length - 1;
+        {characters.map((character, index) => {
+          const delay = index * 40;
+          const isLast = index === characters.length - 1;
 
           return (
             <span
-              key={`${word}-${index}`}
-              className="phoenix-stream-word"
+              key={`${character}-${index}`}
+              className="phoenix-stream-character"
               style={{ animationDelay: `${delay}ms` }}
               onAnimationEnd={isLast ? handleStreamEnd : undefined}
             >
-              {word}
+              {character}
             </span>
           );
         })}
@@ -370,7 +367,7 @@ export function PhoenixCopy({
                 <p
                   key={turn.id}
                   className={cn(
-                    'text-left font-serif text-[26px] leading-[32px] tracking-[-0.04em] transition-[color,opacity,filter] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    'text-left font-serif text-[24px] leading-[30px] tracking-[-0.04em] transition-[color,opacity,filter] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
                     turn.role === 'member'
                       ? 'text-foreground-brand-default font-medium'
                       : isCurrent

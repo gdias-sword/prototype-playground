@@ -19,7 +19,6 @@ precision highp float;
 
 varying vec2 vUv;
 uniform float uTime;
-uniform float uAudioLevel;
 uniform float uSpeak;
 uniform float uListen;
 uniform float uThink;
@@ -73,7 +72,12 @@ void main() {
   float time = uTime;
 
   float idleBreath = sin(time * 1.35) * 0.012;
-  float voiceScale = uSpeak * uAudioLevel * 0.075;
+  float phrase = 0.5 + 0.5 * sin(time * 2.15 + sin(time * 0.61));
+  float syllable = 0.5 + 0.5 * sin(time * 9.2 + sin(time * 3.7) * 0.8);
+  float texture = 0.5 + 0.5 * sin(time * 16.7 + 1.4);
+  float voiceEnvelope =
+    0.18 + phrase * 0.22 + pow(syllable, 1.8) * 0.48 + texture * 0.12;
+  float voiceScale = uSpeak * voiceEnvelope * 0.075;
   float radius = 0.70 + idleBreath + voiceScale - uThink * 0.018;
   float distanceToCenter = length(uv);
   float bodyAlpha = 1.0 - smoothstep(radius - 0.009, radius + 0.009, distanceToCenter);
@@ -151,18 +155,14 @@ function compileShader(
 
 export function PhoenixOrb({
   mood,
-  getAudioLevel,
   className,
 }: {
   mood: PhoenixMood;
-  getAudioLevel: () => number;
   className?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const moodRef = useRef(mood);
-  const getAudioLevelRef = useRef(getAudioLevel);
   moodRef.current = mood;
-  getAudioLevelRef.current = getAudioLevel;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -207,7 +207,6 @@ export function PhoenixOrb({
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
     const timeUniform = gl.getUniformLocation(program, 'uTime');
-    const audioLevelUniform = gl.getUniformLocation(program, 'uAudioLevel');
     const speakUniform = gl.getUniformLocation(program, 'uSpeak');
     const listenUniform = gl.getUniformLocation(program, 'uListen');
     const thinkUniform = gl.getUniformLocation(program, 'uThink');
@@ -219,7 +218,6 @@ export function PhoenixOrb({
     let speak = 0;
     let listen = 0;
     let think = 0;
-    let audioLevel = 0;
     let animationFrame = 0;
     let isRunning = true;
     const startedAt = performance.now();
@@ -252,10 +250,8 @@ export function PhoenixOrb({
       speak += ((currentMood === 'speak' ? 1 : 0) - speak) * 0.075;
       listen += ((currentMood === 'listen' ? 1 : 0) - listen) * 0.075;
       think += ((currentMood === 'think' ? 1 : 0) - think) * 0.075;
-      audioLevel += (getAudioLevelRef.current() - audioLevel) * 0.18;
 
       renderingContext.uniform1f(timeUniform, (now - startedAt) / 1000);
-      renderingContext.uniform1f(audioLevelUniform, audioLevel);
       renderingContext.uniform1f(speakUniform, speak);
       renderingContext.uniform1f(listenUniform, listen);
       renderingContext.uniform1f(thinkUniform, think);

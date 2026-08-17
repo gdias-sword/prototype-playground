@@ -1,22 +1,17 @@
 'use client';
 
 import { Popover } from '@base-ui/react/popover';
-import { RotateCcw, Settings2, Volume2, VolumeX } from 'lucide-react';
+import { RotateCcw, Settings2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DeviceFrame } from './device-frame';
 import { Experience } from './experience';
 import './motion.css';
 
 export default function PhoenixConversationalOnboarding() {
-  const [isMuted, setIsMuted] = useState(false);
   const [replayKey, setReplayKey] = useState(0);
 
   function handleReplay() {
     setReplayKey((value) => value + 1);
-  }
-
-  function handleToggleMute() {
-    setIsMuted((value) => !value);
   }
 
   useEffect(() => {
@@ -31,14 +26,9 @@ export default function PhoenixConversationalOnboarding() {
         return;
       }
 
-      const key = event.key.toLowerCase();
-      if (key === 'r') {
+      if (event.key.toLowerCase() === 'r') {
         event.preventDefault();
         handleReplay();
-      }
-      if (key === 'm') {
-        event.preventDefault();
-        handleToggleMute();
       }
     }
 
@@ -52,7 +42,7 @@ export default function PhoenixConversationalOnboarding() {
     >
       <div className="phoenix-device-stage">
         <DeviceFrame>
-          <Experience key={replayKey} muted={isMuted} replayKey={replayKey} />
+          <Experience key={replayKey} />
         </DeviceFrame>
       </div>
 
@@ -76,21 +66,6 @@ export default function PhoenixConversationalOnboarding() {
                   R
                 </kbd>
               </Popover.Close>
-              <button
-                type="button"
-                onClick={handleToggleMute}
-                className="text-body-small-subtle flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-left hover:bg-white/10"
-              >
-                {isMuted ? (
-                  <VolumeX className="size-3.5" />
-                ) : (
-                  <Volume2 className="size-3.5" />
-                )}
-                {isMuted ? 'Sound off' : 'Sound on'}
-                <kbd className="text-body-small-subtle ml-auto text-white/40">
-                  M
-                </kbd>
-              </button>
             </Popover.Popup>
           </Popover.Positioner>
         </Popover.Portal>

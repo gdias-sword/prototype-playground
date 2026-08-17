@@ -2,7 +2,6 @@
 
 import { mergeTailwindClasses as cn } from '@/design/utils';
 import { useEffect, useRef, useState } from 'react';
-import { createExperienceAudio, type ExperienceAudio } from './audio';
 import { ChatScene } from './chat-scene';
 import { HomeIndicator, StatusBar } from './device-frame';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
@@ -48,14 +47,7 @@ function turnKind(step: PhoenixStep): StackTurn['kind'] {
   return 'question';
 }
 
-export function Experience({
-  muted,
-  replayKey,
-}: {
-  muted: boolean;
-  replayKey: number;
-}) {
-  const audioRef = useRef<ExperienceAudio | null>(null);
+export function Experience() {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
   const [phase, setPhase] = useState<Phase>('entering');
@@ -89,24 +81,10 @@ export function Experience({
   }
 
   useEffect(() => {
-    const audio = createExperienceAudio();
-    audioRef.current = audio;
     return () => {
-      audio.dispose();
       timersRef.current.forEach((id) => window.clearTimeout(id));
     };
-  }, [replayKey]);
-
-  useEffect(() => {
-    audioRef.current?.setMuted(muted);
-  }, [muted]);
-
-  useEffect(() => {
-    audioRef.current?.setPresent(true);
-    audioRef.current?.setSpeak(
-      mood === 'speak' ? 1 : mood === 'think' ? 0.35 : 0.08,
-    );
-  }, [phase, mood]);
+  }, []);
 
   useEffect(() => {
     const id = window.setTimeout(() => setIsHero(true), 40);
@@ -166,10 +144,6 @@ export function Experience({
       window.clearTimeout(second);
     };
   }, [phase, door]);
-
-  function unlock() {
-    audioRef.current?.unlock();
-  }
 
   function commitMember(
     text: string,
@@ -292,10 +266,7 @@ export function Experience({
   };
 
   return (
-    <div
-      className="relative h-full overflow-hidden bg-[#f6f4fb] select-none"
-      onPointerDown={unlock}
-    >
+    <div className="relative h-full overflow-hidden bg-[#f6f4fb] select-none">
       <WorldBackdrop />
       <div
         className={cn(
@@ -357,11 +328,7 @@ export function Experience({
         )}
       >
         <div className="relative h-full w-full">
-          <PhoenixOrb
-            mood={mood}
-            getAudioLevel={() => audioRef.current?.getLevel() ?? 0}
-            className="relative h-full w-full"
-          />
+          <PhoenixOrb mood={mood} className="relative h-full w-full" />
         </div>
       </div>
     </div>
