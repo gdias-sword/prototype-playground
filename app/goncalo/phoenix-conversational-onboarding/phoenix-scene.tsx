@@ -1,21 +1,22 @@
 'use client';
 
 import { mergeTailwindClasses as cn } from '@/design/utils';
-import { useEffect, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { GlassChip } from './glass';
 import {
   BODY_AREAS,
   DOORS,
-  type Answers,
-  type DoorId,
-  areaQuestion,
-  durationQuestion,
-  followUpQuestion,
-  intensityQuestion,
-  doorsLine,
   DURATIONS,
-  GUIDE_LINES,
   THERAPIST_PHRASE,
+  type DoorId,
+  type StackTurn,
 } from './script';
 
 export type PhoenixStep =
@@ -23,35 +24,8 @@ export type PhoenixStep =
   | { kind: 'know'; index: 0 | 1 | 2 | 3 }
   | { kind: 'doors' };
 
-function SpokenLine({
-  children,
-  faded,
-  appearKey,
-}: {
-  children: ReactNode;
-  faded?: boolean;
-  appearKey: string;
-}) {
-  return (
-    <p
-      key={appearKey}
-      className={cn(
-        'text-foreground-neutral-default font-serif text-[26px] leading-[32px] font-medium tracking-[-0.04em]',
-        faded && 'text-foreground-neutral-faded text-[18px] leading-6',
-      )}
-      style={{
-        animation: faded
-          ? 'line-out 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards'
-          : 'line-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both',
-      }}
-    >
-      {children}
-    </p>
-  );
-}
-
-function TherapistGuideLine() {
-  const [lead, trail] = GUIDE_LINES[1].split(THERAPIST_PHRASE);
+export function TherapistGuideLine({ line }: { line: string }) {
+  const [lead, trail] = line.split(THERAPIST_PHRASE);
   const [isShimmering, setIsShimmering] = useState(true);
 
   return (
@@ -71,16 +45,22 @@ function TherapistGuideLine() {
 function ToolShell({
   children,
   show,
+  fill,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   show: boolean;
+  fill?: boolean;
 }) {
   if (!show) return <div className="h-0" />;
 
   return (
     <div
-      className="mt-6 -mx-4 flex min-h-0 flex-1 flex-col px-4"
-      style={{ animation: 'rise-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both' }}
+      className={
+        fill
+          ? '-mx-4 mt-6 flex min-h-0 flex-1 flex-col px-4'
+          : '-mx-4 mt-6 flex shrink-0 flex-col px-4'
+      }
+      style={{ animation: 'rise-in 800ms cubic-bezier(0.22, 1, 0.36, 1) both' }}
     >
       {children}
     </div>
@@ -166,12 +146,9 @@ function DoorsTool({ onCommit }: { onCommit: (id: DoorId) => void }) {
   );
 }
 
-export function PhoenixCopy({
+export function PhoenixTools({
   step,
-  answers,
-  toolReady,
-  previous,
-  onGuideAdvance,
+  show,
   onArea,
   onDuration,
   onIntensity,
@@ -179,66 +156,29 @@ export function PhoenixCopy({
   onDoor,
 }: {
   step: PhoenixStep;
-  answers: Answers;
-  toolReady: boolean;
-  previous: string | null;
-  onGuideAdvance: () => void;
+  show: boolean;
   onArea: (area: string) => void;
   onDuration: (value: string) => void;
   onIntensity: (value: number) => void;
   onTingling: (value: boolean) => void;
   onDoor: (id: DoorId) => void;
 }) {
-  const line =
-    step.kind === 'guide'
-      ? GUIDE_LINES[step.index]
-      : step.kind === 'doors'
-        ? doorsLine()
-        : step.index === 0
-          ? areaQuestion()
-          : step.index === 1
-            ? durationQuestion(answers.area ?? 'That')
-            : step.index === 2
-              ? intensityQuestion(answers.duration ?? 'Okay')
-              : followUpQuestion(answers.area ?? 'Neck');
-
-  const showTool = toolReady && step.kind !== 'guide';
-
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col px-5 pt-2"
-      onClick={step.kind === 'guide' ? onGuideAdvance : undefined}
-    >
-      <div className="min-h-[92px]">
-        {previous ? (
-          <SpokenLine faded appearKey={`prev-${previous}`}>
-            {previous}
-          </SpokenLine>
-        ) : null}
-        <SpokenLine appearKey={line}>
-          {step.kind === 'guide' && step.index === 1 ? (
-            <TherapistGuideLine />
-          ) : (
-            line
-          )}
-        </SpokenLine>
-      </div>
-      <ToolShell show={showTool}>
-        {step.kind === 'know' && step.index === 0 ? (
-          <AreaTool onCommit={onArea} />
-        ) : null}
-        {step.kind === 'know' && step.index === 1 ? (
-          <DurationTool onCommit={onDuration} />
-        ) : null}
-        {step.kind === 'know' && step.index === 2 ? (
-          <IntensityTool onCommit={onIntensity} />
-        ) : null}
-        {step.kind === 'know' && step.index === 3 ? (
-          <YesNoTool onCommit={onTingling} />
-        ) : null}
-        {step.kind === 'doors' ? <DoorsTool onCommit={onDoor} /> : null}
-      </ToolShell>
-    </div>
+    <ToolShell show={show} fill={step.kind === 'know' && step.index === 0}>
+      {step.kind === 'know' && step.index === 0 ? (
+        <AreaTool onCommit={onArea} />
+      ) : null}
+      {step.kind === 'know' && step.index === 1 ? (
+        <DurationTool onCommit={onDuration} />
+      ) : null}
+      {step.kind === 'know' && step.index === 2 ? (
+        <IntensityTool onCommit={onIntensity} />
+      ) : null}
+      {step.kind === 'know' && step.index === 3 ? (
+        <YesNoTool onCommit={onTingling} />
+      ) : null}
+      {step.kind === 'doors' ? <DoorsTool onCommit={onDoor} /> : null}
+    </ToolShell>
   );
 }
 
@@ -255,4 +195,172 @@ export function useDelayedTool(readyWhen: boolean, delay = 700) {
   }, [readyWhen, delay]);
 
   return show;
+}
+
+const STACK_WINDOW_QUESTIONS = 4;
+const STACK_WINDOW_MAX_PX = 200;
+
+function windowedTurns(turns: StackTurn[]) {
+  let beats = 0;
+  const kept: StackTurn[] = [];
+
+  for (let index = turns.length - 1; index >= 0; index -= 1) {
+    kept.unshift(turns[index]);
+    if (turns[index].role === 'phoenix' && turns[index].kind !== 'care') {
+      beats += 1;
+      if (beats >= STACK_WINDOW_QUESTIONS) break;
+    }
+  }
+
+  return kept;
+}
+
+function stackOpacity(fromEnd: number, role: 'phoenix' | 'member') {
+  const base =
+    fromEnd === 0
+      ? 1
+      : fromEnd === 1
+        ? 0.72
+        : fromEnd === 2
+          ? 0.48
+          : fromEnd === 3
+            ? 0.28
+            : 0.12;
+  if (role === 'member') return Math.min(1, base + 0.18);
+  return base;
+}
+
+function stackBlur(fromEnd: number) {
+  if (fromEnd <= 1) return 0;
+  if (fromEnd === 2) return 1.25;
+  return 2.5;
+}
+
+function PhoenixLineText({
+  text,
+  kind,
+}: {
+  text: string;
+  kind: 'guide' | 'question' | 'care' | 'answer';
+}) {
+  if (kind === 'guide' && text.includes(THERAPIST_PHRASE)) {
+    return <TherapistGuideLine line={text} />;
+  }
+  return text;
+}
+
+export function PhoenixCopy({
+  turns,
+  step,
+  toolReady,
+  onGuideAdvance,
+  onArea,
+  onDuration,
+  onIntensity,
+  onTingling,
+  onDoor,
+}: {
+  turns: StackTurn[];
+  step: PhoenixStep;
+  toolReady: boolean;
+  onGuideAdvance: () => void;
+  onArea: (area: string) => void;
+  onDuration: (value: string) => void;
+  onIntensity: (value: number) => void;
+  onTingling: (value: boolean) => void;
+  onDoor: (id: DoorId) => void;
+}) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const [isFilled, setIsFilled] = useState(false);
+  const visibleTurns = useMemo(() => windowedTurns(turns), [turns]);
+  const currentId = visibleTurns.at(-1)?.id;
+
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const measuredList = list;
+
+    function measure() {
+      const nextIsFilled = measuredList.scrollHeight > STACK_WINDOW_MAX_PX + 2;
+      setIsFilled((current) =>
+        current === nextIsFilled ? current : nextIsFilled,
+      );
+    }
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(measuredList);
+    return () => observer.disconnect();
+  }, [visibleTurns]);
+
+  return (
+    <div
+      className="flex min-h-0 flex-1 flex-col px-5 pt-1"
+      onClick={step.kind === 'guide' ? onGuideAdvance : undefined}
+    >
+      <div
+        className="relative shrink-0"
+        style={{ maxHeight: STACK_WINDOW_MAX_PX }}
+      >
+        <div
+          className={cn(
+            'flex flex-col justify-end overflow-hidden',
+            isFilled && 'phoenix-stack-fade',
+          )}
+          style={{ maxHeight: STACK_WINDOW_MAX_PX }}
+        >
+          <div
+            ref={listRef}
+            className="flex shrink-0 flex-col items-start gap-2.5"
+          >
+            {visibleTurns.map((turn, index) => {
+              const fromEnd = visibleTurns.length - 1 - index;
+              const isCurrent = turn.id === currentId;
+              const opacity = stackOpacity(fromEnd, turn.role);
+              const blur = stackBlur(fromEnd);
+
+              return (
+                <p
+                  key={turn.id}
+                  className={cn(
+                    'text-left tracking-[-0.04em] transition-[font-size,line-height,color,opacity,filter] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    turn.role === 'member'
+                      ? 'text-foreground-brand-default font-serif text-[22px] leading-7 font-medium'
+                      : isCurrent
+                        ? 'text-foreground-neutral-default font-serif text-[26px] leading-[32px] font-medium'
+                        : turn.kind === 'care'
+                          ? 'text-foreground-neutral-subtle font-serif text-[17px] leading-6'
+                          : 'text-foreground-neutral-faded font-serif text-[18px] leading-6',
+                  )}
+                  style={{
+                    opacity,
+                    filter: blur ? `blur(${blur}px)` : undefined,
+                    animation:
+                      'line-in 1300ms cubic-bezier(0.22, 1, 0.36, 1) backwards',
+                  }}
+                >
+                  <PhoenixLineText text={turn.text} kind={turn.kind} />
+                </p>
+              );
+            })}
+          </div>
+        </div>
+        <div
+          className={cn(
+            'phoenix-stack-blur transition-opacity duration-500',
+            isFilled ? 'opacity-100' : 'opacity-0',
+          )}
+        />
+      </div>
+      <PhoenixTools
+        step={step}
+        show={toolReady}
+        onArea={onArea}
+        onDuration={onDuration}
+        onIntensity={onIntensity}
+        onTingling={onTingling}
+        onDoor={onDoor}
+      />
+    </div>
+  );
 }

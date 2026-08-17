@@ -10,17 +10,22 @@ import { PhoenixCopy, type PhoenixStep, useDelayedTool } from './phoenix-scene';
 import {
   type Answers,
   type DoorId,
+  type StackTurn,
+  DOORS,
   GUIDE_LINES,
-  areaQuestion,
+  durationCareLine,
   durationQuestion,
-  intensityQuestion,
-  followUpQuestion,
   doorsLine,
+  areaQuestion,
+  followUpQuestion,
+  intensityAnswer,
+  intensityQuestion,
+  tinglingCareLine,
 } from './script';
 import { WorldBackdrop } from './world-scene';
 
 type Phase = 'entering' | 'phoenix' | 'exiting' | 'chat';
-type Layout = 'seed' | 'hero' | 'hero-compact' | 'avatar';
+type Layout = 'seed' | 'hero' | 'compact' | 'avatar';
 
 const EMPTY_ANSWERS: Answers = {
   area: null,
@@ -29,13 +34,18 @@ const EMPTY_ANSWERS: Answers = {
   tingling: null,
 };
 
-function currentLine(step: PhoenixStep, answers: Answers) {
+function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'guide') return GUIDE_LINES[step.index];
   if (step.kind === 'doors') return doorsLine();
   if (step.index === 0) return areaQuestion();
-  if (step.index === 1) return durationQuestion(answers.area ?? 'That');
-  if (step.index === 2) return intensityQuestion(answers.duration ?? 'Okay');
+  if (step.index === 1) return durationQuestion();
+  if (step.index === 2) return intensityQuestion();
   return followUpQuestion(answers.area ?? 'Neck');
+}
+
+function turnKind(step: PhoenixStep): StackTurn['kind'] {
+  if (step.kind === 'guide') return 'guide';
+  return 'question';
 }
 
 export function Experience({
@@ -46,25 +56,45 @@ export function Experience({
   replayKey: number;
 }) {
   const audioRef = useRef<ExperienceAudio | null>(null);
+  const turnIdRef = useRef(0);
+  const timersRef = useRef<number[]>([]);
   const [phase, setPhase] = useState<Phase>('entering');
   const [isHero, setIsHero] = useState(false);
   const [step, setStep] = useState<PhoenixStep>({ kind: 'guide', index: 0 });
   const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
-  const [previous, setPrevious] = useState<string | null>(null);
+  const [turns, setTurns] = useState<StackTurn[]>([]);
   const [mood, setMood] = useState<PhoenixMood>('think');
   const [door, setDoor] = useState<DoorId | null>(null);
   const [chatCount, setChatCount] = useState(0);
   const toolReady = useDelayedTool(
     phase === 'phoenix' && step.kind !== 'guide' && mood === 'listen',
-    280,
+    480,
   );
-  const searching =
-    phase === 'phoenix' && step.kind === 'know' && step.index === 0;
+
+  function nextTurnId() {
+    turnIdRef.current += 1;
+    return `turn-${turnIdRef.current}`;
+  }
+
+  function later(fn: () => void, ms: number) {
+    const id = window.setTimeout(fn, ms);
+    timersRef.current.push(id);
+  }
+
+  function pushTurns(...incoming: Omit<StackTurn, 'id'>[]) {
+    setTurns((current) => [
+      ...current,
+      ...incoming.map((turn) => ({ ...turn, id: nextTurnId() })),
+    ]);
+  }
 
   useEffect(() => {
     const audio = createExperienceAudio();
     audioRef.current = audio;
-    return () => audio.dispose();
+    return () => {
+      audio.dispose();
+      timersRef.current.forEach((id) => window.clearTimeout(id));
+    };
   }, [replayKey]);
 
   useEffect(() => {
@@ -93,6 +123,21 @@ export function Experience({
   }, [phase]);
 
   useEffect(() => {
+    if (phase !== 'phoenix') return;
+    setTurns((current) => {
+      if (current.length > 0) return current;
+      return [
+        {
+          id: nextTurnId(),
+          role: 'phoenix',
+          text: GUIDE_LINES[0],
+          kind: 'guide',
+        },
+      ];
+    });
+  }, [phase]);
+
+  useEffect(() => {
     if (phase !== 'phoenix' || step.kind !== 'guide') return;
     setMood('speak');
     const id = window.setTimeout(() => setMood('breath'), 1600);
@@ -102,7 +147,7 @@ export function Experience({
   useEffect(() => {
     if (phase !== 'phoenix' || step.kind === 'guide') return;
     setMood('speak');
-    const speak = window.setTimeout(() => setMood('listen'), 900);
+    const speak = window.setTimeout(() => setMood('listen'), 1400);
     return () => window.clearTimeout(speak);
   }, [phase, step]);
 
@@ -130,24 +175,114 @@ export function Experience({
     audioRef.current?.unlock();
   }
 
-  function afterThink(next: PhoenixStep, prev: string) {
+  function commitMember(
+    text: string,
+    next: PhoenixStep,
+    nextAnswers: Answers,
+    care?: string,
+  ) {
+    pushTurns({ role: 'member', text, kind: 'answer' });
     setMood('think');
-    window.setTimeout(() => {
-      setPrevious(prev);
+
+    const revealNext = () => {
+      pushTurns({
+        role: 'phoenix',
+        text: lineFor(next, nextAnswers),
+        kind: turnKind(next),
+      });
       setStep(next);
-    }, 620);
+    };
+
+    if (care) {
+      later(() => {
+        pushTurns({ role: 'phoenix', text: care, kind: 'care' });
+        setMood('speak');
+      }, 700);
+      later(revealNext, 2800);
+      return;
+    }
+
+    later(revealNext, 620);
   }
 
   const layout: Layout =
     phase === 'chat' || phase === 'exiting'
       ? 'avatar'
-      : phase === 'phoenix' && searching
-        ? 'hero-compact'
-        : phase === 'entering' && !isHero
-          ? 'seed'
+      : phase === 'entering' && !isHero
+        ? 'seed'
+        : phase === 'phoenix' && step.kind !== 'guide'
+          ? 'compact'
           : 'hero';
 
   const showChat = phase === 'exiting' || phase === 'chat';
+
+  const conversation = {
+    turns,
+    step,
+    toolReady,
+    onGuideAdvance: () => {
+      if (step.kind !== 'guide') return;
+      if (step.index === 0) {
+        pushTurns({
+          role: 'phoenix',
+          text: GUIDE_LINES[1],
+          kind: 'guide',
+        });
+        setStep({ kind: 'guide', index: 1 });
+        return;
+      }
+      setMood('think');
+      later(() => {
+        pushTurns({
+          role: 'phoenix',
+          text: areaQuestion(),
+          kind: 'question',
+        });
+        setStep({ kind: 'know', index: 0 });
+      }, 620);
+    },
+    onArea: (area) => {
+      const nextAnswers = { ...answers, area };
+      setAnswers(nextAnswers);
+      commitMember(area, { kind: 'know', index: 1 }, nextAnswers);
+    },
+    onDuration: (duration) => {
+      const nextAnswers = { ...answers, duration };
+      setAnswers(nextAnswers);
+      commitMember(
+        duration,
+        { kind: 'know', index: 2 },
+        nextAnswers,
+        durationCareLine(duration),
+      );
+    },
+    onIntensity: (intensity) => {
+      const nextAnswers = { ...answers, intensity };
+      setAnswers(nextAnswers);
+      commitMember(
+        intensityAnswer(intensity),
+        { kind: 'know', index: 3 },
+        nextAnswers,
+      );
+    },
+    onTingling: (tingling) => {
+      const nextAnswers = { ...answers, tingling };
+      setAnswers(nextAnswers);
+      commitMember(
+        tingling ? 'Yes' : 'No',
+        { kind: 'doors' },
+        nextAnswers,
+        tingling ? tinglingCareLine() : undefined,
+      );
+    },
+    onDoor: (nextDoor) => {
+      const label = DOORS.find((item) => item.id === nextDoor)?.label ?? '';
+      pushTurns({ role: 'member', text: label, kind: 'answer' });
+      setDoor(nextDoor);
+      setPhase('exiting');
+      setMood('think');
+    },
+  };
 
   return (
     <div
@@ -170,56 +305,16 @@ export function Experience({
         )}
       >
         <StatusBar />
-        <div className="h-[232px] shrink-0" />
+        <div
+          className={cn(
+            'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+            layout === 'hero' && 'h-[232px]',
+            layout === 'compact' && 'h-[108px]',
+            layout !== 'hero' && layout !== 'compact' && 'h-[232px]',
+          )}
+        />
         {phase === 'phoenix' || phase === 'exiting' ? (
-          <PhoenixCopy
-            step={step}
-            answers={answers}
-            toolReady={toolReady}
-            previous={previous}
-            onGuideAdvance={() => {
-              if (step.kind !== 'guide') return;
-              if (step.index === 0) {
-                setPrevious(GUIDE_LINES[0]);
-                setStep({ kind: 'guide', index: 1 });
-                return;
-              }
-              afterThink({ kind: 'know', index: 0 }, GUIDE_LINES[1]);
-            }}
-            onArea={(area) => {
-              setAnswers((current) => ({ ...current, area }));
-              afterThink(
-                { kind: 'know', index: 1 },
-                currentLine(step, { ...answers, area }),
-              );
-            }}
-            onDuration={(duration) => {
-              setAnswers((current) => ({ ...current, duration }));
-              afterThink(
-                { kind: 'know', index: 2 },
-                currentLine(step, { ...answers, duration }),
-              );
-            }}
-            onIntensity={(intensity) => {
-              setAnswers((current) => ({ ...current, intensity }));
-              afterThink(
-                { kind: 'know', index: 3 },
-                currentLine(step, { ...answers, intensity }),
-              );
-            }}
-            onTingling={(tingling) => {
-              setAnswers((current) => ({ ...current, tingling }));
-              afterThink(
-                { kind: 'doors' },
-                currentLine(step, { ...answers, tingling }),
-              );
-            }}
-            onDoor={(nextDoor) => {
-              setDoor(nextDoor);
-              setPhase('exiting');
-              setMood('think');
-            }}
-          />
+          <PhoenixCopy {...conversation} />
         ) : null}
         <HomeIndicator />
       </div>
@@ -245,23 +340,21 @@ export function Experience({
         className={cn(
           'pointer-events-none absolute z-30 transition-[top,left,width,height,transform] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
           layout === 'seed' &&
-            'top-[42%] left-1/2 size-[88px] -translate-x-1/2',
+            'top-[42%] left-1/2 size-[60px] -translate-x-1/2',
           layout === 'hero' &&
-            'top-[52px] left-1/2 size-[220px] -translate-x-1/2',
-          layout === 'hero-compact' &&
-            'top-[48px] left-1/2 size-[128px] -translate-x-1/2',
+            'top-[64px] left-1/2 size-[148px] -translate-x-1/2',
+          layout === 'compact' &&
+            'top-[48px] left-1/2 size-[80px] -translate-x-1/2',
           layout === 'avatar' &&
             'top-[62px] left-[44px] size-[32px] translate-x-0',
         )}
       >
         <div className="relative h-full w-full">
-          {layout === 'hero' || layout === 'hero-compact' ? (
-            <>
-              <span className="phoenix-ring absolute inset-[-18%] rounded-full border border-[#c5d4f8]/50" />
-              <span className="phoenix-ring absolute inset-[-32%] rounded-full border border-[#c5d4f8]/30 [animation-delay:-1.4s]" />
-            </>
-          ) : null}
-          <PhoenixOrb mood={mood} className="relative h-full w-full" />
+          <PhoenixOrb
+            mood={mood}
+            getAudioLevel={() => audioRef.current?.getLevel() ?? 0}
+            className="relative h-full w-full"
+          />
         </div>
       </div>
     </div>

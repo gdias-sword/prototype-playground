@@ -1,116 +1,168 @@
 'use client';
 
-import phoenixSkin from './assets/phoenix.png';
 import { useEffect, useRef } from 'react';
 
 export type PhoenixMood = 'breath' | 'speak' | 'listen' | 'think';
 
-const VERT = `
-attribute vec2 aPos;
+const VERTEX_SHADER = `
+attribute vec2 aPosition;
 varying vec2 vUv;
+
 void main() {
-  vUv = aPos * 0.5 + 0.5;
-  gl_Position = vec4(aPos, 0.0, 1.0);
+  vUv = aPosition * 0.5 + 0.5;
+  gl_Position = vec4(aPosition, 0.0, 1.0);
 }
 `;
 
-const FRAG = `
+const FRAGMENT_SHADER = `
 precision highp float;
+
 varying vec2 vUv;
 uniform float uTime;
+uniform float uAudioLevel;
 uniform float uSpeak;
 uniform float uListen;
 uniform float uThink;
-uniform sampler2D uSkin;
 
-float hash(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+float hash(vec2 point) {
+  return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453123);
 }
 
-float noise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
+float noise(vec2 point) {
+  vec2 cell = floor(point);
+  vec2 local = fract(point);
+  local = local * local * (3.0 - 2.0 * local);
+
   return mix(
-    mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
-    mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
-    f.y
+    mix(hash(cell), hash(cell + vec2(1.0, 0.0)), local.x),
+    mix(
+      hash(cell + vec2(0.0, 1.0)),
+      hash(cell + vec2(1.0, 1.0)),
+      local.x
+    ),
+    local.y
   );
 }
 
-float fbm(vec2 p) {
-  float v = 0.0;
-  float a = 0.5;
-  for (int i = 0; i < 5; i++) {
-    v += a * noise(p);
-    p = p * 2.07 + vec2(0.13, 0.07);
-    a *= 0.5;
+float fbm(vec2 point) {
+  float value = 0.0;
+  float amplitude = 0.5;
+
+  for (int octave = 0; octave < 5; octave++) {
+    value += amplitude * noise(point);
+    point = point * 2.03 + vec2(0.17, 0.11);
+    amplitude *= 0.5;
   }
-  return v;
+
+  return value;
+}
+
+mat2 rotate(float angle) {
+  float sine = sin(angle);
+  float cosine = cos(angle);
+  return mat2(cosine, -sine, sine, cosine);
+}
+
+float ellipse(vec2 point, vec2 center, vec2 radius) {
+  vec2 distanceFromCenter = (point - center) / radius;
+  return exp(-dot(distanceFromCenter, distanceFromCenter) * 1.7);
 }
 
 void main() {
   vec2 uv = vUv * 2.0 - 1.0;
-  float t = uTime;
+  float time = uTime;
 
-  float breath = 1.0 + sin(t * 1.12) * (0.045 - uSpeak * 0.02);
-  uv /= breath;
+  float idleBreath = sin(time * 1.35) * 0.012;
+  float voiceScale = uSpeak * uAudioLevel * 0.075;
+  float radius = 0.70 + idleBreath + voiceScale - uThink * 0.018;
+  float distanceToCenter = length(uv);
+  float bodyAlpha = 1.0 - smoothstep(radius - 0.009, radius + 0.009, distanceToCenter);
 
-  float think = 1.0 - uThink * 0.14;
-  uv /= think;
+  vec2 gradientUv = rotate(-0.72 + sin(time * 0.16) * 0.06) * uv;
+  float gradientMix = smoothstep(-0.68, 0.68, gradientUv.x + gradientUv.y * 0.42);
+  vec3 coral = vec3(1.0, 0.51, 0.514);
+  vec3 blue = vec3(0.29, 0.537, 0.91);
+  vec3 color = mix(coral, blue, gradientMix);
 
-  float n = fbm(uv * (2.15 + uSpeak * 1.8) + vec2(t * (0.11 + uSpeak * 0.42), t * 0.07));
-  float n2 = fbm(uv * 3.6 - vec2(t * 0.08, t * 0.1) + n * 0.65);
+  vec2 cloudUv = rotate(-0.38 + sin(time * 0.22) * 0.15) * uv;
+  float broadFlow = fbm(cloudUv * 1.55 + vec2(time * 0.105, -time * 0.072));
+  float fineFlow = fbm(cloudUv * 2.7 - vec2(time * 0.082, time * 0.096));
+  cloudUv += vec2(broadFlow - 0.5, fineFlow - 0.5) * 0.26;
+  cloudUv += vec2(sin(time * 0.43), cos(time * 0.36)) * 0.055;
 
-  vec2 texUv = vUv + (vec2(n, n2) - 0.5) * (0.06 + uSpeak * 0.08);
-  vec3 skin = texture2D(uSkin, clamp(texUv, 0.0, 1.0)).rgb;
+  vec2 cloudOne = vec2(
+    -0.22 + sin(time * 0.52) * 0.075,
+    -0.08 + cos(time * 0.41) * 0.055
+  );
+  vec2 cloudTwo = vec2(
+    0.08 + cos(time * 0.37) * 0.065,
+    0.12 + sin(time * 0.47) * 0.07
+  );
+  vec2 cloudThree = vec2(
+    0.26 + sin(time * 0.33 + 1.7) * 0.07,
+    -0.18 + cos(time * 0.49 + 0.8) * 0.055
+  );
 
-  float r = length(uv);
-  float core = smoothstep(0.52, 0.0, r) * (0.5 + n2 * 0.5);
-  float body = smoothstep(0.96, 0.18, r);
-  float halo = smoothstep(1.18, 0.42, r);
-  float alpha = smoothstep(1.02, 0.58, r);
-  alpha *= mix(1.0, 0.82, uListen);
+  float cloud =
+    ellipse(cloudUv, cloudOne, vec2(0.39, 0.28)) * 0.88 +
+    ellipse(cloudUv, cloudTwo, vec2(0.36, 0.42)) * 0.78 +
+    ellipse(cloudUv, cloudThree, vec2(0.30, 0.25)) * 0.56;
+  cloud *= 0.78 + broadFlow * 0.38;
+  cloud = smoothstep(0.12, 1.0, cloud);
+  color = mix(color, vec3(1.0, 0.985, 0.975), cloud * 0.96);
 
-  vec3 coral = vec3(0.99, 0.54, 0.46);
-  vec3 peri = vec3(0.47, 0.56, 0.96);
-  vec3 lav = vec3(0.73, 0.58, 0.93);
-  vec3 white = vec3(1.0, 0.97, 0.95);
+  float innerLight = 1.0 - smoothstep(0.0, radius, distanceToCenter);
+  color += innerLight * 0.035;
+  color *= 1.0 - uListen * 0.025;
 
-  vec3 col = mix(peri, coral, n);
-  col = mix(col, lav, n2 * 0.4);
-  col = mix(col, skin, 0.55);
-  col = mix(col, white, core * (0.72 + uSpeak * 0.28));
-  col += halo * mix(peri, coral, 0.35) * 0.28;
-  col *= 1.0 + uSpeak * 0.1;
+  vec2 shadowUv = uv + vec2(0.0, 0.19);
+  float shadowDistance = length(shadowUv / vec2(1.05, 0.74));
+  float shadow = (1.0 - smoothstep(radius * 0.62, radius * 1.22, shadowDistance)) * 0.22;
+  shadow *= 1.0 - bodyAlpha;
+  vec3 shadowColor = mix(vec3(0.19, 0.35, 0.64), vec3(0.74, 0.31, 0.31), 0.42);
 
-  gl_FragColor = vec4(col * alpha, alpha);
+  float alpha = bodyAlpha + shadow * (1.0 - bodyAlpha);
+  vec3 premultipliedColor =
+    color * bodyAlpha + shadowColor * shadow * (1.0 - bodyAlpha);
+
+  gl_FragColor = vec4(premultipliedColor, alpha);
 }
 `;
 
-function compile(gl: WebGLRenderingContext, type: number, source: string) {
+function compileShader(
+  gl: WebGLRenderingContext,
+  type: number,
+  source: string,
+) {
   const shader = gl.createShader(type);
   if (!shader) return null;
+
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
+
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     console.error(gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
     return null;
   }
+
   return shader;
 }
 
 export function PhoenixOrb({
   mood,
+  getAudioLevel,
   className,
 }: {
   mood: PhoenixMood;
+  getAudioLevel: () => number;
   className?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const moodRef = useRef(mood);
+  const getAudioLevelRef = useRef(getAudioLevel);
   moodRef.current = mood;
+  getAudioLevelRef.current = getAudioLevel;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -118,127 +170,109 @@ export function PhoenixOrb({
 
     const gl = canvas.getContext('webgl', {
       alpha: true,
-      premultipliedAlpha: true,
       antialias: true,
+      premultipliedAlpha: true,
     });
     if (!gl) return;
 
-    const vs = compile(gl, gl.VERTEX_SHADER, VERT);
-    const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG);
-    if (!vs || !fs) return;
+    const vertexShader = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
+    const fragmentShader = compileShader(
+      gl,
+      gl.FRAGMENT_SHADER,
+      FRAGMENT_SHADER,
+    );
+    if (!vertexShader || !fragmentShader) return;
 
     const program = gl.createProgram();
     if (!program) return;
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
+
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       console.error(gl.getProgramInfoLog(program));
       return;
     }
 
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
       gl.STATIC_DRAW,
     );
 
-    const loc = gl.getAttribLocation(program, 'aPos');
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const position = gl.getAttribLocation(program, 'aPosition');
+    gl.enableVertexAttribArray(position);
+    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-    const uTime = gl.getUniformLocation(program, 'uTime');
-    const uSpeak = gl.getUniformLocation(program, 'uSpeak');
-    const uListen = gl.getUniformLocation(program, 'uListen');
-    const uThink = gl.getUniformLocation(program, 'uThink');
-    const uSkin = gl.getUniformLocation(program, 'uSkin');
-
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      1,
-      1,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      new Uint8Array([255, 180, 160, 255]),
-    );
-
-    const image = new Image();
-    image.src = typeof phoenixSkin === 'string' ? phoenixSkin : phoenixSkin.src;
-    image.onload = () => {
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        image,
-      );
-    };
+    const timeUniform = gl.getUniformLocation(program, 'uTime');
+    const audioLevelUniform = gl.getUniformLocation(program, 'uAudioLevel');
+    const speakUniform = gl.getUniformLocation(program, 'uSpeak');
+    const listenUniform = gl.getUniformLocation(program, 'uListen');
+    const thinkUniform = gl.getUniformLocation(program, 'uThink');
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.useProgram(program);
-    gl.uniform1i(uSkin, 0);
 
     let speak = 0;
     let listen = 0;
     let think = 0;
-    let frame = 0;
-    const start = performance.now();
-    let alive = true;
+    let audioLevel = 0;
+    let animationFrame = 0;
+    let isRunning = true;
+    const startedAt = performance.now();
+    const renderingCanvas = canvas;
+    const renderingContext = gl;
 
-    const resize = () => {
-      const size = Math.max(1, canvas.clientWidth);
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const pixels = Math.round(size * dpr);
-      if (canvas.width !== pixels || canvas.height !== pixels) {
-        canvas.width = pixels;
-        canvas.height = pixels;
-        gl.viewport(0, 0, pixels, pixels);
+    function resize() {
+      const width = Math.max(1, renderingCanvas.clientWidth);
+      const height = Math.max(1, renderingCanvas.clientHeight);
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const pixelWidth = Math.round(width * pixelRatio);
+      const pixelHeight = Math.round(height * pixelRatio);
+
+      if (
+        renderingCanvas.width === pixelWidth &&
+        renderingCanvas.height === pixelHeight
+      ) {
+        return;
       }
-    };
+      renderingCanvas.width = pixelWidth;
+      renderingCanvas.height = pixelHeight;
+      renderingContext.viewport(0, 0, pixelWidth, pixelHeight);
+    }
 
-    const tick = (now: number) => {
-      if (!alive) return;
+    function render(now: number) {
+      if (!isRunning) return;
       resize();
-      const moodNow = moodRef.current;
-      const speakT = moodNow === 'speak' ? 1 : 0;
-      const listenT = moodNow === 'listen' ? 1 : 0;
-      const thinkT = moodNow === 'think' ? 1 : 0;
-      speak += (speakT - speak) * 0.08;
-      listen += (listenT - listen) * 0.08;
-      think += (thinkT - think) * 0.1;
 
-      gl.uniform1f(uTime, (now - start) / 1000);
-      gl.uniform1f(uSpeak, speak);
-      gl.uniform1f(uListen, listen);
-      gl.uniform1f(uThink, think);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-      frame = requestAnimationFrame(tick);
-    };
+      const currentMood = moodRef.current;
+      speak += ((currentMood === 'speak' ? 1 : 0) - speak) * 0.075;
+      listen += ((currentMood === 'listen' ? 1 : 0) - listen) * 0.075;
+      think += ((currentMood === 'think' ? 1 : 0) - think) * 0.075;
+      audioLevel += (getAudioLevelRef.current() - audioLevel) * 0.18;
 
-    frame = requestAnimationFrame(tick);
+      renderingContext.uniform1f(timeUniform, (now - startedAt) / 1000);
+      renderingContext.uniform1f(audioLevelUniform, audioLevel);
+      renderingContext.uniform1f(speakUniform, speak);
+      renderingContext.uniform1f(listenUniform, listen);
+      renderingContext.uniform1f(thinkUniform, think);
+      renderingContext.drawArrays(renderingContext.TRIANGLES, 0, 6);
+
+      animationFrame = requestAnimationFrame(render);
+    }
+
+    animationFrame = requestAnimationFrame(render);
 
     return () => {
-      alive = false;
-      cancelAnimationFrame(frame);
+      isRunning = false;
+      cancelAnimationFrame(animationFrame);
       gl.deleteProgram(program);
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
-      gl.deleteBuffer(buf);
-      gl.deleteTexture(texture);
+      gl.deleteShader(vertexShader);
+      gl.deleteShader(fragmentShader);
+      gl.deleteBuffer(buffer);
     };
   }, []);
 
@@ -247,7 +281,12 @@ export function PhoenixOrb({
       ref={canvasRef}
       className={className}
       aria-hidden
-      style={{ display: 'block', width: '100%', height: '100%' }}
+      style={{
+        display: 'block',
+        height: '140%',
+        width: '140%',
+        margin: '-20%',
+      }}
     />
   );
 }

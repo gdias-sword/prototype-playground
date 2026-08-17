@@ -15,10 +15,10 @@ export const BODY_AREAS = [
 ] as const;
 
 export const DURATIONS = [
-  'A few days',
-  'A few weeks',
-  'A few months',
-  'Longer than that',
+  'Less than 2 weeks',
+  '2–4 weeks',
+  '1 to 3 months',
+  'More than 3 months',
 ] as const;
 
 export type DoorId = 'assessment' | 'how' | 'question';
@@ -43,20 +43,23 @@ export type Answers = {
   tingling: boolean | null;
 };
 
+export type StackTurn = {
+  id: string;
+  role: 'phoenix' | 'member';
+  text: string;
+  kind: 'guide' | 'question' | 'care' | 'answer';
+};
+
 export function areaQuestion() {
   return 'Let’s start with where you’re hurting most.';
 }
 
-export function durationQuestion(area: string) {
-  return `${area}. When did that start?`;
+export function durationQuestion() {
+  return 'When did that start?';
 }
 
-export function intensityQuestion(duration: string) {
-  const shortened =
-    duration === 'Longer than that'
-      ? 'A while, then'
-      : duration.replace(/^A /, 'A ');
-  return `${shortened.charAt(0).toLowerCase() + shortened.slice(1)}. And the intensity lately?`;
+export function intensityQuestion() {
+  return 'How intense has it been lately?';
 }
 
 export function followUpQuestion(area: string) {
@@ -71,6 +74,27 @@ export function followUpQuestion(area: string) {
 
 export function doorsLine() {
   return 'Let’s get you started.';
+}
+
+export function durationCareLine(duration: string) {
+  if (duration === 'Less than 2 weeks') {
+    return 'You’re catching this early — that’s a smart move.';
+  }
+  if (duration === '2–4 weeks') {
+    return 'Acting quickly gives you a real advantage.';
+  }
+  if (duration === '1 to 3 months') {
+    return 'That’s more common than you think.';
+  }
+  return 'It’s never too late to start feeling better.';
+}
+
+export function tinglingCareLine() {
+  return 'I’ll flag that for your therapist.';
+}
+
+export function intensityAnswer(value: number) {
+  return `${value} / 10`;
 }
 
 export function chatIntro(
