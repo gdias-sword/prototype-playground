@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type AnimationEvent,
   type ReactNode,
 } from 'react';
 import { GlassChip } from './glass';
@@ -239,14 +240,69 @@ function stackBlur(fromEnd: number) {
 function PhoenixLineText({
   text,
   kind,
+  shouldStream,
+  onStreamComplete,
 }: {
   text: string;
   kind: 'guide' | 'question' | 'care' | 'answer';
+  shouldStream: boolean;
+  onStreamComplete: () => void;
 }) {
-  if (kind === 'guide' && text.includes(THERAPIST_PHRASE)) {
-    return <TherapistGuideLine line={text} />;
+  const [isComplete, setIsComplete] = useState(!shouldStream);
+  const hasCompletedRef = useRef(!shouldStream);
+  const words = useMemo(() => text.match(/\S+\s*/g) ?? [text], [text]);
+
+  function handleStreamEnd(event: AnimationEvent<HTMLSpanElement>) {
+    if (event.currentTarget !== event.target || hasCompletedRef.current) return;
+    hasCompletedRef.current = true;
+    setIsComplete(true);
+    onStreamComplete();
   }
-  return text;
+
+  if (isComplete || !shouldStream) {
+    if (kind === 'guide' && text.includes(THERAPIST_PHRASE)) {
+      return <TherapistGuideLine line={text} />;
+    }
+    return text;
+  }
+
+  let elapsedCharacters = 0;
+
+  return (
+    <span aria-label={text}>
+      <span aria-hidden="true">
+        {words.map((word, index) => {
+          const delay = elapsedCharacters * 24;
+          elapsedCharacters += word.length;
+          const isLast = index === words.length - 1;
+
+          return (
+            <span
+              key={`${word}-${index}`}
+              className="phoenix-stream-word"
+              style={{ animationDelay: `${delay}ms` }}
+              onAnimationEnd={isLast ? handleStreamEnd : undefined}
+            >
+              {word}
+            </span>
+          );
+        })}
+      </span>
+    </span>
+  );
+}
+
+interface PhoenixCopyProps {
+  turns: StackTurn[];
+  step: PhoenixStep;
+  toolReady: boolean;
+  onGuideAdvance: () => void;
+  onArea: (area: string) => void;
+  onDuration: (value: string) => void;
+  onIntensity: (value: number) => void;
+  onTingling: (value: boolean) => void;
+  onDoor: (id: DoorId) => void;
+  onTurnStreamComplete: (turnId: string) => void;
 }
 
 export function PhoenixCopy({
@@ -259,17 +315,8 @@ export function PhoenixCopy({
   onIntensity,
   onTingling,
   onDoor,
-}: {
-  turns: StackTurn[];
-  step: PhoenixStep;
-  toolReady: boolean;
-  onGuideAdvance: () => void;
-  onArea: (area: string) => void;
-  onDuration: (value: string) => void;
-  onIntensity: (value: number) => void;
-  onTingling: (value: boolean) => void;
-  onDoor: (id: DoorId) => void;
-}) {
+  onTurnStreamComplete,
+}: PhoenixCopyProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const [isFilled, setIsFilled] = useState(false);
   const visibleTurns = useMemo(() => windowedTurns(turns), [turns]);
@@ -323,14 +370,14 @@ export function PhoenixCopy({
                 <p
                   key={turn.id}
                   className={cn(
-                    'text-left tracking-[-0.04em] transition-[font-size,line-height,color,opacity,filter] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    'text-left font-serif text-[26px] leading-[32px] tracking-[-0.04em] transition-[color,opacity,filter] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
                     turn.role === 'member'
-                      ? 'text-foreground-brand-default font-serif text-[22px] leading-7 font-medium'
+                      ? 'text-foreground-brand-default font-medium'
                       : isCurrent
-                        ? 'text-foreground-neutral-default font-serif text-[26px] leading-[32px] font-medium'
+                        ? 'text-foreground-neutral-default font-medium'
                         : turn.kind === 'care'
-                          ? 'text-foreground-neutral-subtle font-serif text-[17px] leading-6'
-                          : 'text-foreground-neutral-faded font-serif text-[18px] leading-6',
+                          ? 'text-foreground-neutral-subtle'
+                          : 'text-foreground-neutral-faded',
                   )}
                   style={{
                     opacity,
@@ -339,7 +386,12 @@ export function PhoenixCopy({
                       'line-in 1300ms cubic-bezier(0.22, 1, 0.36, 1) backwards',
                   }}
                 >
-                  <PhoenixLineText text={turn.text} kind={turn.kind} />
+                  <PhoenixLineText
+                    text={turn.text}
+                    kind={turn.kind}
+                    shouldStream={isCurrent && turn.role === 'phoenix'}
+                    onStreamComplete={() => onTurnStreamComplete(turn.id)}
+                  />
                 </p>
               );
             })}

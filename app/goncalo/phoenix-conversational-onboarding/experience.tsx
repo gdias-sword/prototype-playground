@@ -140,15 +140,11 @@ export function Experience({
   useEffect(() => {
     if (phase !== 'phoenix' || step.kind !== 'guide') return;
     setMood('speak');
-    const id = window.setTimeout(() => setMood('breath'), 1600);
-    return () => window.clearTimeout(id);
   }, [phase, step]);
 
   useEffect(() => {
     if (phase !== 'phoenix' || step.kind === 'guide') return;
     setMood('speak');
-    const speak = window.setTimeout(() => setMood('listen'), 1400);
-    return () => window.clearTimeout(speak);
   }, [phase, step]);
 
   useEffect(() => {
@@ -220,8 +216,19 @@ export function Experience({
     turns,
     step,
     toolReady,
+    onTurnStreamComplete: (turnId: string) => {
+      const currentTurn = turns.at(-1);
+      if (
+        phase !== 'phoenix' ||
+        currentTurn?.id !== turnId ||
+        currentTurn.role !== 'phoenix'
+      ) {
+        return;
+      }
+      setMood(currentTurn.kind === 'question' ? 'listen' : 'breath');
+    },
     onGuideAdvance: () => {
-      if (step.kind !== 'guide') return;
+      if (step.kind !== 'guide' || mood !== 'breath') return;
       if (step.index === 0) {
         pushTurns({
           role: 'phoenix',
@@ -241,12 +248,12 @@ export function Experience({
         setStep({ kind: 'know', index: 0 });
       }, 620);
     },
-    onArea: (area) => {
+    onArea: (area: string) => {
       const nextAnswers = { ...answers, area };
       setAnswers(nextAnswers);
       commitMember(area, { kind: 'know', index: 1 }, nextAnswers);
     },
-    onDuration: (duration) => {
+    onDuration: (duration: string) => {
       const nextAnswers = { ...answers, duration };
       setAnswers(nextAnswers);
       commitMember(
@@ -256,7 +263,7 @@ export function Experience({
         durationCareLine(duration),
       );
     },
-    onIntensity: (intensity) => {
+    onIntensity: (intensity: number) => {
       const nextAnswers = { ...answers, intensity };
       setAnswers(nextAnswers);
       commitMember(
@@ -265,7 +272,7 @@ export function Experience({
         nextAnswers,
       );
     },
-    onTingling: (tingling) => {
+    onTingling: (tingling: boolean) => {
       const nextAnswers = { ...answers, tingling };
       setAnswers(nextAnswers);
       commitMember(
@@ -275,7 +282,7 @@ export function Experience({
         tingling ? tinglingCareLine() : undefined,
       );
     },
-    onDoor: (nextDoor) => {
+    onDoor: (nextDoor: DoorId) => {
       const label = DOORS.find((item) => item.id === nextDoor)?.label ?? '';
       pushTurns({ role: 'member', text: label, kind: 'answer' });
       setDoor(nextDoor);
