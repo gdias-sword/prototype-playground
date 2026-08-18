@@ -338,10 +338,10 @@ export function useDelayedTool(readyWhen: boolean, delay = 700) {
   return show;
 }
 
+export const STACK_WINDOW_MAX_PX = 240;
 const STACK_WINDOW_QUESTIONS = 4;
-const STACK_WINDOW_MAX_PX = 240;
 
-function windowedTurns(turns: StackTurn[]) {
+export function windowedTurns(turns: StackTurn[]) {
   let beats = 0;
   const kept: StackTurn[] = [];
 
@@ -356,7 +356,7 @@ function windowedTurns(turns: StackTurn[]) {
   return kept;
 }
 
-function stackOpacity(fromEnd: number, role: 'phoenix' | 'member') {
+export function stackOpacity(fromEnd: number, role: 'phoenix' | 'member') {
   const base =
     fromEnd === 0
       ? 1
@@ -371,13 +371,38 @@ function stackOpacity(fromEnd: number, role: 'phoenix' | 'member') {
   return base;
 }
 
-function stackBlur(fromEnd: number) {
+export function stackBlur(fromEnd: number) {
   if (fromEnd <= 1) return 0;
   if (fromEnd === 2) return 1.25;
   return 2.5;
 }
 
-function PhoenixLineText({
+export function useStackWindow(visibleTurns: StackTurn[]) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const [isFilled, setIsFilled] = useState(false);
+
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const measuredList = list;
+
+    function measure() {
+      const nextIsFilled = measuredList.scrollHeight > STACK_WINDOW_MAX_PX + 2;
+      setIsFilled((current) =>
+        current === nextIsFilled ? current : nextIsFilled,
+      );
+    }
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(measuredList);
+    return () => observer.disconnect();
+  }, [visibleTurns]);
+
+  return { listRef, isFilled };
+}
+
+export function PhoenixLineText({
   text,
   kind,
   shouldStream,
@@ -429,7 +454,7 @@ function PhoenixLineText({
   );
 }
 
-interface PhoenixCopyProps {
+export interface ConversationProps {
   turns: StackTurn[];
   step: PhoenixStep;
   toolReady: boolean;
@@ -443,122 +468,4 @@ interface PhoenixCopyProps {
   onMore: (wantsMore: boolean) => void;
   onDoor: (id: DoorId) => void;
   onTurnStreamComplete: (turnId: string) => void;
-}
-
-export function PhoenixCopy({
-  turns,
-  step,
-  toolReady,
-  excludedAreas,
-  onGuideAdvance,
-  onReady,
-  onArea,
-  onDuration,
-  onIntensity,
-  onTingling,
-  onMore,
-  onDoor,
-  onTurnStreamComplete,
-}: PhoenixCopyProps) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const [isFilled, setIsFilled] = useState(false);
-  const visibleTurns = useMemo(() => windowedTurns(turns), [turns]);
-  const currentId = visibleTurns.at(-1)?.id;
-
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const measuredList = list;
-
-    function measure() {
-      const nextIsFilled = measuredList.scrollHeight > STACK_WINDOW_MAX_PX + 2;
-      setIsFilled((current) =>
-        current === nextIsFilled ? current : nextIsFilled,
-      );
-    }
-
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(measuredList);
-    return () => observer.disconnect();
-  }, [visibleTurns]);
-
-  return (
-    <div
-      className="flex min-h-0 flex-1 flex-col px-5 pt-1"
-      onClick={step.kind === 'guide' ? onGuideAdvance : undefined}
-    >
-      <div
-        className="relative shrink-0"
-        style={{ maxHeight: STACK_WINDOW_MAX_PX }}
-      >
-        <div
-          className={cn(
-            'flex flex-col justify-end overflow-hidden',
-            isFilled && 'phoenix-stack-fade',
-          )}
-          style={{ maxHeight: STACK_WINDOW_MAX_PX }}
-        >
-          <div
-            ref={listRef}
-            className="flex shrink-0 flex-col items-start gap-2.5"
-          >
-            {visibleTurns.map((turn, index) => {
-              const fromEnd = visibleTurns.length - 1 - index;
-              const isCurrent = turn.id === currentId;
-              const opacity = stackOpacity(fromEnd, turn.role);
-              const blur = stackBlur(fromEnd);
-
-              return (
-                <p
-                  key={turn.id}
-                  className={cn(
-                    'text-title-large-strong font-serif font-medium tracking-[-0.04em] text-left transition-[color,opacity,filter] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-                    turn.role === 'member'
-                      ? 'text-foreground-brand-default'
-                      : isCurrent
-                        ? 'text-foreground-neutral-default'
-                        : turn.kind === 'care'
-                          ? 'text-foreground-neutral-subtle'
-                          : 'text-foreground-neutral-faded',
-                  )}
-                  style={{
-                    opacity,
-                    filter: blur ? `blur(${blur}px)` : undefined,
-                    animation:
-                      'line-in 1300ms cubic-bezier(0.22, 1, 0.36, 1) backwards',
-                  }}
-                >
-                  <PhoenixLineText
-                    text={turn.text}
-                    kind={turn.kind}
-                    shouldStream={isCurrent && turn.role === 'phoenix'}
-                    onStreamComplete={() => onTurnStreamComplete(turn.id)}
-                  />
-                </p>
-              );
-            })}
-          </div>
-        </div>
-        <div
-          className={cn(
-            'phoenix-stack-blur transition-opacity duration-500',
-            isFilled ? 'opacity-100' : 'opacity-0',
-          )}
-        />
-      </div>
-      <PhoenixTools
-        step={step}
-        show={toolReady}
-        excludedAreas={excludedAreas}
-        onReady={onReady}
-        onArea={onArea}
-        onDuration={onDuration}
-        onIntensity={onIntensity}
-        onTingling={onTingling}
-        onMore={onMore}
-        onDoor={onDoor}
-      />
-    </div>
-  );
 }

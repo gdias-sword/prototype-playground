@@ -3,9 +3,14 @@
 import { mergeTailwindClasses as cn } from '@/design/utils';
 import { useEffect, useRef, useState } from 'react';
 import { ChatScene } from './chat-scene';
+import {
+  VariantA,
+  VariantB,
+  VariantC,
+} from './conversation-variants';
 import { HomeIndicator, StatusBar } from './device-frame';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
-import { PhoenixCopy, type PhoenixStep, useDelayedTool } from './phoenix-scene';
+import { type ConversationProps, type PhoenixStep, useDelayedTool } from './phoenix-scene';
 import {
   type Answers,
   type DoorId,
@@ -30,6 +35,7 @@ import {
   startNextCondition,
   tinglingCareLine,
 } from './script';
+import type { VariantKey } from './variant-switcher';
 import { WorldBackdrop } from './world-scene';
 
 type Phase = 'entering' | 'phoenix' | 'exiting' | 'chat';
@@ -59,7 +65,7 @@ function turnKind(step: PhoenixStep): StackTurn['kind'] {
   return 'question';
 }
 
-export function Experience() {
+export function Experience({ variant }: { variant: VariantKey }) {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
   const [phase, setPhase] = useState<Phase>('entering');
@@ -200,7 +206,7 @@ export function Experience() {
 
   const showChat = phase === 'exiting' || phase === 'chat';
 
-  const conversation = {
+  const conversation: ConversationProps = {
     turns,
     step,
     toolReady,
@@ -320,7 +326,11 @@ export function Experience() {
           )}
         />
         {phase === 'phoenix' || phase === 'exiting' ? (
-          <PhoenixCopy {...conversation} />
+          <>
+            {variant === 'A' && <VariantA {...conversation} />}
+            {variant === 'B' && <VariantB {...conversation} />}
+            {variant === 'C' && <VariantC {...conversation} />}
+          </>
         ) : null}
         <HomeIndicator />
       </div>
