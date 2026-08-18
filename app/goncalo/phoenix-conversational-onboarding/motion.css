@@ -118,6 +118,17 @@
   }
 }
 
+@keyframes rise-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
 @keyframes chip-press {
   0% {
     transform: scale(1);
@@ -227,5 +238,9 @@
   .phoenix-stream-character {
     animation-delay: 0ms !important;
     animation-duration: 1ms;
+  }
+
+  .phoenix-tool-shell {
+    animation-duration: 1ms !important;
   }
 }
