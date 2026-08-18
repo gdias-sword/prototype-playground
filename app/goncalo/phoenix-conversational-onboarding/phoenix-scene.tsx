@@ -20,6 +20,9 @@ import {
   DISCLAIMER,
   DOORS,
   DURATIONS,
+  MORE_HINT,
+  MORE_NO_LABEL,
+  MORE_YES_LABEL,
   READY_LABEL,
   THERAPIST_PHRASE,
   type DoorId,
@@ -30,6 +33,7 @@ export type PhoenixStep =
   | { kind: 'guide'; index: 0 | 1 | 2 }
   | { kind: 'ready' }
   | { kind: 'know'; index: 0 | 1 | 2 | 3 }
+  | { kind: 'more' }
   | { kind: 'doors' };
 
 export function TherapistGuideLine({ line }: { line: string }) {
@@ -75,10 +79,18 @@ function ToolShell({
   );
 }
 
-function AreaTool({ onCommit }: { onCommit: (area: string) => void }) {
+function AreaTool({
+  exclude,
+  onCommit,
+}: {
+  exclude: string[];
+  onCommit: (area: string) => void;
+}) {
+  const areas = BODY_AREAS.filter((area) => !exclude.includes(area));
+
   return (
     <div className="phoenix-chip-scroller -mx-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-5">
-      {BODY_AREAS.map((area) => (
+      {areas.map((area) => (
         <GlassChip key={area} onClick={() => onCommit(area)}>
           {area}
         </GlassChip>
@@ -214,6 +226,18 @@ function YesNoTool({ onCommit }: { onCommit: (value: boolean) => void }) {
   );
 }
 
+function MoreTool({ onCommit }: { onCommit: (wantsMore: boolean) => void }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <GlassChip onClick={() => onCommit(true)}>{MORE_YES_LABEL}</GlassChip>
+      <GlassChip onClick={() => onCommit(false)}>{MORE_NO_LABEL}</GlassChip>
+      <p className="text-body-medium-default text-foreground-neutral-faded px-2 pt-1 text-center">
+        {MORE_HINT}
+      </p>
+    </div>
+  );
+}
+
 function DoorsTool({ onCommit }: { onCommit: (id: DoorId) => void }) {
   return (
     <div className="flex flex-col gap-2">
@@ -255,20 +279,24 @@ function ReadyTool({ onCommit }: { onCommit: () => void }) {
 export function PhoenixTools({
   step,
   show,
+  excludedAreas,
   onReady,
   onArea,
   onDuration,
   onIntensity,
   onTingling,
+  onMore,
   onDoor,
 }: {
   step: PhoenixStep;
   show: boolean;
+  excludedAreas: string[];
   onReady: () => void;
   onArea: (area: string) => void;
   onDuration: (value: string) => void;
   onIntensity: (value: number) => void;
   onTingling: (value: boolean) => void;
+  onMore: (wantsMore: boolean) => void;
   onDoor: (id: DoorId) => void;
 }) {
   return (
@@ -278,7 +306,7 @@ export function PhoenixTools({
     >
       {step.kind === 'ready' ? <ReadyTool onCommit={onReady} /> : null}
       {step.kind === 'know' && step.index === 0 ? (
-        <AreaTool onCommit={onArea} />
+        <AreaTool exclude={excludedAreas} onCommit={onArea} />
       ) : null}
       {step.kind === 'know' && step.index === 1 ? (
         <DurationTool onCommit={onDuration} />
@@ -289,6 +317,7 @@ export function PhoenixTools({
       {step.kind === 'know' && step.index === 3 ? (
         <YesNoTool onCommit={onTingling} />
       ) : null}
+      {step.kind === 'more' ? <MoreTool onCommit={onMore} /> : null}
       {step.kind === 'doors' ? <DoorsTool onCommit={onDoor} /> : null}
     </ToolShell>
   );
@@ -310,7 +339,7 @@ export function useDelayedTool(readyWhen: boolean, delay = 700) {
 }
 
 const STACK_WINDOW_QUESTIONS = 4;
-const STACK_WINDOW_MAX_PX = 200;
+const STACK_WINDOW_MAX_PX = 240;
 
 function windowedTurns(turns: StackTurn[]) {
   let beats = 0;
@@ -404,12 +433,14 @@ interface PhoenixCopyProps {
   turns: StackTurn[];
   step: PhoenixStep;
   toolReady: boolean;
+  excludedAreas: string[];
   onGuideAdvance: () => void;
   onReady: () => void;
   onArea: (area: string) => void;
   onDuration: (value: string) => void;
   onIntensity: (value: number) => void;
   onTingling: (value: boolean) => void;
+  onMore: (wantsMore: boolean) => void;
   onDoor: (id: DoorId) => void;
   onTurnStreamComplete: (turnId: string) => void;
 }
@@ -418,12 +449,14 @@ export function PhoenixCopy({
   turns,
   step,
   toolReady,
+  excludedAreas,
   onGuideAdvance,
   onReady,
   onArea,
   onDuration,
   onIntensity,
   onTingling,
+  onMore,
   onDoor,
   onTurnStreamComplete,
 }: PhoenixCopyProps) {
@@ -517,11 +550,13 @@ export function PhoenixCopy({
       <PhoenixTools
         step={step}
         show={toolReady}
+        excludedAreas={excludedAreas}
         onReady={onReady}
         onArea={onArea}
         onDuration={onDuration}
         onIntensity={onIntensity}
         onTingling={onTingling}
+        onMore={onMore}
         onDoor={onDoor}
       />
     </div>
