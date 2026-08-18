@@ -8,8 +8,11 @@ import {
   useRef,
   useState,
   type AnimationEvent,
+  type KeyboardEvent,
+  type PointerEvent,
   type ReactNode,
 } from 'react';
+import intensityKnob from './assets/intensity-knob.svg';
 import { GlassChip } from './glass';
 import {
   BODY_AREAS,
@@ -70,7 +73,7 @@ function ToolShell({
 
 function AreaTool({ onCommit }: { onCommit: (area: string) => void }) {
   return (
-    <div className="phoenix-chip-scroller -mx-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 py-5">
+    <div className="phoenix-chip-scroller -mx-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-5">
       {BODY_AREAS.map((area) => (
         <GlassChip key={area} onClick={() => onCommit(area)}>
           {area}
@@ -92,36 +95,108 @@ function DurationTool({ onCommit }: { onCommit: (value: string) => void }) {
   );
 }
 
+const INTENSITY_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
 function IntensityTool({ onCommit }: { onCommit: (value: number) => void }) {
   const [value, setValue] = useState(5);
+  const scaleRef = useRef<HTMLDivElement>(null);
+  const knobOffset = `calc(12px + (100% - 24px) * ${(value - 0.5) / 10})`;
+  const knobSrc =
+    typeof intensityKnob === 'string' ? intensityKnob : intensityKnob.src;
+
+  function intensityAt(clientX: number) {
+    const scale = scaleRef.current;
+    if (!scale) return value;
+    const { left, width } = scale.getBoundingClientRect();
+    const ratio = (clientX - left) / width;
+    return Math.min(10, Math.max(1, Math.floor(ratio * 10) + 1));
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setValue(intensityAt(event.clientX));
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    setValue(intensityAt(event.clientX));
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      setValue((current) => Math.max(1, current - 1));
+    }
+    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      setValue((current) => Math.min(10, current + 1));
+    }
+  }
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <div className="relative h-12">
-          <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-white/45" />
+      <div className="flex flex-col gap-2">
+        <div
+          role="slider"
+          aria-label="Pain intensity"
+          aria-valuemin={1}
+          aria-valuemax={10}
+          aria-valuenow={value}
+          tabIndex={0}
+          className="relative h-16 cursor-pointer touch-none select-none outline-none"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onKeyDown={handleKeyDown}
+        >
+          <div className="border-border-neutral-faded bg-background-neutral-default absolute inset-0 overflow-hidden rounded-full border">
+            <div
+              className="from-background-neutral-default to-background-brand-faded pointer-events-none absolute inset-y-0 left-0 bg-gradient-to-r transition-[width] duration-150"
+              style={{ width: knobOffset }}
+            />
+            <div className="absolute inset-y-0 inset-x-3">
+              <div
+                ref={scaleRef}
+                className="relative z-10 grid h-full grid-cols-10"
+              >
+                {INTENSITY_SCALE.map((n) => (
+                  <span
+                    key={n}
+                    className={cn(
+                      'text-body-large-strong flex items-center justify-center',
+                      n <= value
+                        ? 'text-foreground-brand-default'
+                        : 'text-foreground-neutral-faded',
+                    )}
+                  >
+                    {n}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
           <div
-            className="absolute top-1/2 left-0 h-1.5 -translate-y-1/2 rounded-full bg-[linear-gradient(90deg,#c5d0ff,#ffb5a6)]"
-            style={{ width: `${(value / 10) * 100}%` }}
-          />
-          <input
-            type="range"
-            min={0}
-            max={10}
-            value={value}
-            onChange={(event) => setValue(Number(event.target.value))}
-            className="absolute inset-0 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:size-12 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white/80 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_8px_24px_rgba(80,70,140,0.18)]"
-          />
+            className="pointer-events-none absolute top-1/2 z-20 size-12 -translate-x-1/2 -translate-y-1/2 transition-[left] duration-150"
+            style={{ left: knobOffset }}
+          >
+            <img
+              alt=""
+              aria-hidden
+              src={knobSrc}
+              className="absolute inset-0 size-full"
+            />
+            <span className="text-body-large-strong text-foreground-brand-default absolute inset-0 flex items-center justify-center">
+              {value}
+            </span>
+          </div>
         </div>
-        <div className="text-body-small-default text-foreground-neutral-faded mt-2 flex justify-between">
+        <div className="text-body-medium-subtle text-foreground-neutral-faded flex justify-between px-2">
           <span>No pain</span>
           <span>Worst pain</span>
         </div>
       </div>
-      <GlassChip
-        className="text-center"
-        onClick={() => onCommit(value)}
-      >{`Continue · ${value}`}</GlassChip>
+      <GlassChip className="text-center" onClick={() => onCommit(value)}>
+        Continue
+      </GlassChip>
     </div>
   );
 }
@@ -367,11 +442,11 @@ export function PhoenixCopy({
                 <p
                   key={turn.id}
                   className={cn(
-                    'text-left font-serif text-[24px] leading-[30px] tracking-[-0.04em] transition-[color,opacity,filter] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    'text-title-large-strong font-serif font-medium tracking-[-0.04em] text-left transition-[color,opacity,filter] duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
                     turn.role === 'member'
-                      ? 'text-foreground-brand-default font-medium'
+                      ? 'text-foreground-brand-default'
                       : isCurrent
-                        ? 'text-foreground-neutral-default font-medium'
+                        ? 'text-foreground-neutral-default'
                         : turn.kind === 'care'
                           ? 'text-foreground-neutral-subtle'
                           : 'text-foreground-neutral-faded',

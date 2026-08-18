@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle id="Knob" cx="24" cy="24" r="23" fill="white" stroke="url(#paint0_linear_0_4)" stroke-width="2"/>
+<defs>
+<linearGradient id="paint0_linear_0_4" x1="2.22416e-06" y1="2.22416e-06" x2="56.7107" y2="33.0558" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FF7E7E"/>
+<stop offset="0.5" stop-color="#BE95E5"/>
+<stop offset="1" stop-color="#4A89E8"/>
+</linearGradient>
+</defs>
+</svg>
