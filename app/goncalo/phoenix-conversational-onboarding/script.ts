@@ -43,11 +43,25 @@ export const DOORS: { id: DoorId; label: string }[] = [
   { id: 'question', label: 'I have a question' },
 ];
 
+export const MAX_BODY_AREAS = 3;
+
+export const MORE_YES_LABEL = 'Yes, I want to treat another area';
+export const MORE_NO_LABEL = 'No, that’s everything';
+export const MORE_HINT = 'You can choose up to 3 body areas';
+
+export type Condition = {
+  area: string;
+  duration: string;
+  intensity: number;
+  tingling: boolean | null;
+};
+
 export type Answers = {
   area: string | null;
   duration: string | null;
   intensity: number | null;
   tingling: boolean | null;
+  completed: Condition[];
 };
 
 export type StackTurn = {
@@ -57,8 +71,13 @@ export type StackTurn = {
   kind: 'guide' | 'question' | 'care' | 'answer';
 };
 
-export function areaQuestion() {
+export function areaQuestion(completedCount = 0) {
+  if (completedCount > 0) return 'Where else is bothering you?';
   return 'Let’s start with where you’re hurting most.';
+}
+
+export function moreQuestion(area: string) {
+  return `That’s everything we need to know for your ${area.toLowerCase()} pain. Anywhere else bothering you?`;
 }
 
 export function durationQuestion() {
@@ -83,6 +102,39 @@ export function doorsLine() {
   return 'Then let’s get you started.';
 }
 
+export function completeCondition(answers: Answers): Answers {
+  if (!answers.area || !answers.duration || answers.intensity == null) {
+    return answers;
+  }
+
+  return {
+    ...answers,
+    completed: [
+      ...answers.completed,
+      {
+        area: answers.area,
+        duration: answers.duration,
+        intensity: answers.intensity,
+        tingling: answers.tingling,
+      },
+    ],
+  };
+}
+
+export function startNextCondition(answers: Answers): Answers {
+  return {
+    area: null,
+    duration: null,
+    intensity: null,
+    tingling: null,
+    completed: answers.completed,
+  };
+}
+
+export function selectedAreas(answers: Answers) {
+  return answers.completed.map((condition) => condition.area);
+}
+
 export function durationCareLine(duration: string) {
   if (duration === 'Less than 2 weeks') {
     return 'You’re catching this early — that’s a smart move.';
@@ -96,6 +148,19 @@ export function durationCareLine(duration: string) {
   return 'It’s never too late to start feeling better.';
 }
 
+export function intensityCareLine(value: number) {
+  if (value <= 3) {
+    return 'This is a great window to get ahead of it.';
+  }
+  if (value <= 5) {
+    return 'Noticeable, but workable — we’ll pace it with you.';
+  }
+  if (value <= 8) {
+    return 'We’ll start things slow and keep every movement gentle.';
+  }
+  return 'That’s a lot — we’ll stay well within what feels safe.';
+}
+
 export function tinglingCareLine() {
   return 'I’ll flag that for your therapist.';
 }
@@ -104,26 +169,32 @@ export function intensityAnswer(value: number) {
   return `${value} / 10`;
 }
 
+function conditionBit(condition: Condition) {
+  const duration = condition.duration.toLowerCase();
+  const tinglingBit =
+    condition.tingling === true
+      ? ', with some tingling'
+      : condition.tingling === false
+        ? ', no tingling'
+        : '';
+  return `${condition.area.toLowerCase()}, ${duration}, around a ${condition.intensity}${tinglingBit}`;
+}
+
 export function chatIntro(
   door: DoorId,
   answers: Answers,
 ): { from: 'Phoenix' | 'Lauren'; text: string }[] {
-  const area = answers.area ?? 'that pain';
-  const duration = (answers.duration ?? 'a while').toLowerCase();
-  const intensity = answers.intensity ?? 5;
-  const tingling = answers.tingling;
+  const conditions = answers.completed;
 
   if (door === 'assessment') {
-    const tinglingBit =
-      tingling === true
-        ? ', with some tingling down the arm'
-        : tingling === false
-          ? ', no tingling'
-          : '';
+    const summary =
+      conditions.length > 0
+        ? conditions.map(conditionBit).join('; ')
+        : 'that pain';
     return [
       {
         from: 'Phoenix',
-        text: `${MEMBER} — ${area.toLowerCase()}, ${duration}, around a ${intensity}${tinglingBit}. I’ll set up an assessment around that.`,
+        text: `${MEMBER} — ${summary}. I’ll set up an assessment around that.`,
       },
       {
         from: 'Lauren',

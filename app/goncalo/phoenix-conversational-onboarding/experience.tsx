@@ -13,13 +13,21 @@ import {
   DOORS,
   GUIDE_LINES,
   READY_LABEL,
+  MAX_BODY_AREAS,
+  MORE_NO_LABEL,
+  MORE_YES_LABEL,
+  completeCondition,
   durationCareLine,
   durationQuestion,
   doorsLine,
   areaQuestion,
   followUpQuestion,
   intensityAnswer,
+  intensityCareLine,
   intensityQuestion,
+  moreQuestion,
+  selectedAreas,
+  startNextCondition,
   tinglingCareLine,
 } from './script';
 import { WorldBackdrop } from './world-scene';
@@ -32,13 +40,15 @@ const EMPTY_ANSWERS: Answers = {
   duration: null,
   intensity: null,
   tingling: null,
+  completed: [],
 };
 
 function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'guide') return GUIDE_LINES[step.index];
   if (step.kind === 'ready') return GUIDE_LINES[3];
+  if (step.kind === 'more') return moreQuestion(answers.area ?? 'that');
   if (step.kind === 'doors') return doorsLine();
-  if (step.index === 0) return areaQuestion();
+  if (step.index === 0) return areaQuestion(answers.completed.length);
   if (step.index === 1) return durationQuestion();
   if (step.index === 2) return intensityQuestion();
   return followUpQuestion(answers.area ?? 'Neck');
@@ -194,6 +204,7 @@ export function Experience() {
     turns,
     step,
     toolReady,
+    excludedAreas: selectedAreas(answers),
     onTurnStreamComplete: (turnId: string) => {
       const currentTurn = turns.at(-1);
       if (
@@ -249,17 +260,29 @@ export function Experience() {
         intensityAnswer(intensity),
         { kind: 'know', index: 3 },
         nextAnswers,
+        intensityCareLine(intensity),
       );
     },
     onTingling: (tingling: boolean) => {
-      const nextAnswers = { ...answers, tingling };
+      const nextAnswers = completeCondition({ ...answers, tingling });
       setAnswers(nextAnswers);
+      const atMax = nextAnswers.completed.length >= MAX_BODY_AREAS;
       commitMember(
         tingling ? 'Yes' : 'No',
-        { kind: 'doors' },
+        atMax ? { kind: 'doors' } : { kind: 'more' },
         nextAnswers,
         tingling ? tinglingCareLine() : undefined,
       );
+    },
+    onMore: (wantsMore: boolean) => {
+      if (wantsMore) {
+        const nextAnswers = startNextCondition(answers);
+        setAnswers(nextAnswers);
+        commitMember(MORE_YES_LABEL, { kind: 'know', index: 0 }, nextAnswers);
+        return;
+      }
+
+      commitMember(MORE_NO_LABEL, { kind: 'doors' }, answers);
     },
     onDoor: (nextDoor: DoorId) => {
       const label = DOORS.find((item) => item.id === nextDoor)?.label ?? '';
