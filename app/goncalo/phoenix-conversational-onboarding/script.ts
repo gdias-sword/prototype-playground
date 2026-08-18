@@ -26,7 +26,14 @@ export type DoorId = 'assessment' | 'how' | 'question';
 export const GUIDE_LINES = [
   `Hi ${MEMBER}, I’m Phoenix.`,
   'I’ll be guiding your care, alongside a real physical therapist.',
+  'Let’s start with a few questions to understand what you’re feeling.',
+  'It takes about 2 minutes. Ready?',
 ] as const;
+
+export const DISCLAIMER =
+  'Your answers are confidential and won’t be shared';
+
+export const READY_LABEL = 'I’m ready';
 
 export const THERAPIST_PHRASE = 'real physical therapist';
 
@@ -73,7 +80,7 @@ export function followUpQuestion(area: string) {
 }
 
 export function doorsLine() {
-  return 'Let’s get you started.';
+  return 'Then let’s get you started.';
 }
 
 export function durationCareLine(duration: string) {
