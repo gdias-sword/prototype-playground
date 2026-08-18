@@ -175,6 +175,34 @@
 .phoenix-chip-scroller {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+.phoenix-chip-scroller[data-fade-bottom] {
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - 36px),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - 36px),
+    transparent
+  );
+}
+
+.phoenix-chip-scroller[data-fade-top] {
+  mask-image: linear-gradient(to bottom, transparent, #000 12px, #000 100%);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 12px,
+    #000 100%
+  );
+}
+
+.phoenix-chip-scroller[data-fade-top][data-fade-bottom] {
   mask-image: linear-gradient(
     to bottom,
     transparent,
@@ -193,45 +221,6 @@
 
 .phoenix-chip-scroller::-webkit-scrollbar {
   display: none;
-}
-
-.phoenix-stack-fade {
-  mask-image: linear-gradient(to bottom, transparent, #000 52px, #000 100%);
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    #000 52px,
-    #000 100%
-  );
-}
-
-.phoenix-stack-blur {
-  pointer-events: none;
-  position: absolute;
-  inset-inline: 0;
-  top: 0;
-  height: 52px;
-}
-
-.phoenix-stack-blur::before,
-.phoenix-stack-blur::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-}
-
-.phoenix-stack-blur::before {
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  mask-image: linear-gradient(to bottom, #000 8%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 8%, transparent 100%);
-}
-
-.phoenix-stack-blur::after {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  mask-image: linear-gradient(to bottom, #000, transparent 55%);
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 55%);
 }
 
 @media (prefers-reduced-motion: reduce) {

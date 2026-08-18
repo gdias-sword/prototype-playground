@@ -93,7 +93,7 @@ export function StatusBar({ light = true }: { light?: boolean }) {
 
 export function HomeIndicator({ light = true }: { light?: boolean }) {
   return (
-    <div className="flex h-8 shrink-0 items-center justify-center">
+    <div className="flex h-12 shrink-0 items-center justify-center">
       <span
         className={cn(
           'h-[5px] w-[134px] rounded-full',

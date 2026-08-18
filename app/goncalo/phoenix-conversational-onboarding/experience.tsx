@@ -204,7 +204,7 @@ export function Experience({ variant }: { variant: VariantKey }) {
 
   const showChat = phase === 'exiting' || phase === 'chat';
 
-  const conversation: ConversationProps = {
+  const conversation: Omit<ConversationProps, 'compactPolicy'> = {
     turns,
     step,
     toolReady,

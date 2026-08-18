@@ -2,6 +2,7 @@
 
 import { mergeTailwindClasses as cn } from '@/design/utils';
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -60,10 +61,12 @@ function ToolShell({
   children,
   show,
   fill,
+  dock,
 }: {
   children: ReactNode;
   show: boolean;
   fill?: boolean;
+  dock?: boolean;
 }) {
   const [isPresented, setIsPresented] = useState(show);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -90,10 +93,11 @@ function ToolShell({
   return (
     <div
       className={cn(
-        'phoenix-tool-shell',
-        fill
-          ? '-mx-4 mt-6 flex min-h-0 flex-1 flex-col px-4'
-          : '-mx-4 mt-6 flex shrink-0 flex-col px-4',
+        'phoenix-tool-shell -mx-4 flex flex-col px-4',
+        fill && 'mt-6 min-h-0 flex-1',
+        !fill && !dock && 'mt-6 shrink-0',
+        dock && 'shrink-0',
+        dock && fill && 'max-h-[280px] min-h-0 flex-1 overflow-hidden',
       )}
       style={{
         animation: isLeaving
@@ -106,6 +110,8 @@ function ToolShell({
   );
 }
 
+const SCROLL_FADE_THRESHOLD_PX = 4;
+
 function AreaTool({
   exclude,
   onCommit,
@@ -114,9 +120,43 @@ function AreaTool({
   onCommit: (area: string) => void;
 }) {
   const areas = BODY_AREAS.filter((area) => !exclude.includes(area));
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [fadeTop, setFadeTop] = useState(false);
+  const [fadeBottom, setFadeBottom] = useState(false);
+
+  const updateFades = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = scroller;
+    const overflow = scrollHeight - clientHeight > SCROLL_FADE_THRESHOLD_PX;
+
+    setFadeTop(overflow && scrollTop > SCROLL_FADE_THRESHOLD_PX);
+    setFadeBottom(
+      overflow &&
+        scrollTop + clientHeight < scrollHeight - SCROLL_FADE_THRESHOLD_PX,
+    );
+  }, []);
+
+  useLayoutEffect(() => {
+    updateFades();
+
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const observer = new ResizeObserver(updateFades);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, [areas, updateFades]);
 
   return (
-    <div className="phoenix-chip-scroller -mx-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-5">
+    <div
+      ref={scrollerRef}
+      className="phoenix-chip-scroller -mx-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-5"
+      data-fade-top={fadeTop || undefined}
+      data-fade-bottom={fadeBottom || undefined}
+      onScroll={updateFades}
+    >
       {areas.map((area) => (
         <GlassChip key={area} onClick={() => onCommit(area)}>
           {area}
@@ -306,6 +346,7 @@ function ReadyTool({ onCommit }: { onCommit: () => void }) {
 export function PhoenixTools({
   step,
   show,
+  dock,
   excludedAreas,
   onReady,
   onArea,
@@ -317,6 +358,7 @@ export function PhoenixTools({
 }: {
   step: PhoenixStep;
   show: boolean;
+  dock?: boolean;
   excludedAreas: string[];
   onReady: () => void;
   onArea: (area: string) => void;
@@ -329,6 +371,7 @@ export function PhoenixTools({
   return (
     <ToolShell
       show={show}
+      dock={dock}
       fill={step.kind === 'ready' || (step.kind === 'know' && step.index === 0)}
     >
       {step.kind === 'ready' ? <ReadyTool onCommit={onReady} /> : null}
@@ -373,6 +416,33 @@ export function isFormQuestion(step: PhoenixStep) {
   return step.kind === 'know' || step.kind === 'more' || step.kind === 'doors';
 }
 
+export type CompactPolicy = 'always' | 'large' | 'dock';
+
+export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
+  if (step.kind === 'know' && step.index === 0) {
+    return BODY_AREAS.filter((area) => !excludedAreas.includes(area)).length;
+  }
+  if (step.kind === 'know' && step.index === 1) return DURATIONS.length;
+  if (step.kind === 'know' && step.index === 2) return 0;
+  if (step.kind === 'know' && step.index === 3) return 2;
+  if (step.kind === 'more') return 2;
+  if (step.kind === 'doors') return DOORS.length;
+  return 0;
+}
+
+export function shouldCompactStack(
+  policy: CompactPolicy,
+  step: PhoenixStep,
+  excludedAreas: string[],
+) {
+  if (!isFormQuestion(step)) return false;
+  if (policy === 'dock') return false;
+  if (policy === 'large') {
+    return optionCount(step, excludedAreas) >= 5;
+  }
+  return true;
+}
+
 export function windowedTurns(turns: StackTurn[]) {
   let beats = 0;
   const kept: StackTurn[] = [];
@@ -411,6 +481,7 @@ export function stackBlur(fromEnd: number) {
 
 export function useStackWindow(visibleTurns: StackTurn[]) {
   const listRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const [isFilled, setIsFilled] = useState(false);
   const [promptHeight, setPromptHeight] = useState(0);
 
@@ -418,9 +489,14 @@ export function useStackWindow(visibleTurns: StackTurn[]) {
     const list = listRef.current;
     if (!list) return;
     const measuredList = list;
+    const measuredFrame = frameRef.current;
 
     function measure() {
-      const nextIsFilled = measuredList.scrollHeight > STACK_WINDOW_MAX_PX + 2;
+      const cap =
+        measuredFrame && measuredFrame.clientHeight > 0
+          ? measuredFrame.clientHeight
+          : STACK_WINDOW_MAX_PX;
+      const nextIsFilled = measuredList.scrollHeight > cap + 2;
       setIsFilled((current) =>
         current === nextIsFilled ? current : nextIsFilled,
       );
@@ -435,12 +511,13 @@ export function useStackWindow(visibleTurns: StackTurn[]) {
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(measuredList);
+    if (measuredFrame) observer.observe(measuredFrame);
     const prompt = measuredList.lastElementChild;
     if (prompt) observer.observe(prompt);
     return () => observer.disconnect();
   }, [visibleTurns]);
 
-  return { listRef, isFilled, promptHeight };
+  return { listRef, frameRef, isFilled, promptHeight };
 }
 
 export function PhoenixLineText({
@@ -499,6 +576,7 @@ export interface ConversationProps {
   turns: StackTurn[];
   step: PhoenixStep;
   toolReady: boolean;
+  compactPolicy: CompactPolicy;
   excludedAreas: string[];
   onGuideAdvance: () => void;
   onReady: () => void;
