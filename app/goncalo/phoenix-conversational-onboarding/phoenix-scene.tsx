@@ -54,6 +54,8 @@ export function TherapistGuideLine({ line }: { line: string }) {
   );
 }
 
+const TOOL_MOTION_MS = 800;
+
 function ToolShell({
   children,
   show,
@@ -63,16 +65,41 @@ function ToolShell({
   show: boolean;
   fill?: boolean;
 }) {
-  if (!show) return <div className="h-0" />;
+  const [isPresented, setIsPresented] = useState(show);
+  const [isLeaving, setIsLeaving] = useState(false);
+
+  useEffect(() => {
+    if (show) {
+      setIsPresented(true);
+      setIsLeaving(false);
+      return;
+    }
+
+    if (!isPresented) return;
+
+    setIsLeaving(true);
+    const id = window.setTimeout(() => {
+      setIsPresented(false);
+      setIsLeaving(false);
+    }, TOOL_MOTION_MS);
+    return () => window.clearTimeout(id);
+  }, [show, isPresented]);
+
+  if (!isPresented) return <div className="h-0" />;
 
   return (
     <div
-      className={
+      className={cn(
+        'phoenix-tool-shell',
         fill
           ? '-mx-4 mt-6 flex min-h-0 flex-1 flex-col px-4'
-          : '-mx-4 mt-6 flex shrink-0 flex-col px-4'
-      }
-      style={{ animation: 'rise-in 800ms cubic-bezier(0.22, 1, 0.36, 1) both' }}
+          : '-mx-4 mt-6 flex shrink-0 flex-col px-4',
+      )}
+      style={{
+        animation: isLeaving
+          ? `rise-out ${TOOL_MOTION_MS}ms cubic-bezier(0.22, 1, 0.36, 1) both`
+          : `rise-in ${TOOL_MOTION_MS}ms cubic-bezier(0.22, 1, 0.36, 1) both`,
+      }}
     >
       {children}
     </div>
@@ -324,22 +351,27 @@ export function PhoenixTools({
 }
 
 export function useDelayedTool(readyWhen: boolean, delay = 700) {
-  const [show, setShow] = useState(false);
+  const [isDelayedReady, setIsDelayedReady] = useState(false);
 
   useEffect(() => {
     if (!readyWhen) {
-      setShow(false);
+      setIsDelayedReady(false);
       return;
     }
-    const id = window.setTimeout(() => setShow(true), delay);
+    const id = window.setTimeout(() => setIsDelayedReady(true), delay);
     return () => window.clearTimeout(id);
   }, [readyWhen, delay]);
 
-  return show;
+  return readyWhen && isDelayedReady;
 }
 
 export const STACK_WINDOW_MAX_PX = 240;
 const STACK_WINDOW_QUESTIONS = 4;
+export const STACK_COMPACT_MS = 800;
+
+export function isFormQuestion(step: PhoenixStep) {
+  return step.kind === 'know' || step.kind === 'more' || step.kind === 'doors';
+}
 
 export function windowedTurns(turns: StackTurn[]) {
   let beats = 0;
@@ -380,6 +412,7 @@ export function stackBlur(fromEnd: number) {
 export function useStackWindow(visibleTurns: StackTurn[]) {
   const listRef = useRef<HTMLDivElement>(null);
   const [isFilled, setIsFilled] = useState(false);
+  const [promptHeight, setPromptHeight] = useState(0);
 
   useLayoutEffect(() => {
     const list = listRef.current;
@@ -391,15 +424,23 @@ export function useStackWindow(visibleTurns: StackTurn[]) {
       setIsFilled((current) =>
         current === nextIsFilled ? current : nextIsFilled,
       );
+      const prompt = measuredList.lastElementChild as HTMLElement | null;
+      if (!prompt) return;
+      const nextHeight = prompt.offsetHeight;
+      setPromptHeight((current) =>
+        current === nextHeight ? current : nextHeight,
+      );
     }
 
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(measuredList);
+    const prompt = measuredList.lastElementChild;
+    if (prompt) observer.observe(prompt);
     return () => observer.disconnect();
   }, [visibleTurns]);
 
-  return { listRef, isFilled };
+  return { listRef, isFilled, promptHeight };
 }
 
 export function PhoenixLineText({

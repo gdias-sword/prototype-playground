@@ -73,7 +73,7 @@ export type StackTurn = {
 
 export function areaQuestion(completedCount = 0) {
   if (completedCount > 0) return 'Where else is bothering you?';
-  return 'Let’s start with where you’re hurting most.';
+  return 'Where are you feeling pain or symptoms?';
 }
 
 export function moreQuestion(area: string) {
@@ -81,7 +81,7 @@ export function moreQuestion(area: string) {
 }
 
 export function durationQuestion() {
-  return 'When did that start?';
+  return 'When did it start?';
 }
 
 export function intensityQuestion() {
