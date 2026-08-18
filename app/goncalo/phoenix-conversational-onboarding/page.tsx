@@ -5,14 +5,24 @@ import { RotateCcw, Settings2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DeviceFrame } from './device-frame';
 import { Experience } from './experience';
+import {
+  VariantSwitcher,
+  readVariantParam,
+  type VariantKey,
+} from './variant-switcher';
 import './motion.css';
 
 export default function PhoenixConversationalOnboarding() {
   const [replayKey, setReplayKey] = useState(0);
+  const [variant, setVariant] = useState<VariantKey>('A');
 
   function handleReplay() {
     setReplayKey((value) => value + 1);
   }
+
+  useEffect(() => {
+    setVariant(readVariantParam());
+  }, []);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -37,14 +47,14 @@ export default function PhoenixConversationalOnboarding() {
   }, []);
 
   return (
-    <div
-      className="relative flex min-h-dvh w-full min-w-0 flex-1 items-center justify-center overflow-auto p-6"
-    >
+    <div className="relative flex min-h-dvh w-full min-w-0 flex-1 items-center justify-center overflow-auto p-6">
       <div className="phoenix-device-stage">
         <DeviceFrame>
-          <Experience key={replayKey} />
+          <Experience key={replayKey} variant={variant} />
         </DeviceFrame>
       </div>
+
+      <VariantSwitcher current={variant} onChange={setVariant} />
 
       <Popover.Root>
         <Popover.Trigger

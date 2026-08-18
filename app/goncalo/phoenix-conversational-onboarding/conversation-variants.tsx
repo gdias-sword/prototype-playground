@@ -15,15 +15,24 @@ import {
   type ConversationProps,
 } from './phoenix-scene';
 
-// Variants:
-// A — Color diff. One left-aligned typographic column. Same typeface;
-//     speaker is hue only (Phoenix recedes, member is brand blue).
-// B — Chip stays. The selected pill is the user turn. Questions stay
-//     a left-aligned log; the control becomes the transcript.
-// C — Two voices. Same serif for both; Phoenix left, member right.
-//     Alignment is the speaker signal — no accent color, no leftover chips.
+// Typography variants:
+// A — Current Lora. Serif at title-large (24/32), the live treatment.
+// B — Figtree. Design-system sans at the same 24/32 scale.
+// C — Smaller Lora. Same serif treatment, stepped down ~4px to title-medium (20/28).
 //
-// Chosen: A's brand-blue color diff + C's right placement.
+// Speaker styling stays locked: brand-blue member answers, right-aligned.
+
+type TypeTreatment = 'lora' | 'figtree' | 'lora-small';
+
+function typeClass(treatment: TypeTreatment) {
+  if (treatment === 'figtree') {
+    return 'text-title-large-strong font-sans font-medium';
+  }
+  if (treatment === 'lora-small') {
+    return 'text-title-medium-strong font-serif font-medium tracking-[-0.04em]';
+  }
+  return 'text-title-large-strong font-serif font-medium tracking-[-0.04em]';
+}
 
 const LIST_CLASS = 'flex w-full shrink-0 flex-col items-stretch gap-2.5';
 const STACK_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
@@ -88,11 +97,13 @@ function StackFrame({
 }
 
 function phoenixLineClass(
+  treatment: TypeTreatment,
   isCurrent: boolean,
   kind: ConversationProps['turns'][number]['kind'],
 ) {
   return cn(
-    'text-title-large-strong text-left font-serif font-medium tracking-[-0.04em]',
+    typeClass(treatment),
+    'text-left',
     isCurrent
       ? 'text-foreground-neutral-default'
       : kind === 'care'
@@ -111,7 +122,8 @@ function lineMotion(
     opacity: isLeavingWindow ? 0 : stackOpacity(fromEnd, role),
     filter: blur ? `blur(${blur}px)` : undefined,
     transition: LINE_TRANSITION,
-    animation: 'line-in 1300ms cubic-bezier(0.22, 1, 0.36, 1) backwards' as const,
+    animation:
+      'line-in 1300ms cubic-bezier(0.22, 1, 0.36, 1) backwards' as const,
   };
 }
 
@@ -133,12 +145,14 @@ function Tools(props: ConversationProps) {
 }
 
 function PhoenixTurn({
+  treatment,
   turn,
   isCurrent,
   fromEnd,
   isLeavingWindow,
   onTurnStreamComplete,
 }: {
+  treatment: TypeTreatment;
   turn: ConversationProps['turns'][number];
   isCurrent: boolean;
   fromEnd: number;
@@ -147,7 +161,7 @@ function PhoenixTurn({
 }) {
   return (
     <p
-      className={phoenixLineClass(isCurrent, turn.kind)}
+      className={phoenixLineClass(treatment, isCurrent, turn.kind)}
       style={lineMotion(fromEnd, 'phoenix', isLeavingWindow)}
     >
       <PhoenixLineText
@@ -160,7 +174,10 @@ function PhoenixTurn({
   );
 }
 
-export function PhoenixCopy(props: ConversationProps) {
+function PhoenixCopy({
+  treatment,
+  ...props
+}: ConversationProps & { treatment: TypeTreatment }) {
   const { step, onGuideAdvance, onTurnStreamComplete } = props;
   const {
     visibleTurns,
@@ -191,7 +208,10 @@ export function PhoenixCopy(props: ConversationProps) {
               return (
                 <p
                   key={turn.id}
-                  className="text-title-large-strong text-foreground-brand-default pr-1 text-right font-serif font-medium tracking-[-0.04em]"
+                  className={cn(
+                    typeClass(treatment),
+                    'text-foreground-brand-default pr-1 text-right',
+                  )}
                   style={lineMotion(fromEnd, 'member', isLeavingWindow)}
                 >
                   {turn.text}
@@ -202,6 +222,7 @@ export function PhoenixCopy(props: ConversationProps) {
             return (
               <PhoenixTurn
                 key={turn.id}
+                treatment={treatment}
                 turn={turn}
                 isCurrent={isCurrent}
                 fromEnd={fromEnd}
@@ -215,4 +236,16 @@ export function PhoenixCopy(props: ConversationProps) {
       <Tools {...props} />
     </div>
   );
+}
+
+export function VariantA(props: ConversationProps) {
+  return <PhoenixCopy {...props} treatment="lora" />;
+}
+
+export function VariantB(props: ConversationProps) {
+  return <PhoenixCopy {...props} treatment="figtree" />;
+}
+
+export function VariantC(props: ConversationProps) {
+  return <PhoenixCopy {...props} treatment="lora-small" />;
 }
