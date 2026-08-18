@@ -12,6 +12,7 @@ import {
   type StackTurn,
   DOORS,
   GUIDE_LINES,
+  READY_LABEL,
   durationCareLine,
   durationQuestion,
   doorsLine,
@@ -35,6 +36,7 @@ const EMPTY_ANSWERS: Answers = {
 
 function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'guide') return GUIDE_LINES[step.index];
+  if (step.kind === 'ready') return GUIDE_LINES[3];
   if (step.kind === 'doors') return doorsLine();
   if (step.index === 0) return areaQuestion();
   if (step.index === 1) return durationQuestion();
@@ -180,7 +182,9 @@ export function Experience() {
       ? 'avatar'
       : phase === 'entering' && !isHero
         ? 'seed'
-        : phase === 'phoenix' && step.kind !== 'guide'
+        : phase === 'phoenix' &&
+            step.kind !== 'guide' &&
+            step.kind !== 'ready'
           ? 'compact'
           : 'hero';
 
@@ -203,24 +207,25 @@ export function Experience() {
     },
     onGuideAdvance: () => {
       if (step.kind !== 'guide' || mood !== 'breath') return;
-      if (step.index === 0) {
+      if (step.index < 2) {
+        const nextIndex = (step.index + 1) as 1 | 2;
         pushTurns({
           role: 'phoenix',
-          text: GUIDE_LINES[1],
+          text: GUIDE_LINES[nextIndex],
           kind: 'guide',
         });
-        setStep({ kind: 'guide', index: 1 });
+        setStep({ kind: 'guide', index: nextIndex });
         return;
       }
-      setMood('think');
-      later(() => {
-        pushTurns({
-          role: 'phoenix',
-          text: areaQuestion(),
-          kind: 'question',
-        });
-        setStep({ kind: 'know', index: 0 });
-      }, 620);
+      pushTurns({
+        role: 'phoenix',
+        text: GUIDE_LINES[3],
+        kind: 'question',
+      });
+      setStep({ kind: 'ready' });
+    },
+    onReady: () => {
+      commitMember(READY_LABEL, { kind: 'know', index: 0 }, answers);
     },
     onArea: (area: string) => {
       const nextAnswers = { ...answers, area };

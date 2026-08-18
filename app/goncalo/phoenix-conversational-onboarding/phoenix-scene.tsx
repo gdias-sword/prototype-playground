@@ -12,19 +12,23 @@ import {
   type PointerEvent,
   type ReactNode,
 } from 'react';
+import securityIcon from './assets/ic-security.svg';
 import intensityKnob from './assets/intensity-knob.svg';
 import { GlassChip } from './glass';
 import {
   BODY_AREAS,
+  DISCLAIMER,
   DOORS,
   DURATIONS,
+  READY_LABEL,
   THERAPIST_PHRASE,
   type DoorId,
   type StackTurn,
 } from './script';
 
 export type PhoenixStep =
-  | { kind: 'guide'; index: 0 | 1 }
+  | { kind: 'guide'; index: 0 | 1 | 2 }
+  | { kind: 'ready' }
   | { kind: 'know'; index: 0 | 1 | 2 | 3 }
   | { kind: 'doors' };
 
@@ -222,9 +226,36 @@ function DoorsTool({ onCommit }: { onCommit: (id: DoorId) => void }) {
   );
 }
 
+function ReadyTool({ onCommit }: { onCommit: () => void }) {
+  const iconSrc =
+    typeof securityIcon === 'string' ? securityIcon : securityIcon.src;
+
+  return (
+    <div className="mt-auto flex w-full flex-col items-center gap-4 pb-5">
+      <div className="flex items-center justify-center gap-1.5">
+        <span className="relative size-4 shrink-0 overflow-clip">
+          <img
+            alt=""
+            aria-hidden
+            src={iconSrc}
+            className="absolute inset-0 size-full"
+          />
+        </span>
+        <p className="text-body-small-default text-foreground-neutral-default text-center">
+          {DISCLAIMER}
+        </p>
+      </div>
+      <GlassChip className="text-center" onClick={onCommit}>
+        {READY_LABEL}
+      </GlassChip>
+    </div>
+  );
+}
+
 export function PhoenixTools({
   step,
   show,
+  onReady,
   onArea,
   onDuration,
   onIntensity,
@@ -233,6 +264,7 @@ export function PhoenixTools({
 }: {
   step: PhoenixStep;
   show: boolean;
+  onReady: () => void;
   onArea: (area: string) => void;
   onDuration: (value: string) => void;
   onIntensity: (value: number) => void;
@@ -240,7 +272,11 @@ export function PhoenixTools({
   onDoor: (id: DoorId) => void;
 }) {
   return (
-    <ToolShell show={show} fill={step.kind === 'know' && step.index === 0}>
+    <ToolShell
+      show={show}
+      fill={step.kind === 'ready' || (step.kind === 'know' && step.index === 0)}
+    >
+      {step.kind === 'ready' ? <ReadyTool onCommit={onReady} /> : null}
       {step.kind === 'know' && step.index === 0 ? (
         <AreaTool onCommit={onArea} />
       ) : null}
@@ -369,6 +405,7 @@ interface PhoenixCopyProps {
   step: PhoenixStep;
   toolReady: boolean;
   onGuideAdvance: () => void;
+  onReady: () => void;
   onArea: (area: string) => void;
   onDuration: (value: string) => void;
   onIntensity: (value: number) => void;
@@ -382,6 +419,7 @@ export function PhoenixCopy({
   step,
   toolReady,
   onGuideAdvance,
+  onReady,
   onArea,
   onDuration,
   onIntensity,
@@ -479,6 +517,7 @@ export function PhoenixCopy({
       <PhoenixTools
         step={step}
         show={toolReady}
+        onReady={onReady}
         onArea={onArea}
         onDuration={onDuration}
         onIntensity={onIntensity}
