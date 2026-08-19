@@ -15,23 +15,14 @@ import {
   type ConversationProps,
 } from './phoenix-scene';
 
-// Speaker-diff (chosen, not switchable): A's brand-blue color + C's right placement.
-//
-// Compact-when variants:
-// A — Always recede. Choices sit under the prompt (form attached to the question).
-// B — Large lists only. Recede for 5+ choices (body area). Short answers stay in conversation.
-// C — Stack stays expanded, actions docked. The conversation keeps its normal
-//     window while the controls stay anchored to the bottom of the device.
-
 const LIST_CLASS = 'flex w-full shrink-0 flex-col items-stretch gap-2.5';
 const STACK_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const LINE_TRANSITION = `color ${STACK_COMPACT_MS}ms ${STACK_EASE}, opacity ${STACK_COMPACT_MS}ms ${STACK_EASE}, filter ${STACK_COMPACT_MS}ms ${STACK_EASE}, transform ${STACK_COMPACT_MS}ms ${STACK_EASE}`;
 
 function useConversationStack(props: ConversationProps) {
-  const isDocked = props.compactPolicy === 'dock';
   const visibleTurns = useMemo(
-    () => (isDocked ? props.turns : windowedTurns(props.turns)),
-    [isDocked, props.turns],
+    () => windowedTurns(props.turns),
+    [props.turns],
   );
   const { listRef, frameRef, promptHeight } = useStackWindow(visibleTurns);
 
@@ -40,15 +31,10 @@ function useConversationStack(props: ConversationProps) {
     listRef,
     frameRef,
     promptHeight,
-    isDocked,
     currentId: visibleTurns.at(-1)?.id,
     isCompact:
       props.toolReady &&
-      shouldCompactStack(
-        props.compactPolicy,
-        props.step,
-        props.excludedAreas,
-      ) &&
+      shouldCompactStack(props.step, props.excludedAreas) &&
       visibleTurns.at(-1)?.role === 'phoenix' &&
       visibleTurns.at(-1)?.kind === 'question',
   };
@@ -120,7 +106,6 @@ function Tools(props: ConversationProps) {
     <PhoenixTools
       step={props.step}
       show={props.toolReady}
-      dock={props.compactPolicy === 'dock'}
       excludedAreas={props.excludedAreas}
       onReady={props.onReady}
       onArea={props.onArea}
@@ -168,27 +153,19 @@ export function PhoenixCopy(props: ConversationProps) {
     listRef,
     frameRef,
     promptHeight,
-    isDocked,
     currentId,
     isCompact,
   } = useConversationStack(props);
 
   const maxHeight =
-    isCompact && promptHeight > 0
-      ? promptHeight
-      : STACK_WINDOW_MAX_PX;
-  const isFullHeightTool =
-    step.kind === 'know' && step.index === 0;
+    isCompact && promptHeight > 0 ? promptHeight : STACK_WINDOW_MAX_PX;
 
   return (
     <div
       className="flex min-h-0 flex-1 flex-col px-5 pt-1"
       onClick={step.kind === 'guide' ? onGuideAdvance : undefined}
     >
-      <StackFrame
-        maxHeight={maxHeight}
-        frameRef={frameRef}
-      >
+      <StackFrame maxHeight={maxHeight} frameRef={frameRef}>
         <div ref={listRef} className={LIST_CLASS}>
           {visibleTurns.map((turn, index) => {
             const fromEnd = visibleTurns.length - 1 - index;
@@ -220,28 +197,7 @@ export function PhoenixCopy(props: ConversationProps) {
           })}
         </div>
       </StackFrame>
-      {isDocked && !isFullHeightTool ? (
-        <>
-          <div className="min-h-0 flex-1" />
-          <div className="shrink-0 pt-6">
-            <Tools {...props} />
-          </div>
-        </>
-      ) : (
-        <Tools {...props} />
-      )}
+      <Tools {...props} />
     </div>
   );
-}
-
-export function VariantA(props: Omit<ConversationProps, 'compactPolicy'>) {
-  return <PhoenixCopy {...props} compactPolicy="always" />;
-}
-
-export function VariantB(props: Omit<ConversationProps, 'compactPolicy'>) {
-  return <PhoenixCopy {...props} compactPolicy="large" />;
-}
-
-export function VariantC(props: Omit<ConversationProps, 'compactPolicy'>) {
-  return <PhoenixCopy {...props} compactPolicy="dock" />;
 }

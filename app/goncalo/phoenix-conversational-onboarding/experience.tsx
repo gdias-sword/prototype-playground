@@ -3,7 +3,7 @@
 import { mergeTailwindClasses as cn } from '@/design/utils';
 import { useEffect, useRef, useState } from 'react';
 import { ChatScene } from './chat-scene';
-import { VariantA, VariantB, VariantC } from './conversation-variants';
+import { PhoenixCopy } from './conversation-variants';
 import { HomeIndicator, StatusBar } from './device-frame';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
 import {
@@ -11,7 +11,6 @@ import {
   type PhoenixStep,
   useDelayedTool,
 } from './phoenix-scene';
-import { type VariantKey } from './variant-switcher';
 import {
   type Answers,
   type DoorId,
@@ -65,7 +64,7 @@ function turnKind(step: PhoenixStep): StackTurn['kind'] {
   return 'question';
 }
 
-export function Experience({ variant }: { variant: VariantKey }) {
+export function Experience() {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
   const [phase, setPhase] = useState<Phase>('entering');
@@ -204,7 +203,7 @@ export function Experience({ variant }: { variant: VariantKey }) {
 
   const showChat = phase === 'exiting' || phase === 'chat';
 
-  const conversation: Omit<ConversationProps, 'compactPolicy'> = {
+  const conversation: ConversationProps = {
     turns,
     step,
     toolReady,
@@ -324,11 +323,7 @@ export function Experience({ variant }: { variant: VariantKey }) {
           )}
         />
         {phase === 'phoenix' || phase === 'exiting' ? (
-          <>
-            {variant === 'A' && <VariantA {...conversation} />}
-            {variant === 'B' && <VariantB {...conversation} />}
-            {variant === 'C' && <VariantC {...conversation} />}
-          </>
+          <PhoenixCopy {...conversation} />
         ) : null}
         <HomeIndicator />
       </div>

@@ -61,12 +61,10 @@ function ToolShell({
   children,
   show,
   fill,
-  dock,
 }: {
   children: ReactNode;
   show: boolean;
   fill?: boolean;
-  dock?: boolean;
 }) {
   const [isPresented, setIsPresented] = useState(show);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -95,9 +93,7 @@ function ToolShell({
       className={cn(
         'phoenix-tool-shell -mx-4 flex flex-col px-4',
         fill && 'mt-6 min-h-0 flex-1',
-        !fill && !dock && 'mt-6 shrink-0',
-        dock && 'shrink-0',
-        dock && fill && 'max-h-[280px] min-h-0 flex-1 overflow-hidden',
+        !fill && 'mt-6 shrink-0',
       )}
       style={{
         animation: isLeaving
@@ -346,7 +342,6 @@ function ReadyTool({ onCommit }: { onCommit: () => void }) {
 export function PhoenixTools({
   step,
   show,
-  dock,
   excludedAreas,
   onReady,
   onArea,
@@ -358,7 +353,6 @@ export function PhoenixTools({
 }: {
   step: PhoenixStep;
   show: boolean;
-  dock?: boolean;
   excludedAreas: string[];
   onReady: () => void;
   onArea: (area: string) => void;
@@ -371,7 +365,6 @@ export function PhoenixTools({
   return (
     <ToolShell
       show={show}
-      dock={dock}
       fill={step.kind === 'ready' || (step.kind === 'know' && step.index === 0)}
     >
       {step.kind === 'ready' ? <ReadyTool onCommit={onReady} /> : null}
@@ -416,8 +409,6 @@ export function isFormQuestion(step: PhoenixStep) {
   return step.kind === 'know' || step.kind === 'more' || step.kind === 'doors';
 }
 
-export type CompactPolicy = 'always' | 'large' | 'dock';
-
 export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
   if (step.kind === 'know' && step.index === 0) {
     return BODY_AREAS.filter((area) => !excludedAreas.includes(area)).length;
@@ -430,17 +421,9 @@ export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
   return 0;
 }
 
-export function shouldCompactStack(
-  policy: CompactPolicy,
-  step: PhoenixStep,
-  excludedAreas: string[],
-) {
+export function shouldCompactStack(step: PhoenixStep, excludedAreas: string[]) {
   if (!isFormQuestion(step)) return false;
-  if (policy === 'dock') return false;
-  if (policy === 'large') {
-    return optionCount(step, excludedAreas) >= 5;
-  }
-  return true;
+  return optionCount(step, excludedAreas) >= 5;
 }
 
 export function windowedTurns(turns: StackTurn[]) {
@@ -576,7 +559,6 @@ export interface ConversationProps {
   turns: StackTurn[];
   step: PhoenixStep;
   toolReady: boolean;
-  compactPolicy: CompactPolicy;
   excludedAreas: string[];
   onGuideAdvance: () => void;
   onReady: () => void;
