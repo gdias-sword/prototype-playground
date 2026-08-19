@@ -37,9 +37,15 @@ export type PhoenixStep =
   | { kind: 'more' }
   | { kind: 'doors' };
 
-export function TherapistGuideLine({ line }: { line: string }) {
+export function TherapistGuideLine({
+  line,
+  shimmer = true,
+}: {
+  line: string;
+  shimmer?: boolean;
+}) {
   const [lead, trail] = line.split(THERAPIST_PHRASE);
-  const [isShimmering, setIsShimmering] = useState(true);
+  const [isShimmering, setIsShimmering] = useState(shimmer);
 
   return (
     <>
@@ -222,7 +228,7 @@ function IntensityTool({ onCommit }: { onCommit: (value: number) => void }) {
           aria-valuemax={10}
           aria-valuenow={value}
           tabIndex={0}
-          className="relative h-16 cursor-pointer touch-none select-none outline-none"
+          className="relative h-16 cursor-pointer touch-none outline-none select-none"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onKeyDown={handleKeyDown}
@@ -232,7 +238,7 @@ function IntensityTool({ onCommit }: { onCommit: (value: number) => void }) {
               className="from-background-neutral-default to-background-brand-faded pointer-events-none absolute inset-y-0 left-0 bg-gradient-to-r transition-[width] duration-150"
               style={{ width: knobOffset }}
             />
-            <div className="absolute inset-y-0 inset-x-3">
+            <div className="absolute inset-x-3 inset-y-0">
               <div
                 ref={scaleRef}
                 className="relative z-10 grid h-full grid-cols-10"
@@ -409,8 +415,21 @@ export function isFormQuestion(step: PhoenixStep) {
   return step.kind === 'know' || step.kind === 'more' || step.kind === 'doors';
 }
 
-export function shouldCompactStack(step: PhoenixStep) {
-  return isFormQuestion(step);
+export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
+  if (step.kind === 'know' && step.index === 0) {
+    return BODY_AREAS.filter((area) => !excludedAreas.includes(area)).length;
+  }
+  if (step.kind === 'know' && step.index === 1) return DURATIONS.length;
+  if (step.kind === 'know' && step.index === 2) return 0;
+  if (step.kind === 'know' && step.index === 3) return 2;
+  if (step.kind === 'more') return 2;
+  if (step.kind === 'doors') return DOORS.length;
+  return 0;
+}
+
+export function shouldCompactStack(step: PhoenixStep, excludedAreas: string[]) {
+  if (!isFormQuestion(step)) return false;
+  return optionCount(step, excludedAreas) >= 5;
 }
 
 export function windowedTurns(turns: StackTurn[]) {
@@ -514,7 +533,7 @@ export function PhoenixLineText({
 
   if (isComplete || !shouldStream) {
     if (kind === 'guide' && text.includes(THERAPIST_PHRASE)) {
-      return <TherapistGuideLine line={text} />;
+      return <TherapistGuideLine line={text} shimmer={shouldStream} />;
     }
     return text;
   }
@@ -547,6 +566,7 @@ export interface ConversationProps {
   step: PhoenixStep;
   toolReady: boolean;
   excludedAreas: string[];
+  hasStreamedTurn?: (turnId: string) => boolean;
   onGuideAdvance: () => void;
   onReady: () => void;
   onArea: (area: string) => void;

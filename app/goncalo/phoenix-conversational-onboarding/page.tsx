@@ -1,17 +1,48 @@
 'use client';
 
 import { Popover } from '@base-ui/react/popover';
-import { RotateCcw, Settings2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  FastForward,
+  RotateCcw,
+  Settings2,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { DeviceFrame } from './device-frame';
-import { Experience } from './experience';
+import {
+  Experience,
+  type ExperienceControls,
+  type ExperienceHandle,
+} from './experience';
 import './motion.css';
 
+const EMPTY_CONTROLS: ExperienceControls = {
+  canPrev: false,
+  canNext: false,
+  canSkipIntro: true,
+};
+
 export default function PhoenixConversationalOnboarding() {
+  const navigatorRef = useRef<ExperienceHandle | null>(null);
   const [replayKey, setReplayKey] = useState(0);
+  const [controls, setControls] = useState(EMPTY_CONTROLS);
 
   function handleReplay() {
     setReplayKey((value) => value + 1);
+    setControls(EMPTY_CONTROLS);
+  }
+
+  function handlePrev() {
+    navigatorRef.current?.prevQuestion();
+  }
+
+  function handleNext() {
+    navigatorRef.current?.nextQuestion();
+  }
+
+  function handleSkipIntro() {
+    navigatorRef.current?.skipIntro();
   }
 
   useEffect(() => {
@@ -29,6 +60,24 @@ export default function PhoenixConversationalOnboarding() {
       if (event.key.toLowerCase() === 'r') {
         event.preventDefault();
         handleReplay();
+        return;
+      }
+
+      if (event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        handleSkipIntro();
+        return;
+      }
+
+      if (event.key === '[') {
+        event.preventDefault();
+        handlePrev();
+        return;
+      }
+
+      if (event.key === ']') {
+        event.preventDefault();
+        handleNext();
       }
     }
 
@@ -40,7 +89,11 @@ export default function PhoenixConversationalOnboarding() {
     <div className="relative flex min-h-dvh w-full min-w-0 flex-1 items-center justify-center overflow-auto p-6">
       <div className="phoenix-device-stage">
         <DeviceFrame>
-          <Experience key={replayKey} />
+          <Experience
+            key={replayKey}
+            navigatorRef={navigatorRef}
+            onControlsChange={setControls}
+          />
         </DeviceFrame>
       </div>
 
@@ -64,6 +117,42 @@ export default function PhoenixConversationalOnboarding() {
                   R
                 </kbd>
               </Popover.Close>
+              <button
+                type="button"
+                disabled={!controls.canSkipIntro}
+                onClick={handleSkipIntro}
+                className="text-body-small-subtle flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-left hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                <FastForward className="size-3.5" />
+                Skip intro
+                <kbd className="text-body-small-subtle ml-auto text-white/40">
+                  S
+                </kbd>
+              </button>
+              <button
+                type="button"
+                disabled={!controls.canPrev}
+                onClick={handlePrev}
+                className="text-body-small-subtle flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-left hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                <ChevronLeft className="size-3.5" />
+                Previous
+                <kbd className="text-body-small-subtle ml-auto text-white/40">
+                  [
+                </kbd>
+              </button>
+              <button
+                type="button"
+                disabled={!controls.canNext}
+                onClick={handleNext}
+                className="text-body-small-subtle flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-left hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                <ChevronRight className="size-3.5" />
+                Next
+                <kbd className="text-body-small-subtle ml-auto text-white/40">
+                  ]
+                </kbd>
+              </button>
             </Popover.Popup>
           </Popover.Positioner>
         </Popover.Portal>

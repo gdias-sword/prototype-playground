@@ -1,7 +1,13 @@
 'use client';
 
 import { mergeTailwindClasses as cn } from '@/design/utils';
-import { useEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type Ref,
+} from 'react';
 import { ChatScene } from './chat-scene';
 import { PhoenixCopy } from './conversation-variants';
 import { HomeIndicator, StatusBar } from './device-frame';
@@ -40,6 +46,30 @@ import { WorldBackdrop } from './world-scene';
 type Phase = 'entering' | 'phoenix' | 'exiting' | 'chat';
 type Layout = 'seed' | 'hero' | 'compact' | 'avatar';
 
+export interface ExperienceHandle {
+  prevQuestion: () => void;
+  nextQuestion: () => void;
+  skipIntro: () => void;
+}
+
+export interface ExperienceControls {
+  canPrev: boolean;
+  canNext: boolean;
+  canSkipIntro: boolean;
+}
+
+interface Checkpoint {
+  key: string;
+  label: string;
+  phase: Phase;
+  step: PhoenixStep;
+  answers: Answers;
+  turns: StackTurn[];
+  mood: PhoenixMood;
+  door: DoorId | null;
+  chatCount: number;
+}
+
 const EMPTY_ANSWERS: Answers = {
   area: null,
   duration: null,
@@ -64,9 +94,67 @@ function turnKind(step: PhoenixStep): StackTurn['kind'] {
   return 'question';
 }
 
-export function Experience() {
+function cloneAnswers(answers: Answers): Answers {
+  return {
+    ...answers,
+    completed: answers.completed.map((condition) => ({ ...condition })),
+  };
+}
+
+function cloneStep(step: PhoenixStep): PhoenixStep {
+  return { ...step };
+}
+
+function checkpointKey(phase: Phase, step: PhoenixStep, turnCount: number) {
+  if (phase === 'chat' || phase === 'exiting') return `chat:${turnCount}`;
+  if (step.kind === 'know') return `know:${step.index}:${turnCount}`;
+  return `${step.kind}:${turnCount}`;
+}
+
+function checkpointLabel(
+  phase: Phase,
+  step: PhoenixStep,
+  answers: Answers,
+  door: DoorId | null,
+) {
+  if (phase === 'chat' || phase === 'exiting') {
+    return DOORS.find((item) => item.id === door)?.label ?? 'Chat';
+  }
+  if (step.kind === 'ready') return 'Ready';
+  if (step.kind === 'more') {
+    return answers.area ? `More · ${answers.area}` : 'More';
+  }
+  if (step.kind === 'doors') return 'Doors';
+  if (step.kind === 'know') {
+    const round = answers.completed.length + 1;
+    const suffix = round > 1 ? ` ${round}` : '';
+    if (step.index === 0) return `Area${suffix}`;
+    if (step.index === 1) {
+      return answers.area ? `Duration · ${answers.area}` : 'Duration';
+    }
+    if (step.index === 2) {
+      return answers.area ? `Intensity · ${answers.area}` : 'Intensity';
+    }
+    return answers.area ? `Follow-up · ${answers.area}` : 'Follow-up';
+  }
+  return 'Question';
+}
+
+export function Experience({
+  navigatorRef,
+  onControlsChange,
+}: {
+  navigatorRef?: Ref<ExperienceHandle | null>;
+  onControlsChange?: (state: ExperienceControls) => void;
+} = {}) {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
+  const restoringRef = useRef(false);
+  const streamedTurnIdsRef = useRef(new Set<string>());
+  const checkpointsRef = useRef<Checkpoint[]>([]);
+  const checkpointIndexRef = useRef(-1);
+  const phaseRef = useRef<Phase>('entering');
+  const stepRef = useRef<PhoenixStep>({ kind: 'guide', index: 0 });
   const [phase, setPhase] = useState<Phase>('entering');
   const [isHero, setIsHero] = useState(false);
   const [step, setStep] = useState<PhoenixStep>({ kind: 'guide', index: 0 });
@@ -75,10 +163,16 @@ export function Experience() {
   const [mood, setMood] = useState<PhoenixMood>('think');
   const [door, setDoor] = useState<DoorId | null>(null);
   const [chatCount, setChatCount] = useState(0);
+  const [skipToolDelay, setSkipToolDelay] = useState(false);
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  const [checkpointIndex, setCheckpointIndex] = useState(-1);
   const toolReady = useDelayedTool(
     phase === 'phoenix' && step.kind !== 'guide' && mood === 'listen',
-    480,
+    skipToolDelay ? 0 : 480,
   );
+
+  phaseRef.current = phase;
+  stepRef.current = step;
 
   function nextTurnId() {
     turnIdRef.current += 1;
@@ -90,12 +184,184 @@ export function Experience() {
     timersRef.current.push(id);
   }
 
+  function clearTimers() {
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+    timersRef.current = [];
+  }
+
   function pushTurns(...incoming: Omit<StackTurn, 'id'>[]) {
     setTurns((current) => [
       ...current,
       ...incoming.map((turn) => ({ ...turn, id: nextTurnId() })),
     ]);
   }
+
+  function makeCheckpoint(
+    nextPhase: Phase,
+    nextStep: PhoenixStep,
+    nextAnswers: Answers,
+    nextTurns: StackTurn[],
+    nextMood: PhoenixMood,
+    nextDoor: DoorId | null,
+    nextChatCount: number,
+  ): Checkpoint {
+    return {
+      key: checkpointKey(nextPhase, nextStep, nextTurns.length),
+      label: checkpointLabel(nextPhase, nextStep, nextAnswers, nextDoor),
+      phase: nextPhase,
+      step: cloneStep(nextStep),
+      answers: cloneAnswers(nextAnswers),
+      turns: [...nextTurns],
+      mood: nextMood,
+      door: nextDoor,
+      chatCount: nextChatCount,
+    };
+  }
+
+  function recordCheckpoint(snapshot: Checkpoint) {
+    if (checkpointIndexRef.current < checkpointsRef.current.length - 1) {
+      return;
+    }
+
+    const last = checkpointsRef.current.at(-1);
+    if (last?.key === snapshot.key) return;
+
+    const next = [...checkpointsRef.current, snapshot];
+    checkpointsRef.current = next;
+    checkpointIndexRef.current = next.length - 1;
+    setCheckpoints(next);
+    setCheckpointIndex(next.length - 1);
+  }
+
+  function discardFutureCheckpoints() {
+    const index = checkpointIndexRef.current;
+    if (index < 0 || index >= checkpointsRef.current.length - 1) return;
+
+    const next = checkpointsRef.current.slice(0, index + 1);
+    checkpointsRef.current = next;
+    setCheckpoints(next);
+  }
+
+  function restoreCheckpoint(index: number) {
+    const snapshot = checkpointsRef.current[index];
+    if (!snapshot) return;
+
+    clearTimers();
+    restoringRef.current = true;
+    checkpointIndexRef.current = index;
+    setCheckpointIndex(index);
+    setSkipToolDelay(true);
+    setPhase(snapshot.phase);
+    setStep(cloneStep(snapshot.step));
+    setAnswers(cloneAnswers(snapshot.answers));
+    setTurns([...snapshot.turns]);
+    setMood(snapshot.mood);
+    setDoor(snapshot.door);
+    setChatCount(snapshot.chatCount);
+  }
+
+  function skipIntro() {
+    const currentPhase = phaseRef.current;
+    const currentStep = stepRef.current;
+    if (currentPhase === 'exiting' || currentPhase === 'chat') return;
+    if (
+      currentPhase === 'phoenix' &&
+      currentStep.kind !== 'guide' &&
+      currentStep.kind !== 'ready'
+    ) {
+      return;
+    }
+
+    clearTimers();
+    restoringRef.current = true;
+    setSkipToolDelay(true);
+    setIsHero(true);
+    setPhase('phoenix');
+    setAnswers(EMPTY_ANSWERS);
+    setDoor(null);
+    setChatCount(0);
+    setMood('listen');
+
+    const readyStep: PhoenixStep = { kind: 'ready' };
+    const areaStep: PhoenixStep = { kind: 'know', index: 0 };
+    const readyTurns: StackTurn[] = GUIDE_LINES.map((text, index) => ({
+      id: nextTurnId(),
+      role: 'phoenix' as const,
+      text,
+      kind: index < 3 ? ('guide' as const) : ('question' as const),
+    }));
+    const areaTurns: StackTurn[] = [
+      ...readyTurns,
+      {
+        id: nextTurnId(),
+        role: 'member',
+        text: READY_LABEL,
+        kind: 'answer',
+      },
+      {
+        id: nextTurnId(),
+        role: 'phoenix',
+        text: areaQuestion(0),
+        kind: 'question',
+      },
+    ];
+    areaTurns.forEach((turn) => streamedTurnIdsRef.current.add(turn.id));
+    setStep(areaStep);
+    setTurns(areaTurns);
+
+    const readySnapshot = makeCheckpoint(
+      'phoenix',
+      readyStep,
+      EMPTY_ANSWERS,
+      readyTurns,
+      'listen',
+      null,
+      0,
+    );
+    const areaSnapshot = makeCheckpoint(
+      'phoenix',
+      areaStep,
+      EMPTY_ANSWERS,
+      areaTurns,
+      'listen',
+      null,
+      0,
+    );
+    checkpointsRef.current = [readySnapshot, areaSnapshot];
+    checkpointIndexRef.current = 1;
+    setCheckpoints([readySnapshot, areaSnapshot]);
+    setCheckpointIndex(1);
+  }
+
+  useImperativeHandle(navigatorRef, () => ({
+    prevQuestion() {
+      if (phaseRef.current === 'exiting') {
+        restoreCheckpoint(checkpointIndexRef.current);
+        return;
+      }
+
+      const index = checkpointIndexRef.current;
+      if (index <= 0) return;
+      restoreCheckpoint(index - 1);
+    },
+    nextQuestion() {
+      const index = checkpointIndexRef.current;
+      if (index >= checkpointsRef.current.length - 1) return;
+      restoreCheckpoint(index + 1);
+    },
+    skipIntro,
+  }));
+
+  useEffect(() => {
+    onControlsChange?.({
+      canPrev: checkpointIndex > 0 || phase === 'exiting',
+      canNext: checkpointIndex >= 0 && checkpointIndex < checkpoints.length - 1,
+      canSkipIntro:
+        phase === 'entering' ||
+        (phase === 'phoenix' &&
+          (step.kind === 'guide' || step.kind === 'ready')),
+    });
+  }, [checkpoints.length, checkpointIndex, onControlsChange, phase, step]);
 
   useEffect(() => {
     return () => {
@@ -109,6 +375,7 @@ export function Experience() {
   }, []);
 
   useEffect(() => {
+    if (restoringRef.current) return;
     if (phase !== 'entering') return;
     const id = window.setTimeout(() => {
       setPhase('phoenix');
@@ -133,16 +400,19 @@ export function Experience() {
   }, [phase]);
 
   useEffect(() => {
+    if (restoringRef.current) return;
     if (phase !== 'phoenix' || step.kind !== 'guide') return;
     setMood('speak');
   }, [phase, step]);
 
   useEffect(() => {
+    if (restoringRef.current) return;
     if (phase !== 'phoenix' || step.kind === 'guide') return;
     setMood('speak');
   }, [phase, step]);
 
   useEffect(() => {
+    if (restoringRef.current) return;
     if (phase !== 'exiting' || !door) return;
     const id = window.setTimeout(() => {
       setPhase('chat');
@@ -152,6 +422,7 @@ export function Experience() {
   }, [phase, door]);
 
   useEffect(() => {
+    if (restoringRef.current) return;
     if (phase !== 'chat' || !door) return;
     setChatCount(0);
     const first = window.setTimeout(() => setChatCount(1), 700);
@@ -162,12 +433,25 @@ export function Experience() {
     };
   }, [phase, door]);
 
+  useEffect(() => {
+    if (phase !== 'chat' || !door || chatCount < 2) return;
+    recordCheckpoint(
+      makeCheckpoint('chat', step, answers, turns, 'breath', door, chatCount),
+    );
+  }, [phase, door, chatCount, step, answers, turns]);
+
+  useEffect(() => {
+    restoringRef.current = false;
+  });
+
   function commitMember(
     text: string,
     next: PhoenixStep,
     nextAnswers: Answers,
     care?: string,
   ) {
+    discardFutureCheckpoints();
+    setSkipToolDelay(false);
     pushTurns({ role: 'member', text, kind: 'answer' });
     setMood('think');
 
@@ -208,7 +492,9 @@ export function Experience() {
     step,
     toolReady,
     excludedAreas: selectedAreas(answers),
+    hasStreamedTurn: (turnId: string) => streamedTurnIdsRef.current.has(turnId),
     onTurnStreamComplete: (turnId: string) => {
+      streamedTurnIdsRef.current.add(turnId);
       const currentTurn = turns.at(-1);
       if (
         phase !== 'phoenix' ||
@@ -218,6 +504,10 @@ export function Experience() {
         return;
       }
       setMood(currentTurn.kind === 'question' ? 'listen' : 'breath');
+      if (currentTurn.kind !== 'question') return;
+      recordCheckpoint(
+        makeCheckpoint(phase, step, answers, turns, 'listen', door, chatCount),
+      );
     },
     onGuideAdvance: () => {
       if (step.kind !== 'guide' || mood !== 'breath') return;
@@ -288,6 +578,8 @@ export function Experience() {
       commitMember(MORE_NO_LABEL, { kind: 'doors' }, answers);
     },
     onDoor: (nextDoor: DoorId) => {
+      discardFutureCheckpoints();
+      setSkipToolDelay(false);
       const label = DOORS.find((item) => item.id === nextDoor)?.label ?? '';
       pushTurns({ role: 'member', text: label, kind: 'answer' });
       setDoor(nextDoor);
