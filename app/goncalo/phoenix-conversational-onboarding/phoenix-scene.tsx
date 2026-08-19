@@ -409,21 +409,8 @@ export function isFormQuestion(step: PhoenixStep) {
   return step.kind === 'know' || step.kind === 'more' || step.kind === 'doors';
 }
 
-export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
-  if (step.kind === 'know' && step.index === 0) {
-    return BODY_AREAS.filter((area) => !excludedAreas.includes(area)).length;
-  }
-  if (step.kind === 'know' && step.index === 1) return DURATIONS.length;
-  if (step.kind === 'know' && step.index === 2) return 0;
-  if (step.kind === 'know' && step.index === 3) return 2;
-  if (step.kind === 'more') return 2;
-  if (step.kind === 'doors') return DOORS.length;
-  return 0;
-}
-
-export function shouldCompactStack(step: PhoenixStep, excludedAreas: string[]) {
-  if (!isFormQuestion(step)) return false;
-  return optionCount(step, excludedAreas) >= 5;
+export function shouldCompactStack(step: PhoenixStep) {
+  return isFormQuestion(step);
 }
 
 export function windowedTurns(turns: StackTurn[]) {

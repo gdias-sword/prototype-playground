@@ -17,7 +17,7 @@ import {
 
 const LIST_CLASS = 'flex w-full shrink-0 flex-col items-stretch gap-2.5';
 const STACK_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
-const LINE_TRANSITION = `color ${STACK_COMPACT_MS}ms ${STACK_EASE}, opacity ${STACK_COMPACT_MS}ms ${STACK_EASE}, filter ${STACK_COMPACT_MS}ms ${STACK_EASE}, transform ${STACK_COMPACT_MS}ms ${STACK_EASE}`;
+const LINE_TRANSITION = `color ${STACK_COMPACT_MS}ms ${STACK_EASE}, opacity ${STACK_COMPACT_MS}ms ${STACK_EASE}, filter ${STACK_COMPACT_MS}ms ${STACK_EASE}, transform ${STACK_COMPACT_MS}ms ${STACK_EASE}, font-size ${STACK_COMPACT_MS}ms ${STACK_EASE}, line-height ${STACK_COMPACT_MS}ms ${STACK_EASE}`;
 
 function useConversationStack(props: ConversationProps) {
   const visibleTurns = useMemo(
@@ -34,7 +34,7 @@ function useConversationStack(props: ConversationProps) {
     currentId: visibleTurns.at(-1)?.id,
     isCompact:
       props.toolReady &&
-      shouldCompactStack(props.step, props.excludedAreas) &&
+      shouldCompactStack(props.step) &&
       visibleTurns.at(-1)?.role === 'phoenix' &&
       visibleTurns.at(-1)?.kind === 'question',
   };
@@ -75,10 +75,12 @@ function StackFrame({
 
 function phoenixLineClass(
   isCurrent: boolean,
+  isPrompt: boolean,
   kind: ConversationProps['turns'][number]['kind'],
 ) {
   return cn(
-    'text-title-large-strong text-left font-serif font-medium tracking-[-0.04em]',
+    isPrompt ? 'text-title-large-strong' : 'text-title-medium-strong',
+    'text-left font-serif font-medium tracking-[-0.04em]',
     isCurrent
       ? 'text-foreground-neutral-default'
       : kind === 'care'
@@ -121,19 +123,21 @@ function Tools(props: ConversationProps) {
 function PhoenixTurn({
   turn,
   isCurrent,
+  isPrompt,
   fromEnd,
   isLeavingWindow,
   onTurnStreamComplete,
 }: {
   turn: ConversationProps['turns'][number];
   isCurrent: boolean;
+  isPrompt: boolean;
   fromEnd: number;
   isLeavingWindow: boolean;
   onTurnStreamComplete: (turnId: string) => void;
 }) {
   return (
     <p
-      className={phoenixLineClass(isCurrent, turn.kind)}
+      className={phoenixLineClass(isCurrent, isPrompt, turn.kind)}
       style={lineMotion(fromEnd, 'phoenix', isLeavingWindow)}
     >
       <PhoenixLineText
@@ -176,7 +180,7 @@ export function PhoenixCopy(props: ConversationProps) {
               return (
                 <p
                   key={turn.id}
-                  className="text-title-large-strong text-foreground-brand-default pr-1 text-right font-serif font-medium tracking-[-0.04em]"
+                  className="text-title-medium-strong text-foreground-brand-default pr-1 text-right font-serif font-medium tracking-[-0.04em]"
                   style={lineMotion(fromEnd, 'member', isLeavingWindow)}
                 >
                   {turn.text}
@@ -189,6 +193,7 @@ export function PhoenixCopy(props: ConversationProps) {
                 key={turn.id}
                 turn={turn}
                 isCurrent={isCurrent}
+                isPrompt={isCompact && isCurrent}
                 fromEnd={fromEnd}
                 isLeavingWindow={isLeavingWindow}
                 onTurnStreamComplete={onTurnStreamComplete}
