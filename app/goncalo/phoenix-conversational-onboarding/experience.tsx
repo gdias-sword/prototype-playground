@@ -344,6 +344,7 @@ export function Experience({ variant }: { variant: VariantKey }) {
           <ChatScene
             door={door}
             answers={answers}
+            history={turns}
             avatarSlot
             visibleCount={phase === 'chat' ? chatCount : 0}
           />
