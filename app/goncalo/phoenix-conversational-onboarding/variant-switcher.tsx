@@ -4,18 +4,22 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect } from 'react';
 import { mergeTailwindClasses as cn } from '@/design/utils';
 
-export type VariantKey = 'A' | 'B' | 'C';
+export type VariantKey = 'A' | 'B' | 'C' | 'E';
 
 export const VARIANTS: { key: VariantKey; name: string }[] = [
   { key: 'A', name: 'Regions' },
-  { key: 'B', name: 'Body map' },
-  { key: 'C', name: 'Voice / text' },
+  { key: 'B', name: '3D skeleton' },
+  { key: 'C', name: 'Slot-first' },
+  { key: 'E', name: 'Wrap-after' },
 ];
 
 export function readVariantParam(): VariantKey {
   if (typeof window === 'undefined') return 'A';
   const value = new URLSearchParams(window.location.search).get('variant');
-  if (value === 'A' || value === 'B' || value === 'C') return value;
+  if (value === 'D') return 'B';
+  if (value === 'A' || value === 'B' || value === 'C' || value === 'E') {
+    return value;
+  }
   return 'A';
 }
 
@@ -84,7 +88,7 @@ export function VariantSwitcher({
       >
         <ChevronLeft className="size-4" />
       </button>
-      <p className="text-body-small-subtle min-w-44 text-center">
+      <p className="text-body-small-subtle min-w-52 text-center">
         {active.key} — {active.name}
       </p>
       <button

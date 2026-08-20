@@ -4,14 +4,12 @@ export const PT = 'Lauren';
 export const BODY_AREAS = [
   'Neck',
   'Shoulder',
-  'Upper back',
-  'Lower back',
-  'Hip',
-  'Knee',
-  'Ankle',
   'Wrist',
   'Elbow',
-  'Head',
+  'Back',
+  'Hip',
+  'Knee',
+  'Ankle / Foot',
 ] as const;
 
 export const DURATIONS = [
@@ -25,7 +23,7 @@ export type DoorId = 'assessment' | 'how' | 'question';
 
 export const GUIDE_LINES = [
   `Hi ${MEMBER}, I’m Phoenix.`,
-  'I’ll be guiding your care, alongside a real physical therapist.',
+  `I’ll be guiding your care, alongside ${PT}, your physical therapist.`,
   'Let’s start with a few questions to understand what you’re feeling.',
   'It takes about 2 minutes. Ready?',
 ] as const;
@@ -35,7 +33,7 @@ export const DISCLAIMER =
 
 export const READY_LABEL = 'I’m ready';
 
-export const THERAPIST_PHRASE = 'real physical therapist';
+export const THERAPIST_PHRASE = PT;
 
 export const DOORS: { id: DoorId; label: string }[] = [
   { id: 'assessment', label: 'Start my assessment' },
@@ -92,7 +90,7 @@ export function followUpQuestion(area: string) {
   if (area === 'Neck' || area === 'Shoulder') {
     return 'Do you feel tingling or numbness down your arm?';
   }
-  if (area === 'Lower back' || area === 'Hip') {
+  if (area === 'Back' || area === 'Hip') {
     return 'Does it travel down your leg?';
   }
   return 'Does it change when you move?';

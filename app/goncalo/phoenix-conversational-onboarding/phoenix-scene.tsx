@@ -16,7 +16,8 @@ import {
 import securityIcon from './assets/ic-security.svg';
 import intensityKnob from './assets/intensity-knob.svg';
 import { GlassChip } from './glass';
-import { BodyAreaPickerVariant, type BodyAreaVariantKey } from './body-area-variants';
+import { BodyAreaPickerVariant, type BodyAreaVariantKey, usesBodyCanvas, usesIntakeComposer } from './body-area-variants';
+import { IntakeComposer, type AreaCommitMeta } from './intake-composer';
 import {
   BODY_AREAS,
   DISCLAIMER,
@@ -367,20 +368,51 @@ export function PhoenixTools({
   bodyAreaVariant: BodyAreaVariantKey;
   pickedAreas: string[];
   onReady: () => void;
-  onAreas: (areas: string[]) => void;
-  onDuration: (value: string) => void;
-  onIntensity: (value: number) => void;
+  onAreas: (areas: string[], meta?: AreaCommitMeta) => void;
+  onDuration: (value: string, text?: string) => void;
+  onIntensity: (value: number, text?: string) => void;
   onTingling: (value: boolean) => void;
   onMore: (wantsMore: boolean) => void;
   onDoor: (id: DoorId) => void;
 }) {
+  const composerMode =
+    bodyAreaVariant === 'C' ? 'slot' : bodyAreaVariant === 'E' ? 'wrap' : null;
+  const composerField =
+    step.kind === 'know' && step.index === 0
+      ? 'area'
+      : step.kind === 'know' && step.index === 1
+        ? 'duration'
+        : step.kind === 'know' && step.index === 2
+          ? 'intensity'
+          : null;
+  const showComposer = Boolean(composerMode && composerField);
+
   return (
     <ToolShell
       show={show}
-      fill={step.kind === 'ready' || (step.kind === 'know' && step.index === 0)}
+      fill={
+        step.kind === 'ready' ||
+        (step.kind === 'know' &&
+          step.index === 0 &&
+          !usesIntakeComposer(bodyAreaVariant))
+      }
     >
       {step.kind === 'ready' ? <ReadyTool onCommit={onReady} /> : null}
-      {step.kind === 'know' && step.index === 0 ? (
+      {showComposer && composerMode && composerField ? (
+        <IntakeComposer
+          key={composerField}
+          mode={composerMode}
+          field={composerField}
+          maxAreas={MAX_BODY_AREAS}
+          onCommitAreas={onAreas}
+          onCommitDuration={onDuration}
+          onCommitIntensity={onIntensity}
+        />
+      ) : null}
+      {step.kind === 'know' &&
+      step.index === 0 &&
+      !usesBodyCanvas(bodyAreaVariant) &&
+      !usesIntakeComposer(bodyAreaVariant) ? (
         <BodyAreaPickerVariant
           variant={bodyAreaVariant}
           maxAreas={MAX_BODY_AREAS}
@@ -388,10 +420,10 @@ export function PhoenixTools({
           onCommit={onAreas}
         />
       ) : null}
-      {step.kind === 'know' && step.index === 1 ? (
+      {step.kind === 'know' && step.index === 1 && !showComposer ? (
         <DurationTool onCommit={onDuration} />
       ) : null}
-      {step.kind === 'know' && step.index === 2 ? (
+      {step.kind === 'know' && step.index === 2 && !showComposer ? (
         <IntensityTool onCommit={onIntensity} />
       ) : null}
       {step.kind === 'know' && step.index === 3 ? (
@@ -438,7 +470,19 @@ export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
   return 0;
 }
 
-export function shouldCompactStack(step: PhoenixStep, excludedAreas: string[]) {
+export function shouldCompactStack(
+  step: PhoenixStep,
+  excludedAreas: string[],
+  variant?: BodyAreaVariantKey,
+) {
+  if (
+    variant &&
+    usesIntakeComposer(variant) &&
+    step.kind === 'know' &&
+    step.index < 3
+  ) {
+    return false;
+  }
   if (!isFormQuestion(step)) return false;
   return optionCount(step, excludedAreas) >= 5;
 }
@@ -580,11 +624,12 @@ export interface ConversationProps {
   hasStreamedTurn?: (turnId: string) => boolean;
   bodyAreaVariant: BodyAreaVariantKey;
   pickedAreas: string[];
+  canvasMode?: boolean;
   onGuideAdvance: () => void;
   onReady: () => void;
-  onAreas: (areas: string[]) => void;
-  onDuration: (value: string) => void;
-  onIntensity: (value: number) => void;
+  onAreas: (areas: string[], meta?: AreaCommitMeta) => void;
+  onDuration: (value: string, text?: string) => void;
+  onIntensity: (value: number, text?: string) => void;
   onTingling: (value: boolean) => void;
   onMore: (wantsMore: boolean) => void;
   onDoor: (id: DoorId) => void;

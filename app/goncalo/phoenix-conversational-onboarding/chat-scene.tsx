@@ -112,7 +112,7 @@ export function ChatScene({
   }, [shown.length]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col pb-12">
       <div className="flex h-[104px] items-end gap-3 px-4 pb-3">
         <div className="flex items-center">
           <Avatar kind="lauren" className="relative z-20" />

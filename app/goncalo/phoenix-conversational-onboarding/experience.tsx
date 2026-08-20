@@ -11,8 +11,15 @@ import {
 import { ChatScene } from './chat-scene';
 import { PhoenixCopy } from './conversation-variants';
 import { HomeIndicator, StatusBar } from './device-frame';
+import { LaurenPortrait } from './lauren-portrait';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
-import type { BodyAreaVariantKey } from './body-area-variants';
+import {
+  usesBodyCanvas,
+  usesIntakeComposer,
+  type BodyAreaVariantKey,
+} from './body-area-variants';
+import type { AreaCommitMeta } from './intake-composer';
+import { BodyCanvasPicker } from './body-canvas';
 import {
   type ConversationProps,
   type PhoenixStep,
@@ -45,7 +52,7 @@ import {
 import { WorldBackdrop } from './world-scene';
 
 type Phase = 'entering' | 'phoenix' | 'exiting' | 'chat';
-type Layout = 'seed' | 'hero' | 'compact' | 'avatar';
+type Layout = 'seed' | 'hero' | 'compact' | 'avatar' | 'canvas';
 
 export interface ExperienceHandle {
   prevQuestion: () => void;
@@ -81,13 +88,21 @@ const EMPTY_ANSWERS: Answers = {
   completed: [],
 };
 
-function lineFor(step: PhoenixStep, answers: Answers) {
+function areaPrompt(variant: BodyAreaVariantKey) {
+  if (usesIntakeComposer(variant)) return areaQuestion(0);
+  return `Select up to ${MAX_BODY_AREAS} body areas you want to treat`;
+}
+
+function lineFor(
+  step: PhoenixStep,
+  answers: Answers,
+  variant: BodyAreaVariantKey,
+) {
   if (step.kind === 'guide') return GUIDE_LINES[step.index];
   if (step.kind === 'ready') return GUIDE_LINES[3];
   if (step.kind === 'more') return moreQuestion(answers.area ?? 'that');
   if (step.kind === 'doors') return doorsLine();
-  if (step.index === 0)
-    return `Select up to ${MAX_BODY_AREAS} body areas you want to treat`;
+  if (step.index === 0) return areaPrompt(variant);
   if (step.index === 1)
     return answers.area
       ? `When did it start for your ${answers.area.toLowerCase()} pain?`
@@ -327,7 +342,7 @@ export function Experience({
       {
         id: nextTurnId(),
         role: 'phoenix',
-        text: `Select up to ${MAX_BODY_AREAS} body areas you want to treat`,
+        text: areaPrompt(bodyAreaVariant),
         kind: 'question',
       },
     ];
@@ -498,7 +513,7 @@ export function Experience({
     const revealNext = () => {
       pushTurns({
         role: 'phoenix',
-        text: lineFor(next, nextAnswers),
+        text: lineFor(next, nextAnswers, bodyAreaVariant),
         kind: turnKind(next),
       });
       setStep(next);
@@ -516,14 +531,22 @@ export function Experience({
     later(revealNext, 620);
   }
 
+  const isAreaCanvas =
+    usesBodyCanvas(bodyAreaVariant) &&
+    phase === 'phoenix' &&
+    step.kind === 'know' &&
+    step.index === 0;
+
   const layout: Layout =
     phase === 'chat' || phase === 'exiting'
       ? 'avatar'
-      : phase === 'entering' && !isHero
-        ? 'seed'
-        : phase === 'phoenix' && step.kind !== 'guide' && step.kind !== 'ready'
-          ? 'compact'
-          : 'hero';
+      : isAreaCanvas
+        ? 'canvas'
+        : phase === 'entering' && !isHero
+          ? 'seed'
+          : phase === 'phoenix' && step.kind !== 'guide' && step.kind !== 'ready'
+            ? 'compact'
+            : 'hero';
 
   const showChat = phase === 'exiting' || phase === 'chat';
 
@@ -534,6 +557,7 @@ export function Experience({
     excludedAreas: selectedAreas(answers),
     bodyAreaVariant,
     pickedAreas: areaQueue,
+    canvasMode: isAreaCanvas,
     hasStreamedTurn: (turnId: string) => streamedTurnIdsRef.current.has(turnId),
     onTurnStreamComplete: (turnId: string) => {
       streamedTurnIdsRef.current.add(turnId);
@@ -583,7 +607,7 @@ export function Experience({
     onReady: () => {
       commitMember(READY_LABEL, { kind: 'know', index: 0 }, answers);
     },
-    onAreas: (areas: string[]) => {
+    onAreas: (areas: string[], meta?: AreaCommitMeta) => {
       const areaQueueNext = areas.slice(0, MAX_BODY_AREAS);
       areaQueueRef.current = areaQueueNext;
       areaQueueIndexRef.current = 0;
@@ -591,31 +615,53 @@ export function Experience({
       setAreaQueueIndex(0);
 
       const firstArea = areaQueueNext[0];
+      const single = areaQueueNext.length === 1;
+      const extraDuration = single ? meta?.duration : undefined;
+      const extraIntensity =
+        single && extraDuration ? meta?.intensity : undefined;
       const nextAnswers: Answers = {
         area: firstArea,
-        duration: null,
-        intensity: null,
+        duration: extraDuration ?? null,
+        intensity: extraIntensity ?? null,
         tingling: null,
         completed: [],
       };
       setAnswers(nextAnswers);
-      commitMember(areaQueueNext.join(', '), { kind: 'know', index: 1 }, nextAnswers);
+
+      const memberText = meta?.text ?? areaQueueNext.join(', ');
+
+      if (extraDuration && extraIntensity != null) {
+        commitMember(memberText, { kind: 'know', index: 3 }, nextAnswers);
+        return;
+      }
+
+      if (extraDuration) {
+        commitMember(
+          memberText,
+          { kind: 'know', index: 2 },
+          nextAnswers,
+          durationCareLine(extraDuration),
+        );
+        return;
+      }
+
+      commitMember(memberText, { kind: 'know', index: 1 }, nextAnswers);
     },
-    onDuration: (duration: string) => {
+    onDuration: (duration: string, text?: string) => {
       const nextAnswers = { ...answers, duration };
       setAnswers(nextAnswers);
       commitMember(
-        duration,
+        text ?? duration,
         { kind: 'know', index: 2 },
         nextAnswers,
         durationCareLine(duration),
       );
     },
-    onIntensity: (intensity: number) => {
+    onIntensity: (intensity: number, text?: string) => {
       const nextAnswers = { ...answers, intensity };
       setAnswers(nextAnswers);
       commitMember(
-        intensityAnswer(intensity),
+        text ?? intensityAnswer(intensity),
         { kind: 'know', index: 3 },
         nextAnswers,
         intensityCareLine(intensity),
@@ -692,7 +738,7 @@ export function Experience({
 
       <div
         className={cn(
-          'absolute inset-0 flex flex-col transition-opacity duration-700',
+          'absolute inset-0 flex flex-col pb-12 transition-opacity duration-700',
           phase === 'phoenix' ? 'opacity-100' : 'opacity-0',
           phase !== 'phoenix' && 'pointer-events-none',
         )}
@@ -703,11 +749,22 @@ export function Experience({
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
             layout === 'hero' && 'h-[232px]',
             layout === 'compact' && 'h-[108px]',
-            layout !== 'hero' && layout !== 'compact' && 'h-[232px]',
+            layout === 'canvas' && 'h-[72px]',
+            layout !== 'hero' &&
+              layout !== 'compact' &&
+              layout !== 'canvas' &&
+              'h-[232px]',
           )}
         />
         {phase === 'phoenix' || phase === 'exiting' ? (
           <PhoenixCopy {...conversation} />
+        ) : null}
+        {isAreaCanvas && toolReady ? (
+          <BodyCanvasPicker
+            maxAreas={MAX_BODY_AREAS}
+            selectedAreas={areaQueue}
+            onCommit={conversation.onAreas}
+          />
         ) : null}
         <HomeIndicator />
       </div>
@@ -739,6 +796,8 @@ export function Experience({
             'top-[64px] left-1/2 size-[148px] -translate-x-1/2',
           layout === 'compact' &&
             'top-[48px] left-1/2 size-[80px] -translate-x-1/2',
+          layout === 'canvas' &&
+            'top-[80px] left-5 size-[36px] translate-x-0',
           layout === 'avatar' &&
             'top-[62px] left-[44px] size-[32px] translate-x-0',
         )}
