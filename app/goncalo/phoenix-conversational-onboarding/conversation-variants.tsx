@@ -105,8 +105,10 @@ function Tools(props: ConversationProps) {
       step={props.step}
       show={props.toolReady}
       excludedAreas={props.excludedAreas}
+      bodyAreaVariant={props.bodyAreaVariant}
+      pickedAreas={props.pickedAreas}
       onReady={props.onReady}
-      onArea={props.onArea}
+      onAreas={props.onAreas}
       onDuration={props.onDuration}
       onIntensity={props.onIntensity}
       onTingling={props.onTingling}

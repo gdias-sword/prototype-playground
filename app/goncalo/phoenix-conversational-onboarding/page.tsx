@@ -15,6 +15,11 @@ import {
   type ExperienceControls,
   type ExperienceHandle,
 } from './experience';
+import {
+  VariantSwitcher,
+  readVariantParam,
+  type VariantKey,
+} from './variant-switcher';
 import './motion.css';
 
 const EMPTY_CONTROLS: ExperienceControls = {
@@ -27,6 +32,7 @@ export default function PhoenixConversationalOnboarding() {
   const navigatorRef = useRef<ExperienceHandle | null>(null);
   const [replayKey, setReplayKey] = useState(0);
   const [controls, setControls] = useState(EMPTY_CONTROLS);
+  const [bodyAreaVariant, setBodyAreaVariant] = useState<VariantKey>('A');
 
   function handleReplay() {
     setReplayKey((value) => value + 1);
@@ -44,6 +50,10 @@ export default function PhoenixConversationalOnboarding() {
   function handleSkipIntro() {
     navigatorRef.current?.skipIntro();
   }
+
+  useEffect(() => {
+    setBodyAreaVariant(readVariantParam());
+  }, []);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -90,12 +100,15 @@ export default function PhoenixConversationalOnboarding() {
       <div className="phoenix-device-stage">
         <DeviceFrame>
           <Experience
-            key={replayKey}
+            key={`${replayKey}-${bodyAreaVariant}`}
             navigatorRef={navigatorRef}
             onControlsChange={setControls}
+            bodyAreaVariant={bodyAreaVariant}
           />
         </DeviceFrame>
       </div>
+
+      <VariantSwitcher current={bodyAreaVariant} onChange={setBodyAreaVariant} />
 
       <Popover.Root>
         <Popover.Trigger

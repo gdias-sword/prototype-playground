@@ -16,11 +16,13 @@ import {
 import securityIcon from './assets/ic-security.svg';
 import intensityKnob from './assets/intensity-knob.svg';
 import { GlassChip } from './glass';
+import { BodyAreaPickerVariant, type BodyAreaVariantKey } from './body-area-variants';
 import {
   BODY_AREAS,
   DISCLAIMER,
   DOORS,
   DURATIONS,
+  MAX_BODY_AREAS,
   MORE_HINT,
   MORE_NO_LABEL,
   MORE_YES_LABEL,
@@ -349,8 +351,10 @@ export function PhoenixTools({
   step,
   show,
   excludedAreas,
+  bodyAreaVariant,
+  pickedAreas,
   onReady,
-  onArea,
+  onAreas,
   onDuration,
   onIntensity,
   onTingling,
@@ -360,8 +364,10 @@ export function PhoenixTools({
   step: PhoenixStep;
   show: boolean;
   excludedAreas: string[];
+  bodyAreaVariant: BodyAreaVariantKey;
+  pickedAreas: string[];
   onReady: () => void;
-  onArea: (area: string) => void;
+  onAreas: (areas: string[]) => void;
   onDuration: (value: string) => void;
   onIntensity: (value: number) => void;
   onTingling: (value: boolean) => void;
@@ -375,7 +381,12 @@ export function PhoenixTools({
     >
       {step.kind === 'ready' ? <ReadyTool onCommit={onReady} /> : null}
       {step.kind === 'know' && step.index === 0 ? (
-        <AreaTool exclude={excludedAreas} onCommit={onArea} />
+        <BodyAreaPickerVariant
+          variant={bodyAreaVariant}
+          maxAreas={MAX_BODY_AREAS}
+          selectedAreas={pickedAreas}
+          onCommit={onAreas}
+        />
       ) : null}
       {step.kind === 'know' && step.index === 1 ? (
         <DurationTool onCommit={onDuration} />
@@ -567,9 +578,11 @@ export interface ConversationProps {
   toolReady: boolean;
   excludedAreas: string[];
   hasStreamedTurn?: (turnId: string) => boolean;
+  bodyAreaVariant: BodyAreaVariantKey;
+  pickedAreas: string[];
   onGuideAdvance: () => void;
   onReady: () => void;
-  onArea: (area: string) => void;
+  onAreas: (areas: string[]) => void;
   onDuration: (value: string) => void;
   onIntensity: (value: number) => void;
   onTingling: (value: boolean) => void;

@@ -12,6 +12,7 @@ import { ChatScene } from './chat-scene';
 import { PhoenixCopy } from './conversation-variants';
 import { HomeIndicator, StatusBar } from './device-frame';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
+import type { BodyAreaVariantKey } from './body-area-variants';
 import {
   type ConversationProps,
   type PhoenixStep,
@@ -64,6 +65,8 @@ interface Checkpoint {
   phase: Phase;
   step: PhoenixStep;
   answers: Answers;
+  areaQueue: string[];
+  areaQueueIndex: number;
   turns: StackTurn[];
   mood: PhoenixMood;
   door: DoorId | null;
@@ -83,9 +86,16 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'ready') return GUIDE_LINES[3];
   if (step.kind === 'more') return moreQuestion(answers.area ?? 'that');
   if (step.kind === 'doors') return doorsLine();
-  if (step.index === 0) return areaQuestion(answers.completed.length);
-  if (step.index === 1) return durationQuestion();
-  if (step.index === 2) return intensityQuestion();
+  if (step.index === 0)
+    return `Select up to ${MAX_BODY_AREAS} body areas you want to treat`;
+  if (step.index === 1)
+    return answers.area
+      ? `When did it start for your ${answers.area.toLowerCase()} pain?`
+      : durationQuestion();
+  if (step.index === 2)
+    return answers.area
+      ? `How intense has it been lately for your ${answers.area.toLowerCase()} pain?`
+      : intensityQuestion();
   return followUpQuestion(answers.area ?? 'Neck');
 }
 
@@ -143,9 +153,11 @@ function checkpointLabel(
 export function Experience({
   navigatorRef,
   onControlsChange,
+  bodyAreaVariant = 'A',
 }: {
   navigatorRef?: Ref<ExperienceHandle | null>;
   onControlsChange?: (state: ExperienceControls) => void;
+  bodyAreaVariant?: BodyAreaVariantKey;
 } = {}) {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
@@ -159,6 +171,10 @@ export function Experience({
   const [isHero, setIsHero] = useState(false);
   const [step, setStep] = useState<PhoenixStep>({ kind: 'guide', index: 0 });
   const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
+  const [areaQueue, setAreaQueue] = useState<string[]>([]);
+  const [areaQueueIndex, setAreaQueueIndex] = useState(0);
+  const areaQueueRef = useRef(areaQueue);
+  const areaQueueIndexRef = useRef(areaQueueIndex);
   const [turns, setTurns] = useState<StackTurn[]>([]);
   const [mood, setMood] = useState<PhoenixMood>('think');
   const [door, setDoor] = useState<DoorId | null>(null);
@@ -173,6 +189,8 @@ export function Experience({
 
   phaseRef.current = phase;
   stepRef.current = step;
+  areaQueueRef.current = areaQueue;
+  areaQueueIndexRef.current = areaQueueIndex;
 
   function nextTurnId() {
     turnIdRef.current += 1;
@@ -204,6 +222,8 @@ export function Experience({
     nextMood: PhoenixMood,
     nextDoor: DoorId | null,
     nextChatCount: number,
+    nextAreaQueue: string[],
+    nextAreaQueueIndex: number,
   ): Checkpoint {
     return {
       key: checkpointKey(nextPhase, nextStep, nextTurns.length),
@@ -211,6 +231,8 @@ export function Experience({
       phase: nextPhase,
       step: cloneStep(nextStep),
       answers: cloneAnswers(nextAnswers),
+      areaQueue: [...nextAreaQueue],
+      areaQueueIndex: nextAreaQueueIndex,
       turns: [...nextTurns],
       mood: nextMood,
       door: nextDoor,
@@ -254,6 +276,8 @@ export function Experience({
     setPhase(snapshot.phase);
     setStep(cloneStep(snapshot.step));
     setAnswers(cloneAnswers(snapshot.answers));
+    setAreaQueue([...snapshot.areaQueue]);
+    setAreaQueueIndex(snapshot.areaQueueIndex);
     setTurns([...snapshot.turns]);
     setMood(snapshot.mood);
     setDoor(snapshot.door);
@@ -278,6 +302,8 @@ export function Experience({
     setIsHero(true);
     setPhase('phoenix');
     setAnswers(EMPTY_ANSWERS);
+    setAreaQueue([]);
+    setAreaQueueIndex(0);
     setDoor(null);
     setChatCount(0);
     setMood('listen');
@@ -301,7 +327,7 @@ export function Experience({
       {
         id: nextTurnId(),
         role: 'phoenix',
-        text: areaQuestion(0),
+        text: `Select up to ${MAX_BODY_AREAS} body areas you want to treat`,
         kind: 'question',
       },
     ];
@@ -317,6 +343,8 @@ export function Experience({
       'listen',
       null,
       0,
+      [],
+      0,
     );
     const areaSnapshot = makeCheckpoint(
       'phoenix',
@@ -325,6 +353,8 @@ export function Experience({
       areaTurns,
       'listen',
       null,
+      0,
+      [],
       0,
     );
     checkpointsRef.current = [readySnapshot, areaSnapshot];
@@ -436,7 +466,17 @@ export function Experience({
   useEffect(() => {
     if (phase !== 'chat' || !door || chatCount < 2) return;
     recordCheckpoint(
-      makeCheckpoint('chat', step, answers, turns, 'breath', door, chatCount),
+      makeCheckpoint(
+        'chat',
+        step,
+        answers,
+        turns,
+        'breath',
+        door,
+        chatCount,
+        areaQueueRef.current,
+        areaQueueIndexRef.current,
+      ),
     );
   }, [phase, door, chatCount, step, answers, turns]);
 
@@ -492,6 +532,8 @@ export function Experience({
     step,
     toolReady,
     excludedAreas: selectedAreas(answers),
+    bodyAreaVariant,
+    pickedAreas: areaQueue,
     hasStreamedTurn: (turnId: string) => streamedTurnIdsRef.current.has(turnId),
     onTurnStreamComplete: (turnId: string) => {
       streamedTurnIdsRef.current.add(turnId);
@@ -506,7 +548,17 @@ export function Experience({
       setMood(currentTurn.kind === 'question' ? 'listen' : 'breath');
       if (currentTurn.kind !== 'question') return;
       recordCheckpoint(
-        makeCheckpoint(phase, step, answers, turns, 'listen', door, chatCount),
+        makeCheckpoint(
+          phase,
+          step,
+          answers,
+          turns,
+          'listen',
+          door,
+          chatCount,
+          areaQueueRef.current,
+          areaQueueIndexRef.current,
+        ),
       );
     },
     onGuideAdvance: () => {
@@ -531,10 +583,23 @@ export function Experience({
     onReady: () => {
       commitMember(READY_LABEL, { kind: 'know', index: 0 }, answers);
     },
-    onArea: (area: string) => {
-      const nextAnswers = { ...answers, area };
+    onAreas: (areas: string[]) => {
+      const areaQueueNext = areas.slice(0, MAX_BODY_AREAS);
+      areaQueueRef.current = areaQueueNext;
+      areaQueueIndexRef.current = 0;
+      setAreaQueue(areaQueueNext);
+      setAreaQueueIndex(0);
+
+      const firstArea = areaQueueNext[0];
+      const nextAnswers: Answers = {
+        area: firstArea,
+        duration: null,
+        intensity: null,
+        tingling: null,
+        completed: [],
+      };
       setAnswers(nextAnswers);
-      commitMember(area, { kind: 'know', index: 1 }, nextAnswers);
+      commitMember(areaQueueNext.join(', '), { kind: 'know', index: 1 }, nextAnswers);
     },
     onDuration: (duration: string) => {
       const nextAnswers = { ...answers, duration };
@@ -558,12 +623,39 @@ export function Experience({
     },
     onTingling: (tingling: boolean) => {
       const nextAnswers = completeCondition({ ...answers, tingling });
-      setAnswers(nextAnswers);
-      const atMax = nextAnswers.completed.length >= MAX_BODY_AREAS;
+
+      const nextAreaIndex = areaQueueIndexRef.current + 1;
+      const queue = areaQueueRef.current;
+      const hasMoreAreas = nextAreaIndex < queue.length;
+
+      if (!hasMoreAreas) {
+        setAnswers(nextAnswers);
+        commitMember(
+          tingling ? 'Yes' : 'No',
+          { kind: 'doors' },
+          nextAnswers,
+          tingling ? tinglingCareLine() : undefined,
+        );
+        return;
+      }
+
+      const nextArea = queue[nextAreaIndex]!;
+      areaQueueIndexRef.current = nextAreaIndex;
+      setAreaQueueIndex(nextAreaIndex);
+
+      const preparedForNextArea: Answers = {
+        ...nextAnswers,
+        area: nextArea,
+        duration: null,
+        intensity: null,
+        tingling: null,
+      };
+
+      setAnswers(preparedForNextArea);
       commitMember(
         tingling ? 'Yes' : 'No',
-        atMax ? { kind: 'doors' } : { kind: 'more' },
-        nextAnswers,
+        { kind: 'know', index: 1 },
+        preparedForNextArea,
         tingling ? tinglingCareLine() : undefined,
       );
     },
