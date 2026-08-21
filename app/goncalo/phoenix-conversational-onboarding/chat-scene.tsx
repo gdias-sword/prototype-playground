@@ -12,6 +12,7 @@ import {
 } from './script';
 import { HomeIndicator } from './device-frame';
 import { GlassField } from './glass';
+import { LaurenPortrait } from './lauren-portrait';
 
 function Avatar({
   kind,
@@ -23,17 +24,27 @@ function Avatar({
   if (kind === 'slot')
     return <div className={cn('size-8 shrink-0', className)} />;
 
+  if (kind === 'lauren') {
+    return (
+      <div
+        className={cn(
+          'size-8 shrink-0 overflow-hidden rounded-full',
+          className,
+        )}
+      >
+        <LaurenPortrait />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold',
-        kind === 'lauren'
-          ? 'bg-[linear-gradient(160deg,#d7e4ff,#f3e6dc)] text-[#5a6a8a]'
-          : 'bg-[#e8eef6] text-[#4a5568]',
+        'flex size-8 shrink-0 items-center justify-center rounded-full bg-[#e8eef6] text-[12px] font-semibold text-[#4a5568]',
         className,
       )}
     >
-      {kind === 'lauren' ? PT[0] : MEMBER[0]}
+      {MEMBER[0]}
     </div>
   );
 }
@@ -112,7 +123,7 @@ export function ChatScene({
   }, [shown.length]);
 
   return (
-    <div className="relative flex h-full flex-col pb-12">
+    <div className="flex h-full flex-col">
       <div className="flex h-[104px] items-end gap-3 px-4 pb-3">
         <div className="flex items-center">
           <Avatar kind="lauren" className="relative z-20" />

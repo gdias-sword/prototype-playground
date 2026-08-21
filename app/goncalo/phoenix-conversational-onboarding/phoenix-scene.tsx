@@ -16,14 +16,11 @@ import {
 import securityIcon from './assets/ic-security.svg';
 import intensityKnob from './assets/intensity-knob.svg';
 import { GlassChip } from './glass';
-import { BodyAreaPickerVariant, type BodyAreaVariantKey, usesBodyCanvas, usesIntakeComposer } from './body-area-variants';
-import { IntakeComposer, type AreaCommitMeta } from './intake-composer';
 import {
   BODY_AREAS,
   DISCLAIMER,
   DOORS,
   DURATIONS,
-  MAX_BODY_AREAS,
   MORE_HINT,
   MORE_NO_LABEL,
   MORE_YES_LABEL,
@@ -352,10 +349,8 @@ export function PhoenixTools({
   step,
   show,
   excludedAreas,
-  bodyAreaVariant,
-  pickedAreas,
   onReady,
-  onAreas,
+  onArea,
   onDuration,
   onIntensity,
   onTingling,
@@ -365,65 +360,27 @@ export function PhoenixTools({
   step: PhoenixStep;
   show: boolean;
   excludedAreas: string[];
-  bodyAreaVariant: BodyAreaVariantKey;
-  pickedAreas: string[];
   onReady: () => void;
-  onAreas: (areas: string[], meta?: AreaCommitMeta) => void;
-  onDuration: (value: string, text?: string) => void;
-  onIntensity: (value: number, text?: string) => void;
+  onArea: (area: string) => void;
+  onDuration: (value: string) => void;
+  onIntensity: (value: number) => void;
   onTingling: (value: boolean) => void;
   onMore: (wantsMore: boolean) => void;
   onDoor: (id: DoorId) => void;
 }) {
-  const composerMode =
-    bodyAreaVariant === 'C' ? 'slot' : bodyAreaVariant === 'E' ? 'wrap' : null;
-  const composerField =
-    step.kind === 'know' && step.index === 0
-      ? 'area'
-      : step.kind === 'know' && step.index === 1
-        ? 'duration'
-        : step.kind === 'know' && step.index === 2
-          ? 'intensity'
-          : null;
-  const showComposer = Boolean(composerMode && composerField);
-
   return (
     <ToolShell
       show={show}
-      fill={
-        step.kind === 'ready' ||
-        (step.kind === 'know' &&
-          step.index === 0 &&
-          !usesIntakeComposer(bodyAreaVariant))
-      }
+      fill={step.kind === 'ready' || (step.kind === 'know' && step.index === 0)}
     >
       {step.kind === 'ready' ? <ReadyTool onCommit={onReady} /> : null}
-      {showComposer && composerMode && composerField ? (
-        <IntakeComposer
-          key={composerField}
-          mode={composerMode}
-          field={composerField}
-          maxAreas={MAX_BODY_AREAS}
-          onCommitAreas={onAreas}
-          onCommitDuration={onDuration}
-          onCommitIntensity={onIntensity}
-        />
+      {step.kind === 'know' && step.index === 0 ? (
+        <AreaTool exclude={excludedAreas} onCommit={onArea} />
       ) : null}
-      {step.kind === 'know' &&
-      step.index === 0 &&
-      !usesBodyCanvas(bodyAreaVariant) &&
-      !usesIntakeComposer(bodyAreaVariant) ? (
-        <BodyAreaPickerVariant
-          variant={bodyAreaVariant}
-          maxAreas={MAX_BODY_AREAS}
-          selectedAreas={pickedAreas}
-          onCommit={onAreas}
-        />
-      ) : null}
-      {step.kind === 'know' && step.index === 1 && !showComposer ? (
+      {step.kind === 'know' && step.index === 1 ? (
         <DurationTool onCommit={onDuration} />
       ) : null}
-      {step.kind === 'know' && step.index === 2 && !showComposer ? (
+      {step.kind === 'know' && step.index === 2 ? (
         <IntensityTool onCommit={onIntensity} />
       ) : null}
       {step.kind === 'know' && step.index === 3 ? (
@@ -470,19 +427,7 @@ export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
   return 0;
 }
 
-export function shouldCompactStack(
-  step: PhoenixStep,
-  excludedAreas: string[],
-  variant?: BodyAreaVariantKey,
-) {
-  if (
-    variant &&
-    usesIntakeComposer(variant) &&
-    step.kind === 'know' &&
-    step.index < 3
-  ) {
-    return false;
-  }
+export function shouldCompactStack(step: PhoenixStep, excludedAreas: string[]) {
   if (!isFormQuestion(step)) return false;
   return optionCount(step, excludedAreas) >= 5;
 }
@@ -622,14 +567,11 @@ export interface ConversationProps {
   toolReady: boolean;
   excludedAreas: string[];
   hasStreamedTurn?: (turnId: string) => boolean;
-  bodyAreaVariant: BodyAreaVariantKey;
-  pickedAreas: string[];
-  canvasMode?: boolean;
   onGuideAdvance: () => void;
   onReady: () => void;
-  onAreas: (areas: string[], meta?: AreaCommitMeta) => void;
-  onDuration: (value: string, text?: string) => void;
-  onIntensity: (value: number, text?: string) => void;
+  onArea: (area: string) => void;
+  onDuration: (value: string) => void;
+  onIntensity: (value: number) => void;
   onTingling: (value: boolean) => void;
   onMore: (wantsMore: boolean) => void;
   onDoor: (id: DoorId) => void;

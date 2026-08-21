@@ -22,34 +22,6 @@ export function GlassChip({
   );
 }
 
-export function GlassIconButton({
-  className,
-  label,
-  selected,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & {
-  label: string;
-  selected?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={selected}
-      className={cn(
-        'text-foreground-neutral-strong grid size-10 cursor-pointer place-items-center rounded-full shadow-[0_8px_32px_rgba(80,70,140,0.08)] transition-[transform,background-color,box-shadow] duration-300',
-        'border border-white/70 bg-white/55 backdrop-blur-xl',
-        'hover:bg-white/75 active:scale-[0.98]',
-        'disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100',
-        selected &&
-          'border-white bg-white/88 shadow-[0_10px_40px_rgba(90,80,180,0.14)]',
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
 export function GlassField({
   className,
   ...props

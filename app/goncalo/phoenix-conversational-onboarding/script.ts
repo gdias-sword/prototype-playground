@@ -4,12 +4,14 @@ export const PT = 'Lauren';
 export const BODY_AREAS = [
   'Neck',
   'Shoulder',
-  'Wrist',
-  'Elbow',
-  'Back',
+  'Upper back',
+  'Lower back',
   'Hip',
   'Knee',
-  'Ankle / Foot',
+  'Ankle',
+  'Wrist',
+  'Elbow',
+  'Head',
 ] as const;
 
 export const DURATIONS = [
@@ -90,7 +92,7 @@ export function followUpQuestion(area: string) {
   if (area === 'Neck' || area === 'Shoulder') {
     return 'Do you feel tingling or numbness down your arm?';
   }
-  if (area === 'Back' || area === 'Hip') {
+  if (area === 'Lower back' || area === 'Hip') {
     return 'Does it travel down your leg?';
   }
   return 'Does it change when you move?';

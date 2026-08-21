@@ -11,15 +11,8 @@ import {
 import { ChatScene } from './chat-scene';
 import { PhoenixCopy } from './conversation-variants';
 import { HomeIndicator, StatusBar } from './device-frame';
-import { LaurenPortrait } from './lauren-portrait';
+import { LaurenPortrait, laurenPortraitSrc } from './lauren-portrait';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
-import {
-  usesBodyCanvas,
-  usesIntakeComposer,
-  type BodyAreaVariantKey,
-} from './body-area-variants';
-import type { AreaCommitMeta } from './intake-composer';
-import { BodyCanvasPicker } from './body-canvas';
 import {
   type ConversationProps,
   type PhoenixStep,
@@ -52,7 +45,21 @@ import {
 import { WorldBackdrop } from './world-scene';
 
 type Phase = 'entering' | 'phoenix' | 'exiting' | 'chat';
-type Layout = 'seed' | 'hero' | 'compact' | 'avatar' | 'canvas';
+type Layout = 'seed' | 'hero' | 'compact' | 'avatar';
+
+const PAIR_SIZE_PX = 120;
+const PAIR_OVERLAP_PX = 20;
+const PAIR_GAP_PX = 4;
+const PAIR_CUTOUT_RADIUS_PX = PAIR_SIZE_PX / 2 + PAIR_GAP_PX;
+const PAIR_CUTOUT_X = `calc(100% + ${PAIR_SIZE_PX / 2 - PAIR_OVERLAP_PX}px)`;
+const PAIR_CUTOUT_MASK = `radial-gradient(circle ${PAIR_CUTOUT_RADIUS_PX}px at ${PAIR_CUTOUT_X} 50%, transparent ${PAIR_CUTOUT_RADIUS_PX}px, #000 ${PAIR_CUTOUT_RADIUS_PX + 1}px)`;
+
+const pairCutoutStyle = {
+  WebkitMaskImage: PAIR_CUTOUT_MASK,
+  maskImage: PAIR_CUTOUT_MASK,
+  WebkitMaskRepeat: 'no-repeat',
+  maskRepeat: 'no-repeat',
+} as const;
 
 export interface ExperienceHandle {
   prevQuestion: () => void;
@@ -72,8 +79,6 @@ interface Checkpoint {
   phase: Phase;
   step: PhoenixStep;
   answers: Answers;
-  areaQueue: string[];
-  areaQueueIndex: number;
   turns: StackTurn[];
   mood: PhoenixMood;
   door: DoorId | null;
@@ -88,29 +93,14 @@ const EMPTY_ANSWERS: Answers = {
   completed: [],
 };
 
-function areaPrompt(variant: BodyAreaVariantKey) {
-  if (usesIntakeComposer(variant)) return areaQuestion(0);
-  return `Select up to ${MAX_BODY_AREAS} body areas you want to treat`;
-}
-
-function lineFor(
-  step: PhoenixStep,
-  answers: Answers,
-  variant: BodyAreaVariantKey,
-) {
+function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'guide') return GUIDE_LINES[step.index];
   if (step.kind === 'ready') return GUIDE_LINES[3];
   if (step.kind === 'more') return moreQuestion(answers.area ?? 'that');
   if (step.kind === 'doors') return doorsLine();
-  if (step.index === 0) return areaPrompt(variant);
-  if (step.index === 1)
-    return answers.area
-      ? `When did it start for your ${answers.area.toLowerCase()} pain?`
-      : durationQuestion();
-  if (step.index === 2)
-    return answers.area
-      ? `How intense has it been lately for your ${answers.area.toLowerCase()} pain?`
-      : intensityQuestion();
+  if (step.index === 0) return areaQuestion(answers.completed.length);
+  if (step.index === 1) return durationQuestion();
+  if (step.index === 2) return intensityQuestion();
   return followUpQuestion(answers.area ?? 'Neck');
 }
 
@@ -168,11 +158,9 @@ function checkpointLabel(
 export function Experience({
   navigatorRef,
   onControlsChange,
-  bodyAreaVariant = 'A',
 }: {
   navigatorRef?: Ref<ExperienceHandle | null>;
   onControlsChange?: (state: ExperienceControls) => void;
-  bodyAreaVariant?: BodyAreaVariantKey;
 } = {}) {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
@@ -186,10 +174,6 @@ export function Experience({
   const [isHero, setIsHero] = useState(false);
   const [step, setStep] = useState<PhoenixStep>({ kind: 'guide', index: 0 });
   const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
-  const [areaQueue, setAreaQueue] = useState<string[]>([]);
-  const [areaQueueIndex, setAreaQueueIndex] = useState(0);
-  const areaQueueRef = useRef(areaQueue);
-  const areaQueueIndexRef = useRef(areaQueueIndex);
   const [turns, setTurns] = useState<StackTurn[]>([]);
   const [mood, setMood] = useState<PhoenixMood>('think');
   const [door, setDoor] = useState<DoorId | null>(null);
@@ -204,8 +188,6 @@ export function Experience({
 
   phaseRef.current = phase;
   stepRef.current = step;
-  areaQueueRef.current = areaQueue;
-  areaQueueIndexRef.current = areaQueueIndex;
 
   function nextTurnId() {
     turnIdRef.current += 1;
@@ -237,8 +219,6 @@ export function Experience({
     nextMood: PhoenixMood,
     nextDoor: DoorId | null,
     nextChatCount: number,
-    nextAreaQueue: string[],
-    nextAreaQueueIndex: number,
   ): Checkpoint {
     return {
       key: checkpointKey(nextPhase, nextStep, nextTurns.length),
@@ -246,8 +226,6 @@ export function Experience({
       phase: nextPhase,
       step: cloneStep(nextStep),
       answers: cloneAnswers(nextAnswers),
-      areaQueue: [...nextAreaQueue],
-      areaQueueIndex: nextAreaQueueIndex,
       turns: [...nextTurns],
       mood: nextMood,
       door: nextDoor,
@@ -291,8 +269,6 @@ export function Experience({
     setPhase(snapshot.phase);
     setStep(cloneStep(snapshot.step));
     setAnswers(cloneAnswers(snapshot.answers));
-    setAreaQueue([...snapshot.areaQueue]);
-    setAreaQueueIndex(snapshot.areaQueueIndex);
     setTurns([...snapshot.turns]);
     setMood(snapshot.mood);
     setDoor(snapshot.door);
@@ -317,8 +293,6 @@ export function Experience({
     setIsHero(true);
     setPhase('phoenix');
     setAnswers(EMPTY_ANSWERS);
-    setAreaQueue([]);
-    setAreaQueueIndex(0);
     setDoor(null);
     setChatCount(0);
     setMood('listen');
@@ -342,7 +316,7 @@ export function Experience({
       {
         id: nextTurnId(),
         role: 'phoenix',
-        text: areaPrompt(bodyAreaVariant),
+        text: areaQuestion(0),
         kind: 'question',
       },
     ];
@@ -358,8 +332,6 @@ export function Experience({
       'listen',
       null,
       0,
-      [],
-      0,
     );
     const areaSnapshot = makeCheckpoint(
       'phoenix',
@@ -368,8 +340,6 @@ export function Experience({
       areaTurns,
       'listen',
       null,
-      0,
-      [],
       0,
     );
     checkpointsRef.current = [readySnapshot, areaSnapshot];
@@ -412,6 +382,11 @@ export function Experience({
     return () => {
       timersRef.current.forEach((id) => window.clearTimeout(id));
     };
+  }, []);
+
+  useEffect(() => {
+    const image = new window.Image();
+    image.src = laurenPortraitSrc;
   }, []);
 
   useEffect(() => {
@@ -481,17 +456,7 @@ export function Experience({
   useEffect(() => {
     if (phase !== 'chat' || !door || chatCount < 2) return;
     recordCheckpoint(
-      makeCheckpoint(
-        'chat',
-        step,
-        answers,
-        turns,
-        'breath',
-        door,
-        chatCount,
-        areaQueueRef.current,
-        areaQueueIndexRef.current,
-      ),
+      makeCheckpoint('chat', step, answers, turns, 'breath', door, chatCount),
     );
   }, [phase, door, chatCount, step, answers, turns]);
 
@@ -513,7 +478,7 @@ export function Experience({
     const revealNext = () => {
       pushTurns({
         role: 'phoenix',
-        text: lineFor(next, nextAnswers, bodyAreaVariant),
+        text: lineFor(next, nextAnswers),
         kind: turnKind(next),
       });
       setStep(next);
@@ -531,33 +496,26 @@ export function Experience({
     later(revealNext, 620);
   }
 
-  const isAreaCanvas =
-    usesBodyCanvas(bodyAreaVariant) &&
-    phase === 'phoenix' &&
-    step.kind === 'know' &&
-    step.index === 0;
-
   const layout: Layout =
     phase === 'chat' || phase === 'exiting'
       ? 'avatar'
-      : isAreaCanvas
-        ? 'canvas'
-        : phase === 'entering' && !isHero
-          ? 'seed'
-          : phase === 'phoenix' && step.kind !== 'guide' && step.kind !== 'ready'
-            ? 'compact'
-            : 'hero';
+      : phase === 'entering' && !isHero
+        ? 'seed'
+        : phase === 'phoenix' && step.kind !== 'guide' && step.kind !== 'ready'
+          ? 'compact'
+          : 'hero';
 
   const showChat = phase === 'exiting' || phase === 'chat';
+  const isPaired =
+    layout === 'hero' &&
+    phase === 'phoenix' &&
+    (step.kind === 'ready' || (step.kind === 'guide' && step.index >= 1));
 
   const conversation: ConversationProps = {
     turns,
     step,
     toolReady,
     excludedAreas: selectedAreas(answers),
-    bodyAreaVariant,
-    pickedAreas: areaQueue,
-    canvasMode: isAreaCanvas,
     hasStreamedTurn: (turnId: string) => streamedTurnIdsRef.current.has(turnId),
     onTurnStreamComplete: (turnId: string) => {
       streamedTurnIdsRef.current.add(turnId);
@@ -572,17 +530,7 @@ export function Experience({
       setMood(currentTurn.kind === 'question' ? 'listen' : 'breath');
       if (currentTurn.kind !== 'question') return;
       recordCheckpoint(
-        makeCheckpoint(
-          phase,
-          step,
-          answers,
-          turns,
-          'listen',
-          door,
-          chatCount,
-          areaQueueRef.current,
-          areaQueueIndexRef.current,
-        ),
+        makeCheckpoint(phase, step, answers, turns, 'listen', door, chatCount),
       );
     },
     onGuideAdvance: () => {
@@ -607,61 +555,26 @@ export function Experience({
     onReady: () => {
       commitMember(READY_LABEL, { kind: 'know', index: 0 }, answers);
     },
-    onAreas: (areas: string[], meta?: AreaCommitMeta) => {
-      const areaQueueNext = areas.slice(0, MAX_BODY_AREAS);
-      areaQueueRef.current = areaQueueNext;
-      areaQueueIndexRef.current = 0;
-      setAreaQueue(areaQueueNext);
-      setAreaQueueIndex(0);
-
-      const firstArea = areaQueueNext[0];
-      const single = areaQueueNext.length === 1;
-      const extraDuration = single ? meta?.duration : undefined;
-      const extraIntensity =
-        single && extraDuration ? meta?.intensity : undefined;
-      const nextAnswers: Answers = {
-        area: firstArea,
-        duration: extraDuration ?? null,
-        intensity: extraIntensity ?? null,
-        tingling: null,
-        completed: [],
-      };
+    onArea: (area: string) => {
+      const nextAnswers = { ...answers, area };
       setAnswers(nextAnswers);
-
-      const memberText = meta?.text ?? areaQueueNext.join(', ');
-
-      if (extraDuration && extraIntensity != null) {
-        commitMember(memberText, { kind: 'know', index: 3 }, nextAnswers);
-        return;
-      }
-
-      if (extraDuration) {
-        commitMember(
-          memberText,
-          { kind: 'know', index: 2 },
-          nextAnswers,
-          durationCareLine(extraDuration),
-        );
-        return;
-      }
-
-      commitMember(memberText, { kind: 'know', index: 1 }, nextAnswers);
+      commitMember(area, { kind: 'know', index: 1 }, nextAnswers);
     },
-    onDuration: (duration: string, text?: string) => {
+    onDuration: (duration: string) => {
       const nextAnswers = { ...answers, duration };
       setAnswers(nextAnswers);
       commitMember(
-        text ?? duration,
+        duration,
         { kind: 'know', index: 2 },
         nextAnswers,
         durationCareLine(duration),
       );
     },
-    onIntensity: (intensity: number, text?: string) => {
+    onIntensity: (intensity: number) => {
       const nextAnswers = { ...answers, intensity };
       setAnswers(nextAnswers);
       commitMember(
-        text ?? intensityAnswer(intensity),
+        intensityAnswer(intensity),
         { kind: 'know', index: 3 },
         nextAnswers,
         intensityCareLine(intensity),
@@ -669,39 +582,12 @@ export function Experience({
     },
     onTingling: (tingling: boolean) => {
       const nextAnswers = completeCondition({ ...answers, tingling });
-
-      const nextAreaIndex = areaQueueIndexRef.current + 1;
-      const queue = areaQueueRef.current;
-      const hasMoreAreas = nextAreaIndex < queue.length;
-
-      if (!hasMoreAreas) {
-        setAnswers(nextAnswers);
-        commitMember(
-          tingling ? 'Yes' : 'No',
-          { kind: 'doors' },
-          nextAnswers,
-          tingling ? tinglingCareLine() : undefined,
-        );
-        return;
-      }
-
-      const nextArea = queue[nextAreaIndex]!;
-      areaQueueIndexRef.current = nextAreaIndex;
-      setAreaQueueIndex(nextAreaIndex);
-
-      const preparedForNextArea: Answers = {
-        ...nextAnswers,
-        area: nextArea,
-        duration: null,
-        intensity: null,
-        tingling: null,
-      };
-
-      setAnswers(preparedForNextArea);
+      setAnswers(nextAnswers);
+      const atMax = nextAnswers.completed.length >= MAX_BODY_AREAS;
       commitMember(
         tingling ? 'Yes' : 'No',
-        { kind: 'know', index: 1 },
-        preparedForNextArea,
+        atMax ? { kind: 'doors' } : { kind: 'more' },
+        nextAnswers,
         tingling ? tinglingCareLine() : undefined,
       );
     },
@@ -738,7 +624,7 @@ export function Experience({
 
       <div
         className={cn(
-          'absolute inset-0 flex flex-col pb-12 transition-opacity duration-700',
+          'absolute inset-0 flex flex-col transition-opacity duration-700',
           phase === 'phoenix' ? 'opacity-100' : 'opacity-0',
           phase !== 'phoenix' && 'pointer-events-none',
         )}
@@ -749,22 +635,11 @@ export function Experience({
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
             layout === 'hero' && 'h-[232px]',
             layout === 'compact' && 'h-[108px]',
-            layout === 'canvas' && 'h-[72px]',
-            layout !== 'hero' &&
-              layout !== 'compact' &&
-              layout !== 'canvas' &&
-              'h-[232px]',
+            layout !== 'hero' && layout !== 'compact' && 'h-[232px]',
           )}
         />
         {phase === 'phoenix' || phase === 'exiting' ? (
           <PhoenixCopy {...conversation} />
-        ) : null}
-        {isAreaCanvas && toolReady ? (
-          <BodyCanvasPicker
-            maxAreas={MAX_BODY_AREAS}
-            selectedAreas={areaQueue}
-            onCommit={conversation.onAreas}
-          />
         ) : null}
         <HomeIndicator />
       </div>
@@ -789,21 +664,49 @@ export function Experience({
 
       <div
         className={cn(
-          'pointer-events-none absolute z-30 transition-[top,left,width,height,transform] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+          'pointer-events-none absolute z-30 flex items-center justify-center transition-[top,left,width,height,transform] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
           layout === 'seed' &&
             'top-[42%] left-1/2 size-[60px] -translate-x-1/2',
           layout === 'hero' &&
+            !isPaired &&
             'top-[64px] left-1/2 size-[148px] -translate-x-1/2',
+          layout === 'hero' &&
+            isPaired &&
+            'top-[76px] left-1/2 h-[120px] w-[220px] -translate-x-1/2',
           layout === 'compact' &&
             'top-[48px] left-1/2 size-[80px] -translate-x-1/2',
-          layout === 'canvas' &&
-            'top-[80px] left-5 size-[36px] translate-x-0',
           layout === 'avatar' &&
             'top-[62px] left-[44px] size-[32px] translate-x-0',
         )}
       >
-        <div className="relative h-full w-full">
-          <PhoenixOrb mood={mood} className="relative h-full w-full" />
+        <div
+          className={cn(
+            'relative aspect-square shrink-0 transition-[width,height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+            layout === 'seed' && 'size-[60px]',
+            layout === 'hero' && (isPaired ? 'size-[120px]' : 'size-[148px]'),
+            layout === 'compact' && 'size-[80px]',
+            layout === 'avatar' && 'size-[32px]',
+          )}
+        >
+          <div
+            className={cn(
+              'relative h-full w-full',
+              isPaired && 'overflow-hidden rounded-full',
+            )}
+            style={isPaired ? pairCutoutStyle : undefined}
+          >
+            <PhoenixOrb mood={mood} className="relative h-full w-full" />
+          </div>
+        </div>
+        <div
+          className={cn(
+            'relative z-10 min-h-0 min-w-0 shrink-0 overflow-hidden rounded-full bg-gradient-to-b from-[#eaf2fe] to-[#a6c9f8] transition-[width,height,margin,opacity,transform] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+            isPaired
+              ? '-ml-5 size-[120px] translate-x-0 scale-100 opacity-100 shadow-[0_8px_8px_rgba(0,0,0,0.08)]'
+              : 'ml-0 size-0 translate-x-2 scale-90 opacity-0',
+          )}
+        >
+          <LaurenPortrait decorative />
         </div>
       </div>
     </div>

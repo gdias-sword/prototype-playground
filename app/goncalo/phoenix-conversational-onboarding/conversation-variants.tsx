@@ -20,15 +20,7 @@ const STACK_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const LINE_TRANSITION = `color ${STACK_COMPACT_MS}ms ${STACK_EASE}, opacity ${STACK_COMPACT_MS}ms ${STACK_EASE}, filter ${STACK_COMPACT_MS}ms ${STACK_EASE}, transform ${STACK_COMPACT_MS}ms ${STACK_EASE}`;
 
 function useConversationStack(props: ConversationProps) {
-  const visibleTurns = useMemo(() => {
-    if (props.canvasMode) {
-      const lastPhoenix = [...props.turns]
-        .reverse()
-        .find((turn) => turn.role === 'phoenix');
-      return lastPhoenix ? [lastPhoenix] : [];
-    }
-    return windowedTurns(props.turns);
-  }, [props.canvasMode, props.turns]);
+  const visibleTurns = useMemo(() => windowedTurns(props.turns), [props.turns]);
   const { listRef, frameRef, promptHeight } = useStackWindow(visibleTurns);
 
   return {
@@ -38,13 +30,8 @@ function useConversationStack(props: ConversationProps) {
     promptHeight,
     currentId: visibleTurns.at(-1)?.id,
     isCompact:
-      !props.canvasMode &&
       props.toolReady &&
-      shouldCompactStack(
-        props.step,
-        props.excludedAreas,
-        props.bodyAreaVariant,
-      ) &&
+      shouldCompactStack(props.step, props.excludedAreas) &&
       visibleTurns.at(-1)?.role === 'phoenix' &&
       visibleTurns.at(-1)?.kind === 'question',
   };
@@ -118,10 +105,8 @@ function Tools(props: ConversationProps) {
       step={props.step}
       show={props.toolReady}
       excludedAreas={props.excludedAreas}
-      bodyAreaVariant={props.bodyAreaVariant}
-      pickedAreas={props.pickedAreas}
       onReady={props.onReady}
-      onAreas={props.onAreas}
+      onArea={props.onArea}
       onDuration={props.onDuration}
       onIntensity={props.onIntensity}
       onTingling={props.onTingling}
@@ -179,10 +164,7 @@ export function PhoenixCopy(props: ConversationProps) {
 
   return (
     <div
-      className={cn(
-        'flex flex-col px-5',
-        props.canvasMode ? 'shrink-0 pt-4 pb-3' : 'min-h-0 flex-1 pt-1',
-      )}
+      className="flex min-h-0 flex-1 flex-col px-5 pt-1"
       onClick={step.kind === 'guide' ? onGuideAdvance : undefined}
     >
       <StackFrame maxHeight={maxHeight} frameRef={frameRef}>
@@ -218,7 +200,7 @@ export function PhoenixCopy(props: ConversationProps) {
           })}
         </div>
       </StackFrame>
-      {props.canvasMode ? null : <Tools {...props} />}
+      <Tools {...props} />
     </div>
   );
 }
