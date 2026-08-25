@@ -17,11 +17,93 @@ export const BODY_AREAS = [
 export const DURATIONS = [
   'Less than 2 weeks',
   '2–4 weeks',
-  '1 to 3 months',
+  '1–3 months',
   'More than 3 months',
 ] as const;
 
-export type DoorId = 'assessment' | 'how' | 'question';
+export type DoorId = 'session' | 'scheduled' | 'later';
+
+export const SPECIALIST = 'Jessica';
+export const SPECIALIST_FULL = 'Dr. Jessica Miller';
+
+export type ActivityId = 'low' | 'moderate' | 'high';
+
+export const ACTIVITIES: {
+  id: ActivityId;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    id: 'low',
+    label: 'Not very active',
+    hint: 'Mostly sitting, with light daily movement',
+  },
+  {
+    id: 'moderate',
+    label: 'Moderately active',
+    hint: 'Some intentional movement most days',
+  },
+  {
+    id: 'high',
+    label: 'Very active',
+    hint: 'Exercise or sport most days',
+  },
+];
+
+export const SAFETY_FLAGS = [
+  'I have dizziness or balance issues',
+  'I’ve had surgery in the last 3 months',
+  'I get chest pain or shortness of breath',
+  'I feel numbness or tingling',
+  'I have fever or feeling unwell',
+  'I’m currently pregnant',
+];
+
+export const START_SESSION_LABEL = 'Start my first session';
+export const LATER_LABEL = 'I’ll do it later';
+export const CALL_YES_LABEL = 'Yes, let’s talk';
+export const CALL_NO_LABEL = 'Not right now';
+export const REMIND_YES_LABEL = 'Yes, remind me';
+export const REMIND_NO_LABEL = 'I don’t want a reminder';
+
+export type ScheduleDay = {
+  date: number;
+  weekday: string;
+  available: boolean;
+};
+
+export const SCHEDULE_MONTH = 'August 2026';
+export const SCHEDULE_DAYS: ScheduleDay[] = [
+  { date: 24, weekday: 'Mon', available: true },
+  { date: 25, weekday: 'Tue', available: true },
+  { date: 26, weekday: 'Wed', available: true },
+  { date: 27, weekday: 'Thu', available: true },
+  { date: 28, weekday: 'Fri', available: true },
+  { date: 29, weekday: 'Sat', available: false },
+];
+export const SCHEDULE_TIMES_BY_DATE: Record<number, string[]> = {
+  24: [
+    '9:00 AM',
+    '9:15 AM',
+    '9:30 AM',
+    '9:45 AM',
+    '10:00 AM',
+    '1:15 PM',
+    '3:45 PM',
+    '5:00 PM',
+  ],
+  25: ['11:00 AM', '1:00 PM', '2:30 PM', '4:15 PM'],
+  26: ['8:30 AM', '10:00 AM', '10:30 AM', '2:00 PM', '3:15 PM', '4:45 PM'],
+  27: ['9:00 AM', '12:00 PM', '3:00 PM'],
+  28: ['10:15 AM', '11:00 AM', '11:45 AM', '4:00 PM', '5:30 PM'],
+};
+
+export function scheduleTimesForDay(day: ScheduleDay) {
+  if (!day.available) return [];
+  return SCHEDULE_TIMES_BY_DATE[day.date] ?? [];
+}
+
+export const SCHEDULE_ZONE = 'Eastern Standard Time (EST)';
 
 export const GUIDE_LINES = [
   `Hi ${MEMBER}, I’m Phoenix.`,
@@ -36,12 +118,6 @@ export const DISCLAIMER =
 export const READY_LABEL = 'I’m ready';
 
 export const THERAPIST_PHRASE = PT;
-
-export const DOORS: { id: DoorId; label: string }[] = [
-  { id: 'assessment', label: 'Start my assessment' },
-  { id: 'how', label: 'How it works' },
-  { id: 'question', label: 'I have a question' },
-];
 
 export const MAX_BODY_AREAS = 3;
 
@@ -62,6 +138,10 @@ export type Answers = {
   intensity: number | null;
   tingling: boolean | null;
   completed: Condition[];
+  activity: ActivityId | null;
+  safetyFlags: string[];
+  appointmentDay: string | null;
+  appointmentTime: string | null;
 };
 
 export type StackTurn = {
@@ -77,7 +157,83 @@ export function areaQuestion(completedCount = 0) {
 }
 
 export function moreQuestion(area: string) {
-  return `That’s everything we need to know for your ${area.toLowerCase()} pain. Anywhere else bothering you?`;
+  return `That’s everything we need to know about your ${area.toLowerCase()} pain. Anywhere else bothering you?`;
+}
+
+export function activityIntroLine() {
+  return 'Great! Before we start, I want to make sure your session fits your activity level.';
+}
+
+export function activityQuestion() {
+  return 'How active have you been lately?';
+}
+
+export function activityCareLine(activity: ActivityId) {
+  if (activity === 'low') {
+    return 'We’ll keep this gentle and build from where you are.';
+  }
+  if (activity === 'high') {
+    return 'We’ll use that energy — and still keep every movement safe.';
+  }
+  return 'Sounds like you’ve got a good foundation. We’ll work with that.';
+}
+
+export function sessionIntroLine(area: string) {
+  return `Now let’s get into your first session. We’ll start with a quick ${area.toLowerCase()} check-up.`;
+}
+
+export function cameraLine() {
+  return 'We’ll use your camera to follow your movements and give you feedback in real time.';
+}
+
+export function offerLine() {
+  return 'Takes just a few minutes. Ready to start?';
+}
+
+export function checkupTitle(area: string) {
+  return `${area} Check-up`;
+}
+
+export function currentArea(answers: Answers) {
+  return answers.area ?? answers.completed.at(-1)?.area ?? 'Shoulder';
+}
+
+export function activityLabel(id: ActivityId) {
+  return ACTIVITIES.find((activity) => activity.id === id)?.label ?? id;
+}
+
+export function doorLabel(door: DoorId) {
+  if (door === 'session') return 'First session';
+  if (door === 'scheduled') return 'Call booked';
+  return 'Later';
+}
+
+export function safetyLine() {
+  return 'Before we start, just a quick safety check';
+}
+
+export function safetyHint() {
+  return 'Review and flag anything below that applies.';
+}
+
+export function callCareLine() {
+  return 'No problem, it might not be the best time for you.';
+}
+
+export function callQuestion() {
+  return 'In the meantime, would you like to schedule a quick call with our team?';
+}
+
+export function scheduleLine() {
+  return 'Let’s schedule your call';
+}
+
+export function confirmLine() {
+  return `You’ll be speaking with\n${SPECIALIST}`;
+}
+
+export function remindQuestion() {
+  return 'No worries. Do you want me to remind you about your session later instead?';
 }
 
 export function durationQuestion() {
@@ -96,10 +252,6 @@ export function followUpQuestion(area: string) {
     return 'Does it travel down your leg?';
   }
   return 'Does it change when you move?';
-}
-
-export function doorsLine() {
-  return 'Then let’s get you started.';
 }
 
 export function completeCondition(answers: Answers): Answers {
@@ -128,7 +280,24 @@ export function startNextCondition(answers: Answers): Answers {
     intensity: null,
     tingling: null,
     completed: answers.completed,
+    activity: answers.activity,
+    safetyFlags: answers.safetyFlags,
+    appointmentDay: answers.appointmentDay,
+    appointmentTime: answers.appointmentTime,
   };
+}
+
+export function weekdayLong(weekday: string) {
+  if (weekday === 'Mon') return 'Monday';
+  if (weekday === 'Tue') return 'Tuesday';
+  if (weekday === 'Wed') return 'Wednesday';
+  if (weekday === 'Thu') return 'Thursday';
+  if (weekday === 'Fri') return 'Friday';
+  return 'Saturday';
+}
+
+export function appointmentDayLabel(day: ScheduleDay) {
+  return `${weekdayLong(day.weekday)}, August ${day.date}, 2026`;
 }
 
 export function selectedAreas(answers: Answers) {
@@ -142,7 +311,7 @@ export function durationCareLine(duration: string) {
   if (duration === '2–4 weeks') {
     return 'Acting quickly gives you a real advantage.';
   }
-  if (duration === '1 to 3 months') {
+  if (duration === '1–3 months') {
     return 'That’s more common than you think.';
   }
   return 'It’s never too late to start feeling better.';
@@ -169,45 +338,37 @@ export function intensityAnswer(value: number) {
   return `${value} / 10`;
 }
 
-function conditionBit(condition: Condition) {
-  const duration = condition.duration.toLowerCase();
-  const tinglingBit =
-    condition.tingling === true
-      ? ', with some tingling'
-      : condition.tingling === false
-        ? ', no tingling'
-        : '';
-  return `${condition.area.toLowerCase()}, ${duration}, around a ${condition.intensity}${tinglingBit}`;
-}
-
 export function chatIntro(
   door: DoorId,
   answers: Answers,
 ): { from: 'Phoenix' | 'Lauren'; text: string }[] {
-  const conditions = answers.completed;
+  const area = answers.area ?? answers.completed.at(-1)?.area ?? 'that';
 
-  if (door === 'assessment') {
-    const summary =
-      conditions.length > 0
-        ? conditions.map(conditionBit).join('; ')
-        : 'that pain';
+  if (door === 'session') {
     return [
       {
         from: 'Phoenix',
-        text: `${MEMBER} — ${summary}. I’ll set up an assessment around that.`,
+        text: `You’re cleared. I’ll stay with you through this ${area.toLowerCase()} check-up.`,
       },
       {
         from: 'Lauren',
-        text: 'I’ll take a look before we start. You’re in good hands.',
+        text: 'I’ll review your movement after. You’re in good hands.',
       },
     ];
   }
 
-  if (door === 'how') {
+  if (door === 'scheduled') {
+    const when = answers.appointmentDay
+      ? `${answers.appointmentDay} at ${answers.appointmentTime}`
+      : 'your selected time';
     return [
       {
         from: 'Phoenix',
-        text: `This thread is us — you, me, and ${PT}. Sessions, questions, check-ins. All here.`,
+        text: `You’re all set, ${MEMBER}!`,
+      },
+      {
+        from: 'Phoenix',
+        text: `Your intake call has been booked for ${when} with ${SPECIALIST_FULL}.`,
       },
     ];
   }
@@ -215,7 +376,11 @@ export function chatIntro(
   return [
     {
       from: 'Phoenix',
-      text: `Go ahead. I’m here, and ${PT} can jump in whenever you need her.`,
+      text: `I’ll be here when you’re ready for your ${area.toLowerCase()} check-up.`,
+    },
+    {
+      from: 'Lauren',
+      text: 'No rush — we’ll pick it up whenever you are.',
     },
   ];
 }
