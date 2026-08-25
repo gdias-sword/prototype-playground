@@ -44,6 +44,7 @@ import {
   type StackTurn,
 } from './script';
 import { GlassChip, glassSurfaceClasses } from './glass';
+import { PanelHeaderStack } from './panel-header';
 import { useScrollFade } from './use-scroll-fade';
 
 function assetSrc(asset: string | { src: string }) {
@@ -81,6 +82,13 @@ export const CONFIRM_HEADING_TURN: StackTurn = {
   kind: 'question',
 };
 
+export const SAFETY_HEADING_TURN: StackTurn = {
+  id: 'safety-heading',
+  role: 'phoenix',
+  text: safetyLine(),
+  kind: 'question',
+};
+
 const SPECIALIST_NAME_CLASS =
   'bg-gradient-to-r from-[#5f97f0] to-[#3a70c7] bg-clip-text text-transparent';
 
@@ -99,22 +107,16 @@ export function panelHeadingTurn(
   return SCHEDULE_HEADING_TURN;
 }
 
-function PanelOrb() {
-  return (
-    <div className="size-10 shrink-0">
-      <PhoenixOrb mood="listen" className="h-full w-full" />
-    </div>
-  );
-}
-
 export function ContinuityPanel({
   heading,
   hasStreamedTurn,
+  instantStream,
   onTurnStreamComplete,
   children,
 }: {
   heading: StackTurn;
   hasStreamedTurn?: (turnId: string) => boolean;
+  instantStream?: boolean;
   onTurnStreamComplete: (turnId: string) => void;
   children: ReactNode;
 }) {
@@ -122,13 +124,11 @@ export function ContinuityPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
-      <div className="flex flex-col gap-6">
-        {/* Reserves the spot the shared PhoenixOrb morphs into (see `panel-header` layout in experience.tsx). */}
-        <div className="size-10 shrink-0" aria-hidden />
+      <PanelHeaderStack>
         <p
           className="text-title-large-strong text-foreground-neutral-default text-left font-serif font-medium tracking-[-0.04em]"
           style={
-            playLineIn
+            playLineIn && !instantStream
               ? { animation: `line-in 1300ms ${PANEL_EASE} backwards` }
               : undefined
           }
@@ -138,20 +138,13 @@ export function ContinuityPanel({
             text={heading.text}
             kind={heading.kind}
             shouldStream={!hasStreamedTurn?.(heading.id)}
+            instantStream={instantStream}
             onStreamComplete={() => onTurnStreamComplete(heading.id)}
           />
         </p>
-      </div>
+      </PanelHeaderStack>
       {children}
     </div>
-  );
-}
-
-function PanelHeading({ children }: { children: string }) {
-  return (
-    <p className="text-title-large-strong text-foreground-neutral-default font-serif font-medium tracking-[-0.04em]">
-      {children}
-    </p>
   );
 }
 
@@ -202,23 +195,45 @@ function FooterActions({ children }: { children: ReactNode }) {
   );
 }
 
-export function CameraPanel({ onContinue }: { onContinue: () => void }) {
+export function CameraPanel({
+  onContinue,
+  contentReady,
+}: {
+  onContinue: () => void;
+  contentReady?: boolean;
+}) {
+  const [headlineReady, setHeadlineReady] = useState(Boolean(contentReady));
+
+  useEffect(() => {
+    if (contentReady) {
+      setHeadlineReady(true);
+      return;
+    }
+    // Fallback if the last stream character's animationend never fires.
+    const count = Array.from(cameraLine()).length;
+    const durationMs = count === 0 ? 0 : (count - 1) * 40 + 400;
+    const id = window.setTimeout(() => setHeadlineReady(true), durationMs);
+    return () => window.clearTimeout(id);
+  }, [contentReady]);
+
   return (
     <button
       type="button"
       onClick={onContinue}
       className="mt-8 flex min-h-0 flex-1 cursor-pointer flex-col items-stretch text-left"
-      style={{
-        animation: `rise-in ${PANEL_CONTENT_MS}ms ${PANEL_EASE} both`,
-      }}
+      inert={!headlineReady || undefined}
     >
-      <div className="relative min-h-0 flex-1 overflow-hidden rounded-[36px] bg-white">
+      <OfferPiece
+        index={0}
+        ready={headlineReady}
+        className="relative min-h-0 flex-1 overflow-hidden rounded-[36px] bg-white"
+      >
         <img
           alt=""
           src={assetSrc(checkupPreview)}
           className="absolute inset-x-0 top-0 w-full rounded-[36px]"
         />
-      </div>
+      </OfferPiece>
     </button>
   );
 }
@@ -346,10 +361,25 @@ export function OfferPanel({
 
 export function SafetyPanel({
   onContinue,
+  contentReady,
 }: {
   onContinue: (flags: string[]) => void;
+  contentReady?: boolean;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
+  const [headlineReady, setHeadlineReady] = useState(Boolean(contentReady));
+
+  useEffect(() => {
+    if (contentReady) {
+      setHeadlineReady(true);
+      return;
+    }
+    const id = window.setTimeout(
+      () => setHeadlineReady(true),
+      streamDurationMs(safetyLine()),
+    );
+    return () => window.clearTimeout(id);
+  }, [contentReady]);
 
   function toggle(flag: string) {
     setSelected((current) =>
@@ -360,17 +390,20 @@ export function SafetyPanel({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
-      <div className="flex flex-col gap-6">
-        <PanelOrb />
-        <div className="flex flex-col gap-4">
-          <PanelHeading>{safetyLine()}</PanelHeading>
-          <p className="text-body-large-default text-foreground-neutral-default">
-            {safetyHint()}
-          </p>
-        </div>
-      </div>
-      <div className="mt-8 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-4">
+    <div
+      className="flex min-h-0 flex-1 flex-col"
+      inert={!headlineReady || undefined}
+    >
+      <OfferPiece index={0} ready={headlineReady} className="mt-4">
+        <p className="text-body-large-default text-foreground-neutral-default">
+          {safetyHint()}
+        </p>
+      </OfferPiece>
+      <OfferPiece
+        index={1}
+        ready={headlineReady}
+        className="mt-8 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-4"
+      >
         {SAFETY_FLAGS.map((flag) => (
           <GlassChip
             key={flag}
@@ -381,11 +414,13 @@ export function SafetyPanel({
             {flag}
           </GlassChip>
         ))}
-      </div>
+      </OfferPiece>
       <FooterActions>
-        <PrimaryAction onClick={() => onContinue(selected)}>
-          Continue
-        </PrimaryAction>
+        <OfferPiece index={2} ready={headlineReady} className="w-full">
+          <PrimaryAction onClick={() => onContinue(selected)}>
+            Continue
+          </PrimaryAction>
+        </OfferPiece>
       </FooterActions>
     </div>
   );
@@ -547,6 +582,7 @@ export function ConfirmPanel({
   onConfirm,
   contentReady,
   hasStreamedTurn,
+  instantStream,
   onTurnStreamComplete,
 }: {
   day: ScheduleDay;
@@ -554,6 +590,7 @@ export function ConfirmPanel({
   onConfirm: () => void;
   contentReady?: boolean;
   hasStreamedTurn?: (turnId: string) => boolean;
+  instantStream?: boolean;
   onTurnStreamComplete: (turnId: string) => void;
 }) {
   const heading = CONFIRM_HEADING_TURN;
@@ -592,6 +629,7 @@ export function ConfirmPanel({
             text={heading.text}
             kind={heading.kind}
             shouldStream={!hasStreamedTurn?.(heading.id)}
+            instantStream={instantStream}
             onStreamComplete={() => onTurnStreamComplete(heading.id)}
             emphasis={{
               phrase: SPECIALIST,

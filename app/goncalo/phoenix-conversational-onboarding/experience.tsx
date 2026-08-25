@@ -8,6 +8,10 @@ import {
   useState,
   type Ref,
 } from 'react';
+import {
+  buildJumpState,
+  type JumpDestinationId,
+} from './checkpoint-jumps';
 import { ChatScene } from './chat-scene';
 import { PhoenixCopy } from './conversation-variants';
 import { HomeIndicatorSpace, StatusBar } from './device-frame';
@@ -19,6 +23,7 @@ import {
   ContinuityPanel,
   OFFER_HEADING_TURN,
   OfferPanel,
+  SAFETY_HEADING_TURN,
   SafetyPanel,
   SchedulePanel,
   panelHeadingTurn,
@@ -110,13 +115,12 @@ const pairCutoutStyle = {
 export interface ExperienceHandle {
   prevQuestion: () => void;
   nextQuestion: () => void;
-  skipIntro: () => void;
+  jumpTo: (destinationId: JumpDestinationId) => void;
 }
 
 export interface ExperienceControls {
   canPrev: boolean;
   canNext: boolean;
-  canSkipIntro: boolean;
 }
 
 interface Checkpoint {
@@ -223,9 +227,11 @@ function checkpointLabel(
 export function Experience({
   navigatorRef,
   onControlsChange,
+  fastDemo = false,
 }: {
   navigatorRef?: Ref<ExperienceHandle | null>;
   onControlsChange?: (state: ExperienceControls) => void;
+  fastDemo?: boolean;
 } = {}) {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
@@ -237,6 +243,8 @@ export function Experience({
   const stepRef = useRef<PhoenixStep>({ kind: 'guide', index: 0 });
   const turnsRef = useRef<StackTurn[]>([]);
   const pendingRevealRef = useRef<(() => void) | null>(null);
+  const fastDemoRef = useRef(fastDemo);
+  fastDemoRef.current = fastDemo;
   const [phase, setPhase] = useState<Phase>('entering');
   const [isHero, setIsHero] = useState(false);
   const [step, setStep] = useState<PhoenixStep>({ kind: 'guide', index: 0 });
@@ -249,12 +257,23 @@ export function Experience({
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [checkpointIndex, setCheckpointIndex] = useState(-1);
   const [panelLayoutReady, setPanelLayoutReady] = useState(false);
+  const [cameraContentReady, setCameraContentReady] = useState(false);
   const [offerContentReady, setOfferContentReady] = useState(false);
+  const [safetyContentReady, setSafetyContentReady] = useState(false);
   const [confirmContentReady, setConfirmContentReady] = useState(false);
+  const rushExperience = skipToolDelay || fastDemo;
   const toolReady = useDelayedTool(
     phase === 'phoenix' && hasConversationTools(step) && mood === 'listen',
-    skipToolDelay ? 0 : 480,
+    rushExperience ? 0 : 480,
   );
+
+  function delay(ms: number) {
+    return fastDemoRef.current ? 0 : ms;
+  }
+
+  function hasStreamedTurn(turnId: string) {
+    return streamedTurnIdsRef.current.has(turnId);
+  }
 
   phaseRef.current = phase;
   stepRef.current = step;
@@ -297,9 +316,9 @@ export function Experience({
       setMood('speak');
       later(
         revealPending,
-        streamDurationMs(care) + CARE_HOLD_MS + STREAM_FALLBACK_MS,
+        delay(streamDurationMs(care) + CARE_HOLD_MS + STREAM_FALLBACK_MS),
       );
-    }, leadMs);
+    }, delay(leadMs));
   }
 
   function pushTurns(...incoming: Omit<StackTurn, 'id'>[]) {
@@ -373,85 +392,37 @@ export function Experience({
     setDoor(snapshot.door);
     setChatCount(snapshot.chatCount);
     setPanelLayoutReady(snapshot.step.kind === 'schedule');
+    setCameraContentReady(snapshot.step.kind === 'camera');
     setOfferContentReady(snapshot.step.kind === 'offer');
+    setSafetyContentReady(snapshot.step.kind === 'safety');
     setConfirmContentReady(snapshot.step.kind === 'confirm');
   }
 
-  function skipIntro() {
-    const currentPhase = phaseRef.current;
-    const currentStep = stepRef.current;
-    if (currentPhase === 'exiting' || currentPhase === 'chat') return;
-    if (
-      currentPhase === 'phoenix' &&
-      currentStep.kind !== 'guide' &&
-      currentStep.kind !== 'ready'
-    ) {
-      return;
-    }
-
+  function jumpTo(destinationId: JumpDestinationId) {
     clearTimers();
     cancelPendingReveal();
     restoringRef.current = true;
     setSkipToolDelay(true);
-    setIsHero(true);
-    setPhase('phoenix');
-    setAnswers(EMPTY_ANSWERS);
-    setDoor(null);
-    setChatCount(0);
-    setMood('listen');
-    setPanelLayoutReady(false);
-    setOfferContentReady(false);
-    setConfirmContentReady(false);
 
-    const readyStep: PhoenixStep = { kind: 'ready' };
-    const areaStep: PhoenixStep = { kind: 'know', index: 0 };
-    const readyTurns: StackTurn[] = GUIDE_LINES.map((text, index) => ({
-      id: nextTurnId(),
-      role: 'phoenix' as const,
-      text,
-      kind: index < 3 ? ('guide' as const) : ('question' as const),
-    }));
-    const areaTurns: StackTurn[] = [
-      ...readyTurns,
-      {
-        id: nextTurnId(),
-        role: 'member',
-        text: READY_LABEL,
-        kind: 'answer',
-      },
-      {
-        id: nextTurnId(),
-        role: 'phoenix',
-        text: areaQuestion(0),
-        kind: 'question',
-      },
-    ];
-    areaTurns.forEach((turn) => streamedTurnIdsRef.current.add(turn.id));
-    setStep(areaStep);
-    setTurns(areaTurns);
-
-    const readySnapshot = makeCheckpoint(
-      'phoenix',
-      readyStep,
-      EMPTY_ANSWERS,
-      readyTurns,
-      'listen',
-      null,
-      0,
-    );
-    const areaSnapshot = makeCheckpoint(
-      'phoenix',
-      areaStep,
-      EMPTY_ANSWERS,
-      areaTurns,
-      'listen',
-      null,
-      0,
-    );
-    checkpointsRef.current = [readySnapshot, areaSnapshot];
-    checkpointIndexRef.current = 1;
-    setCheckpoints([readySnapshot, areaSnapshot]);
-    setCheckpointIndex(1);
+    const jump = buildJumpState(destinationId, nextTurnId);
+    streamedTurnIdsRef.current = new Set(jump.streamedTurnIds);
+    checkpointsRef.current = jump.checkpoints;
+    checkpointIndexRef.current = jump.targetIndex;
+    setCheckpoints(jump.checkpoints);
+    setCheckpointIndex(jump.targetIndex);
+    setIsHero(jump.isHero);
+    setPhase(jump.phase);
+    setStep(cloneStep(jump.step));
+    setAnswers(cloneAnswers(jump.answers));
+    setTurns([...jump.turns]);
+    setMood(jump.mood);
+    setDoor(jump.door);
+    setChatCount(jump.chatCount);
+    setPanelLayoutReady(jump.panelLayoutReady);
+    setCameraContentReady(jump.cameraContentReady);
+    setOfferContentReady(jump.offerContentReady);
+    setSafetyContentReady(jump.safetyContentReady);
+    setConfirmContentReady(jump.confirmContentReady);
   }
 
   useImperativeHandle(navigatorRef, () => ({
@@ -470,19 +441,15 @@ export function Experience({
       if (index >= checkpointsRef.current.length - 1) return;
       restoreCheckpoint(index + 1);
     },
-    skipIntro,
+    jumpTo,
   }));
 
   useEffect(() => {
     onControlsChange?.({
       canPrev: checkpointIndex > 0 || phase === 'exiting',
       canNext: checkpointIndex >= 0 && checkpointIndex < checkpoints.length - 1,
-      canSkipIntro:
-        phase === 'entering' ||
-        (phase === 'phoenix' &&
-          (step.kind === 'guide' || step.kind === 'ready')),
     });
-  }, [checkpoints.length, checkpointIndex, onControlsChange, phase, step]);
+  }, [checkpoints.length, checkpointIndex, onControlsChange, phase]);
 
   useEffect(() => {
     return () => {
@@ -496,9 +463,9 @@ export function Experience({
   }, []);
 
   useEffect(() => {
-    const id = window.setTimeout(() => setIsHero(true), 40);
+    const id = window.setTimeout(() => setIsHero(true), delay(40));
     return () => window.clearTimeout(id);
-  }, []);
+  }, [fastDemo]);
 
   useEffect(() => {
     if (restoringRef.current) return;
@@ -506,9 +473,9 @@ export function Experience({
     const id = window.setTimeout(() => {
       setPhase('phoenix');
       setMood('speak');
-    }, 1200);
+    }, delay(1200));
     return () => window.clearTimeout(id);
-  }, [phase]);
+  }, [phase, fastDemo]);
 
   useEffect(() => {
     if (phase !== 'phoenix') return;
@@ -556,14 +523,16 @@ export function Experience({
     }
     const id = window.setTimeout(() => {
       setStep({ kind: 'camera' });
-    }, 1600);
+    }, delay(1600));
     return () => window.clearTimeout(id);
-  }, [phase, step, mood]);
+  }, [phase, step, mood, fastDemo]);
 
   useEffect(() => {
     if (restoringRef.current) return;
     if (step.kind !== 'schedule') setPanelLayoutReady(false);
+    if (step.kind !== 'camera') setCameraContentReady(false);
     if (step.kind !== 'offer') setOfferContentReady(false);
+    if (step.kind !== 'safety') setSafetyContentReady(false);
     if (step.kind !== 'confirm') setConfirmContentReady(false);
   }, [step.kind]);
 
@@ -573,13 +542,17 @@ export function Experience({
     const id = window.setTimeout(() => {
       setPhase('chat');
       setMood('breath');
-    }, 1100);
+    }, delay(1100));
     return () => window.clearTimeout(id);
-  }, [phase, door]);
+  }, [phase, door, fastDemo]);
 
   useEffect(() => {
     if (restoringRef.current) return;
     if (phase !== 'chat' || !door) return;
+    if (fastDemo) {
+      setChatCount(2);
+      return;
+    }
     setChatCount(0);
     const first = window.setTimeout(() => setChatCount(1), 700);
     const second = window.setTimeout(() => setChatCount(2), 1700);
@@ -587,7 +560,7 @@ export function Experience({
       window.clearTimeout(first);
       window.clearTimeout(second);
     };
-  }, [phase, door]);
+  }, [phase, door, fastDemo]);
 
   useEffect(() => {
     if (phase !== 'chat' || !door || chatCount < 2) return;
@@ -625,7 +598,7 @@ export function Experience({
       return;
     }
 
-    later(revealNext, 620);
+    later(revealNext, delay(620));
   }
 
   function enterChat(nextDoor: DoorId) {
@@ -651,6 +624,7 @@ export function Experience({
         : phase === 'phoenix' &&
             (step.kind === 'camera' ||
               step.kind === 'offer' ||
+              step.kind === 'safety' ||
               (step.kind === 'schedule' && panelLayoutReady))
           ? 'panel-header'
           : phase === 'phoenix' && isPanelStep(step)
@@ -674,13 +648,22 @@ export function Experience({
     layout === 'hero' &&
     phase === 'phoenix' &&
     (step.kind === 'ready' || (step.kind === 'guide' && step.index >= 1));
+  // Only the first question (area chips) needs the small left orb — later steps keep centered.
+  const compactToolsReady =
+    layout === 'compact' &&
+    toolReady &&
+    step.kind === 'know' &&
+    step.index === 0;
+  const orbLayout: Layout = compactToolsReady ? 'panel-header' : layout;
 
   const conversation: ConversationProps = {
     turns,
     step,
     toolReady,
+    reserveOrbSlot: compactToolsReady,
     excludedAreas: selectedAreas(answers),
-    hasStreamedTurn: (turnId: string) => streamedTurnIdsRef.current.has(turnId),
+    hasStreamedTurn,
+    instantStream: fastDemo,
     onTurnStreamComplete: (turnId: string) => {
       streamedTurnIdsRef.current.add(turnId);
       const currentTurn = turnsRef.current.at(-1);
@@ -693,7 +676,7 @@ export function Experience({
       }
       setMood(currentTurn.kind === 'question' ? 'listen' : 'breath');
       if (currentTurn.kind === 'care') {
-        later(revealPending, CARE_HOLD_MS);
+        later(revealPending, delay(CARE_HOLD_MS));
         return;
       }
       if (currentTurn.kind !== 'question') return;
@@ -709,7 +692,7 @@ export function Experience({
         ),
       );
       if (stepRef.current.kind === 'schedule') {
-        later(() => setPanelLayoutReady(true), SCHEDULE_MORPH_HOLD_MS);
+        later(() => setPanelLayoutReady(true), delay(SCHEDULE_MORPH_HOLD_MS));
       }
     },
     onGuideAdvance: () => {
@@ -816,7 +799,7 @@ export function Experience({
         });
         setPanelLayoutReady(false);
         setStep({ kind: 'schedule' });
-      }, 620);
+      }, delay(620));
     },
     onCallNo: () => {
       commitMember(CALL_NO_LABEL, { kind: 'remind' }, answers);
@@ -857,8 +840,11 @@ export function Experience({
           className={cn(
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
             layout === 'hero' && 'h-[232px]',
-            layout === 'compact' && 'h-[108px]',
-            (layout === 'panel' || layout === 'panel-header') && 'h-0',
+            layout === 'compact' && !compactToolsReady && 'h-[108px]',
+            (layout === 'panel' ||
+              layout === 'panel-header' ||
+              compactToolsReady) &&
+              'h-0',
             layout !== 'hero' &&
               layout !== 'compact' &&
               layout !== 'panel' &&
@@ -874,26 +860,32 @@ export function Experience({
               step.kind === 'camera' ? CAMERA_HEADING_TURN : OFFER_HEADING_TURN
             }
             hasStreamedTurn={conversation.hasStreamedTurn}
+            instantStream={fastDemo}
             onTurnStreamComplete={(turnId) => {
               conversation.onTurnStreamComplete(turnId);
               if (turnId === OFFER_HEADING_TURN.id) {
                 setOfferContentReady(true);
                 return;
               }
-              if (turnId !== CAMERA_HEADING_TURN.id) return;
-              later(() => {
-                if (stepRef.current.kind === 'camera') {
-                  goToPanel({ kind: 'offer' });
-                }
-              }, CAMERA_TO_OFFER_HOLD_MS);
+              if (turnId === CAMERA_HEADING_TURN.id) {
+                setCameraContentReady(true);
+                later(() => {
+                  if (stepRef.current.kind === 'camera') {
+                    goToPanel({ kind: 'offer' });
+                  }
+                }, delay(CAMERA_TO_OFFER_HOLD_MS));
+              }
             }}
           >
             {step.kind === 'camera' ? (
-              <CameraPanel onContinue={() => goToPanel({ kind: 'offer' })} />
+              <CameraPanel
+                contentReady={cameraContentReady || rushExperience}
+                onContinue={() => goToPanel({ kind: 'offer' })}
+              />
             ) : (
               <OfferPanel
                 area={currentArea(answers)}
-                contentReady={offerContentReady || skipToolDelay}
+                contentReady={offerContentReady || rushExperience}
                 onStart={() => {
                   discardFutureCheckpoints();
                   pushTurns({
@@ -930,12 +922,25 @@ export function Experience({
           </ContinuityPanel>
         ) : null}
         {phase === 'phoenix' && step.kind === 'safety' ? (
-          <SafetyPanel
-            onContinue={(flags) => {
-              setAnswers((current) => ({ ...current, safetyFlags: flags }));
-              enterChat('session');
+          <ContinuityPanel
+            heading={SAFETY_HEADING_TURN}
+            hasStreamedTurn={conversation.hasStreamedTurn}
+            instantStream={fastDemo}
+            onTurnStreamComplete={(turnId) => {
+              conversation.onTurnStreamComplete(turnId);
+              if (turnId === SAFETY_HEADING_TURN.id) {
+                setSafetyContentReady(true);
+              }
             }}
-          />
+          >
+            <SafetyPanel
+              contentReady={safetyContentReady || rushExperience}
+              onContinue={(flags) => {
+                setAnswers((current) => ({ ...current, safetyFlags: flags }));
+                enterChat('session');
+              }}
+            />
+          </ContinuityPanel>
         ) : null}
         {phase === 'phoenix' &&
         step.kind === 'schedule' &&
@@ -943,6 +948,7 @@ export function Experience({
           <ContinuityPanel
             heading={panelHeadingTurn('schedule', turns)}
             hasStreamedTurn={conversation.hasStreamedTurn}
+            instantStream={fastDemo}
             onTurnStreamComplete={conversation.onTurnStreamComplete}
           >
             <SchedulePanel
@@ -962,13 +968,14 @@ export function Experience({
             day={confirmDay}
             time={answers.appointmentTime ?? '9:00 AM'}
             hasStreamedTurn={conversation.hasStreamedTurn}
+            instantStream={fastDemo}
             onTurnStreamComplete={(turnId) => {
               conversation.onTurnStreamComplete(turnId);
               if (turnId === CONFIRM_HEADING_TURN.id) {
                 setConfirmContentReady(true);
               }
             }}
-            contentReady={confirmContentReady || skipToolDelay}
+            contentReady={confirmContentReady || rushExperience}
             onConfirm={() => enterChat('scheduled')}
           />
         ) : null}
@@ -996,32 +1003,32 @@ export function Experience({
       <div
         className={cn(
           'pointer-events-none absolute z-30 flex -translate-x-1/2 items-center justify-center',
-          layout !== 'panel' &&
+          orbLayout !== 'panel' &&
             'transition-[top,left,width,height,translate,opacity] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-          layout === 'seed' && 'top-[42%] left-1/2 size-[60px]',
-          layout === 'hero' &&
+          orbLayout === 'seed' && 'top-[42%] left-1/2 size-[60px]',
+          orbLayout === 'hero' &&
             !isPaired &&
             'top-[64px] left-1/2 size-[148px]',
-          layout === 'hero' &&
+          orbLayout === 'hero' &&
             isPaired &&
             'top-[76px] left-1/2 h-[120px] w-[220px]',
-          layout === 'compact' && 'top-[48px] left-1/2 size-[80px]',
-          layout === 'panel' && 'pointer-events-none invisible size-0 opacity-0',
+          orbLayout === 'compact' && 'top-[48px] left-1/2 size-[80px]',
+          orbLayout === 'panel' && 'pointer-events-none invisible size-0 opacity-0',
           // `left` is the visual center (`-translate-x-1/2` is always on).
           // left-9 = left-4 + half of size-10; 60px = 44px + half of 32px.
-          layout === 'panel-header' && 'top-[64px] left-9 size-10',
-          layout === 'avatar' && 'top-[62px] left-[60px] size-[32px]',
+          orbLayout === 'panel-header' && 'top-[64px] left-9 size-10',
+          orbLayout === 'avatar' && 'top-[62px] left-[60px] size-[32px]',
         )}
       >
         <div
           className={cn(
             'relative aspect-square shrink-0 transition-[width,height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-            layout === 'seed' && 'size-[60px]',
-            layout === 'hero' && (isPaired ? 'size-[120px]' : 'size-[148px]'),
-            layout === 'compact' && 'size-[80px]',
-            layout === 'panel' && 'size-0',
-            layout === 'panel-header' && 'size-10',
-            layout === 'avatar' && 'size-[32px]',
+            orbLayout === 'seed' && 'size-[60px]',
+            orbLayout === 'hero' && (isPaired ? 'size-[120px]' : 'size-[148px]'),
+            orbLayout === 'compact' && 'size-[80px]',
+            orbLayout === 'panel' && 'size-0',
+            orbLayout === 'panel-header' && 'size-10',
+            orbLayout === 'avatar' && 'size-[32px]',
           )}
         >
           <div

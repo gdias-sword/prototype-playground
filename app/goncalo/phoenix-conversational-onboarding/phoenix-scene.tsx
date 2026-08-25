@@ -580,15 +580,17 @@ export function PhoenixLineText({
   kind,
   shouldStream,
   onStreamComplete,
+  instantStream = false,
   emphasis,
 }: {
   text: string;
   kind: 'guide' | 'question' | 'care' | 'answer';
   shouldStream: boolean;
   onStreamComplete: () => void;
+  instantStream?: boolean;
   emphasis?: { phrase: string; className: string };
 }) {
-  const [isComplete, setIsComplete] = useState(!shouldStream);
+  const [isComplete, setIsComplete] = useState(!shouldStream || instantStream);
   const hasCompletedRef = useRef(!shouldStream);
   const hasStartedRef = useRef(shouldStream);
   const characters = useMemo(() => Array.from(text), [text]);
@@ -601,11 +603,22 @@ export function PhoenixLineText({
     hasStartedRef.current = true;
   }
 
-  function handleStreamEnd(event: AnimationEvent<HTMLSpanElement>) {
-    if (event.currentTarget !== event.target || hasCompletedRef.current) return;
+  function completeStream() {
+    if (hasCompletedRef.current) return;
     hasCompletedRef.current = true;
     setIsComplete(true);
     onStreamComplete();
+  }
+
+  useEffect(() => {
+    if (!shouldStream || !instantStream) return;
+    const id = window.setTimeout(() => completeStream(), 0);
+    return () => window.clearTimeout(id);
+  }, [shouldStream, instantStream]);
+
+  function handleStreamEnd(event: AnimationEvent<HTMLSpanElement>) {
+    if (event.currentTarget !== event.target) return;
+    completeStream();
   }
 
   if (isComplete || !hasStartedRef.current) {
@@ -663,8 +676,10 @@ export interface ConversationProps {
   turns: StackTurn[];
   step: PhoenixStep;
   toolReady: boolean;
+  reserveOrbSlot?: boolean;
   excludedAreas: string[];
   hasStreamedTurn?: (turnId: string) => boolean;
+  instantStream?: boolean;
   onGuideAdvance: () => void;
   onSessionAdvance: () => void;
   onReady: () => void;
