@@ -111,12 +111,16 @@ function Tools(props: ConversationProps) {
       onIntensity={props.onIntensity}
       onTingling={props.onTingling}
       onMore={props.onMore}
-      onDoor={props.onDoor}
+      onActivity={props.onActivity}
+      onCallYes={props.onCallYes}
+      onCallNo={props.onCallNo}
+      onRemindYes={props.onRemindYes}
+      onRemindNo={props.onRemindNo}
     />
   );
 }
 
-function PhoenixTurn({
+export function PhoenixTurn({
   turn,
   isCurrent,
   fromEnd,
@@ -149,7 +153,7 @@ function PhoenixTurn({
 }
 
 export function PhoenixCopy(props: ConversationProps) {
-  const { step, onGuideAdvance, onTurnStreamComplete } = props;
+  const { step, onGuideAdvance, onSessionAdvance, onTurnStreamComplete } = props;
   const {
     visibleTurns,
     listRef,
@@ -165,7 +169,13 @@ export function PhoenixCopy(props: ConversationProps) {
   return (
     <div
       className="flex min-h-0 flex-1 flex-col px-5 pt-1"
-      onClick={step.kind === 'guide' ? onGuideAdvance : undefined}
+      onClick={
+        step.kind === 'guide'
+          ? onGuideAdvance
+          : step.kind === 'session'
+            ? onSessionAdvance
+            : undefined
+      }
     >
       <StackFrame maxHeight={maxHeight} frameRef={frameRef}>
         <div ref={listRef} className={LIST_CLASS}>
