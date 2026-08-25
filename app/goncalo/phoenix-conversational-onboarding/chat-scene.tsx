@@ -10,7 +10,7 @@ import {
   type StackTurn,
   chatIntro,
 } from './script';
-import { HomeIndicator } from './device-frame';
+import { HomeIndicatorSpace } from './device-frame';
 import { GlassField } from './glass';
 import { LaurenPortrait } from './lauren-portrait';
 
@@ -187,7 +187,7 @@ export function ChatScene({
       <div className="px-4 pt-4 pb-2">
         <GlassField readOnly placeholder="Talk with Phoenix" />
       </div>
-      <HomeIndicator />
+      <HomeIndicatorSpace />
     </div>
   );
 }
