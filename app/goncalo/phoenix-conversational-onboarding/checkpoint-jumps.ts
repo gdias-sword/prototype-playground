@@ -5,10 +5,7 @@ import {
   activityIntroLine,
   activityLabel,
   activityQuestion,
-  appointmentDayLabel,
   areaQuestion,
-  callCareLine,
-  callQuestion,
   completeCondition,
   currentArea,
   doorLabel,
@@ -19,16 +16,10 @@ import {
   intensityAnswer,
   intensityCareLine,
   intensityQuestion,
-  LATER_LABEL,
-  CALL_YES_LABEL,
   MORE_NO_LABEL,
   moreQuestion,
   READY_LABEL,
-  REMIND_NO_LABEL,
-  SCHEDULE_DAYS,
-  scheduleLine,
   sessionIntroLine,
-  START_SESSION_LABEL,
   type ActivityId,
   type Answers,
   type DoorId,
@@ -42,13 +33,7 @@ export type JumpDestinationId =
   | 'ready'
   | 'area'
   | 'activity'
-  | 'session'
-  | 'camera'
-  | 'offer'
-  | 'safety'
-  | 'chat-session'
-  | 'chat-scheduled'
-  | 'chat-later';
+  | 'session';
 
 export interface JumpDestination {
   id: JumpDestinationId;
@@ -62,12 +47,6 @@ export const JUMP_DESTINATIONS: JumpDestination[] = [
   { id: 'area', label: 'Area', shortcut: '3' },
   { id: 'activity', label: 'Activity', shortcut: '4' },
   { id: 'session', label: 'Session', shortcut: '5' },
-  { id: 'camera', label: 'Camera', shortcut: '6' },
-  { id: 'offer', label: 'Offer', shortcut: '7' },
-  { id: 'safety', label: 'Safety', shortcut: '8' },
-  { id: 'chat-session', label: 'Chat · Live session', shortcut: '9' },
-  { id: 'chat-scheduled', label: 'Chat · Scheduled', shortcut: '0' },
-  { id: 'chat-later', label: 'Chat · Later', shortcut: '' },
 ];
 
 export interface JumpCheckpoint {
@@ -156,7 +135,7 @@ function checkpointLabel(
   if (step.kind === 'activity') return 'Activity';
   if (step.kind === 'session') return 'Session';
   if (step.kind === 'camera') return 'Camera';
-  if (step.kind === 'offer') return 'Offer';
+  if (step.kind === 'offer') return 'Session';
   if (step.kind === 'safety') return 'Safety';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
@@ -215,15 +194,6 @@ function demoIntakeAnswers(): Answers {
 
 function demoActivityAnswers(): Answers {
   return { ...demoIntakeAnswers(), activity: DEMO_ACTIVITY };
-}
-
-function demoScheduledAnswers(): Answers {
-  const day = SCHEDULE_DAYS[0];
-  return {
-    ...demoActivityAnswers(),
-    appointmentDay: appointmentDayLabel(day),
-    appointmentTime: '9:00 AM',
-  };
 }
 
 class TurnBuilder {
@@ -298,29 +268,6 @@ function buildActivityTurns(nextTurnId: () => string) {
     .member(activityLabel(DEMO_ACTIVITY))
     .phoenix(activityCareLine(DEMO_ACTIVITY), 'care')
     .phoenix(sessionIntroLine(currentArea(demoIntakeAnswers())));
-  return builder.snapshot();
-}
-
-function buildSafetyTurns(nextTurnId: () => string) {
-  const builder = new TurnBuilder(nextTurnId);
-  buildActivityTurns(nextTurnId).forEach((turn) => {
-    builder.turns.push(turn);
-  });
-  builder.member(START_SESSION_LABEL);
-  return builder.snapshot();
-}
-
-function buildScheduledTurns(nextTurnId: () => string) {
-  const builder = new TurnBuilder(nextTurnId);
-  buildActivityTurns(nextTurnId).forEach((turn) => {
-    builder.turns.push(turn);
-  });
-  builder
-    .member(LATER_LABEL)
-    .phoenix(callCareLine(), 'care')
-    .phoenix(callQuestion())
-    .member(CALL_YES_LABEL)
-    .phoenix(scheduleLine());
   return builder.snapshot();
 }
 
@@ -576,11 +523,10 @@ export function buildJumpState(
 
   const activityAnswers = demoActivityAnswers();
   const activityTurns = buildActivityTurns(nextTurnId);
-  const sessionStep: PhoenixStep = { kind: 'session' };
   checkpoints.push(
     makeCheckpoint(
       'phoenix',
-      sessionStep,
+      { kind: 'offer' },
       activityAnswers,
       activityTurns,
       'listen',
@@ -588,335 +534,26 @@ export function buildJumpState(
       0,
     ),
   );
-
-  if (destinationId === 'session') {
-    return finishJump(
-      destinationId,
-      checkpoints,
-      4,
-      activityTurns,
-      activityAnswers,
-      'phoenix',
-      sessionStep,
-      'listen',
-      null,
-      0,
-      {
-        isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: false,
-        offerContentReady: false,
-        safetyContentReady: false,
-        confirmContentReady: false,
-      },
-    );
-  }
-
-  const panelFlags = {
-    isHero: true,
-    panelLayoutReady: false,
-    cameraContentReady: destinationId !== 'camera',
-    offerContentReady:
-      destinationId === 'offer' ||
-      destinationId === 'safety' ||
-      destinationId.startsWith('chat-'),
-    safetyContentReady:
-      destinationId === 'safety' || destinationId.startsWith('chat-'),
-    confirmContentReady: false,
-  };
-
-  if (destinationId === 'camera') {
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        { kind: 'camera' },
-        activityAnswers,
-        activityTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    return finishJump(
-      destinationId,
-      checkpoints,
-      5,
-      activityTurns,
-      activityAnswers,
-      'phoenix',
-      { kind: 'camera' },
-      'listen',
-      null,
-      0,
-      { ...panelFlags, cameraContentReady: false },
-    );
-  }
-
-  if (destinationId === 'offer') {
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        { kind: 'camera' },
-        activityAnswers,
-        activityTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        { kind: 'offer' },
-        activityAnswers,
-        activityTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    return finishJump(
-      destinationId,
-      checkpoints,
-      6,
-      activityTurns,
-      activityAnswers,
-      'phoenix',
-      { kind: 'offer' },
-      'listen',
-      null,
-      0,
-      panelFlags,
-    );
-  }
-
-  if (destinationId === 'safety') {
-    const safetyTurns = buildSafetyTurns(nextTurnId);
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        { kind: 'camera' },
-        activityAnswers,
-        activityTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        { kind: 'offer' },
-        activityAnswers,
-        activityTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        { kind: 'safety' },
-        activityAnswers,
-        safetyTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    return finishJump(
-      destinationId,
-      checkpoints,
-      7,
-      safetyTurns,
-      activityAnswers,
-      'phoenix',
-      { kind: 'safety' },
-      'listen',
-      null,
-      0,
-      panelFlags,
-    );
-  }
-
-  if (destinationId === 'chat-session') {
-    const safetyTurns = buildSafetyTurns(nextTurnId);
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        { kind: 'safety' },
-        activityAnswers,
-        safetyTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    checkpoints.push(
-      makeCheckpoint(
-        'chat',
-        { kind: 'safety' },
-        activityAnswers,
-        safetyTurns,
-        'breath',
-        'session',
-        2,
-      ),
-    );
-    return finishJump(
-      destinationId,
-      checkpoints,
-      checkpoints.length - 1,
-      safetyTurns,
-      activityAnswers,
-      'chat',
-      { kind: 'safety' },
-      'breath',
-      'session',
-      2,
-      {
-        isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: true,
-        offerContentReady: true,
-        safetyContentReady: true,
-        confirmContentReady: false,
-      },
-    );
-  }
-
-  if (destinationId === 'chat-scheduled') {
-    const scheduledAnswers = demoScheduledAnswers();
-    const scheduledTurns = buildScheduledTurns(nextTurnId);
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        { kind: 'offer' },
-        activityAnswers,
-        activityTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        { kind: 'confirm' },
-        scheduledAnswers,
-        scheduledTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    checkpoints.push(
-      makeCheckpoint(
-        'chat',
-        { kind: 'confirm' },
-        scheduledAnswers,
-        scheduledTurns,
-        'breath',
-        'scheduled',
-        2,
-      ),
-    );
-    return finishJump(
-      destinationId,
-      checkpoints,
-      checkpoints.length - 1,
-      scheduledTurns,
-      scheduledAnswers,
-      'chat',
-      { kind: 'confirm' },
-      'breath',
-      'scheduled',
-      2,
-      {
-        isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: true,
-        offerContentReady: true,
-        safetyContentReady: false,
-        confirmContentReady: true,
-      },
-    );
-  }
-
-  if (destinationId === 'chat-later') {
-    const laterTurns = buildActivityTurns(nextTurnId);
-    laterTurns.push(
-      {
-        id: nextTurnId(),
-        role: 'member',
-        text: LATER_LABEL,
-        kind: 'answer',
-      },
-      {
-        id: nextTurnId(),
-        role: 'phoenix',
-        text: callCareLine(),
-        kind: 'care',
-      },
-      {
-        id: nextTurnId(),
-        role: 'phoenix',
-        text: callQuestion(),
-        kind: 'question',
-      },
-      {
-        id: nextTurnId(),
-        role: 'member',
-        text: REMIND_NO_LABEL,
-        kind: 'answer',
-      },
-    );
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        { kind: 'offer' },
-        activityAnswers,
-        activityTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    checkpoints.push(
-      makeCheckpoint(
-        'chat',
-        { kind: 'remind' },
-        activityAnswers,
-        laterTurns,
-        'breath',
-        'later',
-        2,
-      ),
-    );
-    return finishJump(
-      destinationId,
-      checkpoints,
-      checkpoints.length - 1,
-      laterTurns,
-      activityAnswers,
-      'chat',
-      { kind: 'remind' },
-      'breath',
-      'later',
-      2,
-      {
-        isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: true,
-        offerContentReady: true,
-        safetyContentReady: false,
-        confirmContentReady: false,
-      },
-    );
-  }
-
-  return buildJumpState('intro', nextTurnId);
+  return finishJump(
+    destinationId,
+    checkpoints,
+    checkpoints.length - 1,
+    activityTurns,
+    activityAnswers,
+    'phoenix',
+    { kind: 'offer' },
+    'listen',
+    null,
+    0,
+    {
+      isHero: true,
+      panelLayoutReady: false,
+      cameraContentReady: true,
+      offerContentReady: true,
+      safetyContentReady: false,
+      confirmContentReady: false,
+    },
+  );
 }
 
 export function jumpDestinationForShortcut(key: string) {

@@ -203,7 +203,7 @@ function checkpointLabel(
   if (step.kind === 'activity') return 'Activity';
   if (step.kind === 'session') return 'Session';
   if (step.kind === 'camera') return 'Camera';
-  if (step.kind === 'offer') return 'Offer';
+  if (step.kind === 'offer') return 'Session';
   if (step.kind === 'safety') return 'Safety';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
@@ -510,7 +510,14 @@ export function Experience({
 
   useEffect(() => {
     if (restoringRef.current) return;
-    if (phase !== 'phoenix' || !isPanelStep(step)) return;
+    if (
+      phase !== 'phoenix' ||
+      !isPanelStep(step) ||
+      step.kind === 'camera' ||
+      step.kind === 'safety'
+    ) {
+      return;
+    }
     recordCheckpoint(
       makeCheckpoint(phase, step, answers, turns, 'listen', door, chatCount),
     );
@@ -680,6 +687,7 @@ export function Experience({
         return;
       }
       if (currentTurn.kind !== 'question') return;
+      if (stepRef.current.kind === 'session') return;
       recordCheckpoint(
         makeCheckpoint(
           phaseRef.current,
