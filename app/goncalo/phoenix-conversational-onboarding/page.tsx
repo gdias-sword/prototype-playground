@@ -141,7 +141,7 @@ export default function PhoenixConversationalOnboarding() {
                 className="text-body-small-subtle flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-left hover:bg-white/10 aria-pressed:bg-white/10"
               >
                 <Zap className="size-3.5" />
-                Fast demo
+                Fast Mode
                 <kbd className="text-body-small-subtle ml-auto text-white/40">
                   F
                 </kbd>
