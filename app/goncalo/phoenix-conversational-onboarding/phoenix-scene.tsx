@@ -2,7 +2,6 @@
 
 import { mergeTailwindClasses as cn } from '@/design/utils';
 import {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -15,27 +14,60 @@ import {
 } from 'react';
 import securityIcon from './assets/ic-security.svg';
 import intensityKnob from './assets/intensity-knob.svg';
+import {
+  ActivityTool,
+  CallActions,
+  RemindActions,
+} from './extended-scenes';
 import { GlassChip } from './glass';
 import {
   BODY_AREAS,
   DISCLAIMER,
-  DOORS,
   DURATIONS,
   MORE_HINT,
   MORE_NO_LABEL,
   MORE_YES_LABEL,
   READY_LABEL,
   THERAPIST_PHRASE,
-  type DoorId,
+  type ActivityId,
   type StackTurn,
 } from './script';
+import { useScrollFade } from './use-scroll-fade';
 
 export type PhoenixStep =
   | { kind: 'guide'; index: 0 | 1 | 2 }
   | { kind: 'ready' }
   | { kind: 'know'; index: 0 | 1 | 2 | 3 }
   | { kind: 'more' }
-  | { kind: 'doors' };
+  | { kind: 'activity' }
+  | { kind: 'session' }
+  | { kind: 'camera' }
+  | { kind: 'offer' }
+  | { kind: 'safety' }
+  | { kind: 'call' }
+  | { kind: 'schedule' }
+  | { kind: 'confirm' }
+  | { kind: 'remind' };
+
+export function isPanelStep(step: PhoenixStep) {
+  return (
+    step.kind === 'camera' ||
+    step.kind === 'offer' ||
+    step.kind === 'safety' ||
+    step.kind === 'confirm'
+  );
+}
+
+export function hasConversationTools(step: PhoenixStep) {
+  return (
+    step.kind === 'ready' ||
+    step.kind === 'know' ||
+    step.kind === 'more' ||
+    step.kind === 'activity' ||
+    step.kind === 'call' ||
+    step.kind === 'remind'
+  );
+}
 
 export function TherapistGuideLine({
   line,
@@ -59,6 +91,44 @@ export function TherapistGuideLine({
       {trail}
     </>
   );
+}
+
+function EmphasizedLine({
+  text,
+  phrase,
+  className,
+}: {
+  text: string;
+  phrase: string;
+  className: string;
+}) {
+  const index = text.lastIndexOf(phrase);
+  if (index < 0) return text;
+
+  return (
+    <>
+      {text.slice(0, index)}
+      <span className={className}>{phrase}</span>
+      {text.slice(index + phrase.length)}
+    </>
+  );
+}
+
+function phraseStartIndex(characters: string[], phrase: string) {
+  const needle = Array.from(phrase);
+  if (needle.length === 0) return -1;
+
+  for (let index = characters.length - needle.length; index >= 0; index -= 1) {
+    if (
+      needle.every(
+        (character, offset) => characters[index + offset] === character,
+      )
+    ) {
+      return index;
+    }
+  }
+
+  return -1;
 }
 
 const TOOL_MOTION_MS = 800;
@@ -112,8 +182,6 @@ function ToolShell({
   );
 }
 
-const SCROLL_FADE_THRESHOLD_PX = 4;
-
 function AreaTool({
   exclude,
   onCommit,
@@ -122,34 +190,9 @@ function AreaTool({
   onCommit: (area: string) => void;
 }) {
   const areas = BODY_AREAS.filter((area) => !exclude.includes(area));
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const [fadeTop, setFadeTop] = useState(false);
-  const [fadeBottom, setFadeBottom] = useState(false);
-
-  const updateFades = useCallback(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-
-    const { scrollTop, scrollHeight, clientHeight } = scroller;
-    const overflow = scrollHeight - clientHeight > SCROLL_FADE_THRESHOLD_PX;
-
-    setFadeTop(overflow && scrollTop > SCROLL_FADE_THRESHOLD_PX);
-    setFadeBottom(
-      overflow &&
-        scrollTop + clientHeight < scrollHeight - SCROLL_FADE_THRESHOLD_PX,
-    );
-  }, []);
-
-  useLayoutEffect(() => {
-    updateFades();
-
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-
-    const observer = new ResizeObserver(updateFades);
-    observer.observe(scroller);
-    return () => observer.disconnect();
-  }, [areas, updateFades]);
+  const { scrollerRef, fadeTop, fadeBottom, onScroll } = useScrollFade([
+    areas,
+  ]);
 
   return (
     <div
@@ -157,7 +200,7 @@ function AreaTool({
       className="phoenix-chip-scroller -mx-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-5"
       data-fade-top={fadeTop || undefined}
       data-fade-bottom={fadeBottom || undefined}
-      onScroll={updateFades}
+      onScroll={onScroll}
     >
       {areas.map((area) => (
         <GlassChip key={area} onClick={() => onCommit(area)}>
@@ -307,18 +350,6 @@ function MoreTool({ onCommit }: { onCommit: (wantsMore: boolean) => void }) {
   );
 }
 
-function DoorsTool({ onCommit }: { onCommit: (id: DoorId) => void }) {
-  return (
-    <div className="flex flex-col gap-2">
-      {DOORS.map((door) => (
-        <GlassChip key={door.id} onClick={() => onCommit(door.id)}>
-          {door.label}
-        </GlassChip>
-      ))}
-    </div>
-  );
-}
-
 function ReadyTool({ onCommit }: { onCommit: () => void }) {
   const iconSrc =
     typeof securityIcon === 'string' ? securityIcon : securityIcon.src;
@@ -355,7 +386,11 @@ export function PhoenixTools({
   onIntensity,
   onTingling,
   onMore,
-  onDoor,
+  onActivity,
+  onCallYes,
+  onCallNo,
+  onRemindYes,
+  onRemindNo,
 }: {
   step: PhoenixStep;
   show: boolean;
@@ -366,12 +401,22 @@ export function PhoenixTools({
   onIntensity: (value: number) => void;
   onTingling: (value: boolean) => void;
   onMore: (wantsMore: boolean) => void;
-  onDoor: (id: DoorId) => void;
+  onActivity: (id: ActivityId) => void;
+  onCallYes: () => void;
+  onCallNo: () => void;
+  onRemindYes: () => void;
+  onRemindNo: () => void;
 }) {
   return (
     <ToolShell
       show={show}
-      fill={step.kind === 'ready' || (step.kind === 'know' && step.index === 0)}
+      fill={
+        step.kind === 'ready' ||
+        (step.kind === 'know' && step.index === 0) ||
+        step.kind === 'activity' ||
+        step.kind === 'call' ||
+        step.kind === 'remind'
+      }
     >
       {step.kind === 'ready' ? <ReadyTool onCommit={onReady} /> : null}
       {step.kind === 'know' && step.index === 0 ? (
@@ -387,7 +432,13 @@ export function PhoenixTools({
         <YesNoTool onCommit={onTingling} />
       ) : null}
       {step.kind === 'more' ? <MoreTool onCommit={onMore} /> : null}
-      {step.kind === 'doors' ? <DoorsTool onCommit={onDoor} /> : null}
+      {step.kind === 'activity' ? <ActivityTool onCommit={onActivity} /> : null}
+      {step.kind === 'call' ? (
+        <CallActions onYes={onCallYes} onNo={onCallNo} />
+      ) : null}
+      {step.kind === 'remind' ? (
+        <RemindActions onYes={onRemindYes} onNo={onRemindNo} />
+      ) : null}
     </ToolShell>
   );
 }
@@ -410,9 +461,23 @@ export function useDelayedTool(readyWhen: boolean, delay = 700) {
 export const STACK_WINDOW_MAX_PX = 240;
 const STACK_WINDOW_QUESTIONS = 4;
 export const STACK_COMPACT_MS = 800;
+export const STREAM_CHAR_DELAY_MS = 40;
+export const STREAM_CHAR_ANIM_MS = 400;
+
+export function streamDurationMs(text: string) {
+  const count = Array.from(text).length;
+  if (count === 0) return 0;
+  return (count - 1) * STREAM_CHAR_DELAY_MS + STREAM_CHAR_ANIM_MS;
+}
 
 export function isFormQuestion(step: PhoenixStep) {
-  return step.kind === 'know' || step.kind === 'more' || step.kind === 'doors';
+  return (
+    step.kind === 'know' ||
+    step.kind === 'more' ||
+    step.kind === 'activity' ||
+    step.kind === 'call' ||
+    step.kind === 'remind'
+  );
 }
 
 export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
@@ -423,7 +488,8 @@ export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
   if (step.kind === 'know' && step.index === 2) return 0;
   if (step.kind === 'know' && step.index === 3) return 2;
   if (step.kind === 'more') return 2;
-  if (step.kind === 'doors') return DOORS.length;
+  if (step.kind === 'activity') return 3;
+  if (step.kind === 'call' || step.kind === 'remind') return 2;
   return 0;
 }
 
@@ -514,15 +580,26 @@ export function PhoenixLineText({
   kind,
   shouldStream,
   onStreamComplete,
+  emphasis,
 }: {
   text: string;
   kind: 'guide' | 'question' | 'care' | 'answer';
   shouldStream: boolean;
   onStreamComplete: () => void;
+  emphasis?: { phrase: string; className: string };
 }) {
   const [isComplete, setIsComplete] = useState(!shouldStream);
   const hasCompletedRef = useRef(!shouldStream);
+  const hasStartedRef = useRef(shouldStream);
   const characters = useMemo(() => Array.from(text), [text]);
+  const emphasisStart = useMemo(
+    () => (emphasis ? phraseStartIndex(characters, emphasis.phrase) : -1),
+    [characters, emphasis],
+  );
+
+  if (shouldStream) {
+    hasStartedRef.current = true;
+  }
 
   function handleStreamEnd(event: AnimationEvent<HTMLSpanElement>) {
     if (event.currentTarget !== event.target || hasCompletedRef.current) return;
@@ -531,24 +608,45 @@ export function PhoenixLineText({
     onStreamComplete();
   }
 
-  if (isComplete || !shouldStream) {
+  if (isComplete || !hasStartedRef.current) {
+    if (emphasis && text.includes(emphasis.phrase)) {
+      return (
+        <EmphasizedLine
+          text={text}
+          phrase={emphasis.phrase}
+          className={emphasis.className}
+        />
+      );
+    }
     if (kind === 'guide' && text.includes(THERAPIST_PHRASE)) {
       return <TherapistGuideLine line={text} shimmer={shouldStream} />;
     }
     return text;
   }
 
+  const emphasisLength = emphasis ? Array.from(emphasis.phrase).length : 0;
+
   return (
-    <span aria-label={text} className="whitespace-pre-wrap">
+    <span
+      aria-label={text.replaceAll('\n', ' ')}
+      className="whitespace-pre-wrap"
+    >
       <span aria-hidden="true">
         {characters.map((character, index) => {
-          const delay = index * 40;
+          const delay = index * STREAM_CHAR_DELAY_MS;
           const isLast = index === characters.length - 1;
+          const isEmphasis =
+            emphasisStart >= 0 &&
+            index >= emphasisStart &&
+            index < emphasisStart + emphasisLength;
 
           return (
             <span
               key={`${character}-${index}`}
-              className="phoenix-stream-character"
+              className={cn(
+                'phoenix-stream-character',
+                isEmphasis && emphasis?.className,
+              )}
               style={{ animationDelay: `${delay}ms` }}
               onAnimationEnd={isLast ? handleStreamEnd : undefined}
             >
@@ -568,12 +666,17 @@ export interface ConversationProps {
   excludedAreas: string[];
   hasStreamedTurn?: (turnId: string) => boolean;
   onGuideAdvance: () => void;
+  onSessionAdvance: () => void;
   onReady: () => void;
   onArea: (area: string) => void;
   onDuration: (value: string) => void;
   onIntensity: (value: number) => void;
   onTingling: (value: boolean) => void;
   onMore: (wantsMore: boolean) => void;
-  onDoor: (id: DoorId) => void;
+  onActivity: (id: ActivityId) => void;
+  onCallYes: () => void;
+  onCallNo: () => void;
+  onRemindYes: () => void;
+  onRemindNo: () => void;
   onTurnStreamComplete: (turnId: string) => void;
 }
