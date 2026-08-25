@@ -223,6 +223,23 @@
   display: none;
 }
 
+.phoenix-summary-row {
+  animation: rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.phoenix-summary-row:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.phoenix-summary-row:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+.phoenix-offer-piece {
+  animation: rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--offer-stagger, 0) * 80ms);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .phoenix-stream-character {
     animation-delay: 0ms !important;
@@ -230,6 +247,12 @@
   }
 
   .phoenix-tool-shell {
+    animation-duration: 1ms !important;
+  }
+
+  .phoenix-summary-row,
+  .phoenix-offer-piece {
+    animation-delay: 0ms !important;
     animation-duration: 1ms !important;
   }
 }
