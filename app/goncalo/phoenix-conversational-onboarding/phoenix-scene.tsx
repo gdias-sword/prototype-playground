@@ -632,7 +632,7 @@ export function PhoenixLineText({
       );
     }
     if (kind === 'guide' && text.includes(THERAPIST_PHRASE)) {
-      return <TherapistGuideLine line={text} shimmer={shouldStream} />;
+      return <TherapistGuideLine line={text} shimmer={false} />;
     }
     return text;
   }
