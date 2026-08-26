@@ -77,6 +77,7 @@ import {
   intensityCareLine,
   intensityQuestion,
   moreQuestion,
+  placementIntroLine,
   remindQuestion,
   selectedAreas,
   scheduleLine,
@@ -108,7 +109,6 @@ const CARE_LEAD_MS = 700;
 const CARE_HOLD_MS = 400;
 const LATER_CARE_LEAD_MS = 500;
 const STREAM_FALLBACK_MS = 800;
-const CAMERA_TO_OFFER_HOLD_MS = 900;
 const SCHEDULE_MORPH_HOLD_MS = 500;
 const PLACEMENT_HOLD_MS = 2500;
 const EXERCISE_HOLD_MS = 3000;
@@ -161,6 +161,7 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'more') return moreQuestion(answers.area ?? 'that');
   if (step.kind === 'activity') return activityQuestion();
   if (step.kind === 'session') return sessionIntroLine(currentArea(answers));
+  if (step.kind === 'placement-intro') return placementIntroLine();
   if (step.kind === 'call') {
     return answers.safetyFlags.length > 0 ? flagsQuestion() : callQuestion();
   }
@@ -215,6 +216,7 @@ function checkpointLabel(
   if (step.kind === 'camera') return 'Camera';
   if (step.kind === 'offer') return 'Session';
   if (step.kind === 'safety') return 'Safety';
+  if (step.kind === 'placement-intro') return 'Setup';
   if (step.kind === 'placement') return 'Placement';
   if (step.kind === 'exercise') return 'Exercise';
   if (step.kind === 'call') return 'Call';
@@ -541,6 +543,21 @@ export function Experience({
       return;
     }
     const id = window.setTimeout(() => {
+      setStep({ kind: 'offer' });
+    }, delay(1600));
+    return () => window.clearTimeout(id);
+  }, [phase, step, mood, fastDemo]);
+
+  useEffect(() => {
+    if (restoringRef.current) return;
+    if (
+      phase !== 'phoenix' ||
+      step.kind !== 'placement-intro' ||
+      mood !== 'listen'
+    ) {
+      return;
+    }
+    const id = window.setTimeout(() => {
       setStep({ kind: 'camera' });
     }, delay(1600));
     return () => window.clearTimeout(id);
@@ -570,6 +587,9 @@ export function Experience({
       setPanelLayoutReady(false);
     }
     if (step.kind !== 'camera') setCameraContentReady(false);
+    else if (streamedTurnIdsRef.current.has(CAMERA_HEADING_TURN.id)) {
+      setCameraContentReady(true);
+    }
     if (step.kind !== 'offer') setOfferContentReady(false);
     if (step.kind !== 'safety') setSafetyContentReady(false);
     if (step.kind !== 'confirm') setConfirmContentReady(false);
@@ -724,6 +744,7 @@ export function Experience({
       }
       if (currentTurn.kind !== 'question') return;
       if (stepRef.current.kind === 'session') return;
+      if (stepRef.current.kind === 'placement-intro') return;
       recordCheckpoint(
         makeCheckpoint(
           phaseRef.current,
@@ -764,8 +785,13 @@ export function Experience({
       setStep({ kind: 'ready' });
     },
     onSessionAdvance: () => {
-      if (step.kind !== 'session' || mood !== 'listen') return;
-      goToPanel({ kind: 'camera' });
+      if (step.kind === 'session' && mood === 'listen') {
+        goToPanel({ kind: 'offer' });
+        return;
+      }
+      if (step.kind === 'placement-intro' && mood === 'listen') {
+        goToPanel({ kind: 'camera' });
+      }
     },
     onReady: () => {
       commitMember(READY_LABEL, { kind: 'know', index: 0 }, answers);
@@ -838,7 +864,11 @@ export function Experience({
     onCallYes: () => {
       discardFutureCheckpoints();
       setSkipToolDelay(false);
-      pushTurns({ role: 'member', text: CALL_YES_LABEL, kind: 'answer' });
+      pushTurns({
+        role: 'member',
+        text: CALL_YES_LABEL,
+        kind: 'answer',
+      });
       setMood('think');
       later(() => {
         pushTurns({
@@ -919,6 +949,7 @@ export function Experience({
         {phase === 'phoenix' &&
         (step.kind === 'camera' || step.kind === 'offer') ? (
           <ContinuityPanel
+            key={step.kind}
             heading={
               step.kind === 'camera' ? CAMERA_HEADING_TURN : OFFER_HEADING_TURN
             }
@@ -932,18 +963,13 @@ export function Experience({
               }
               if (turnId === CAMERA_HEADING_TURN.id) {
                 setCameraContentReady(true);
-                later(() => {
-                  if (stepRef.current.kind === 'camera') {
-                    goToPanel({ kind: 'offer' });
-                  }
-                }, delay(CAMERA_TO_OFFER_HOLD_MS));
               }
             }}
           >
             {step.kind === 'camera' ? (
               <CameraPanel
                 contentReady={cameraContentReady || rushExperience}
-                onContinue={() => goToPanel({ kind: 'offer' })}
+                onEnable={() => goToPanel({ kind: 'placement' })}
               />
             ) : (
               <OfferPanel
@@ -1036,7 +1062,15 @@ export function Experience({
                   text: SAFETY_NONE_LABEL,
                   kind: 'answer',
                 });
-                goToPanel({ kind: 'placement' });
+                setMood('think');
+                later(() => {
+                  pushTurns({
+                    role: 'phoenix',
+                    text: placementIntroLine(),
+                    kind: 'question',
+                  });
+                  setStep({ kind: 'placement-intro' });
+                }, delay(620));
               }}
             />
           </ContinuityPanel>

@@ -230,7 +230,7 @@ export function PhoenixCopy(props: ConversationProps) {
       onClick={
         step.kind === 'guide'
           ? onGuideAdvance
-          : step.kind === 'session'
+          : step.kind === 'session' || step.kind === 'placement-intro'
             ? onSessionAdvance
             : undefined
       }

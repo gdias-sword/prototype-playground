@@ -46,6 +46,7 @@ export type PhoenixStep =
   | { kind: 'camera' }
   | { kind: 'offer' }
   | { kind: 'safety' }
+  | { kind: 'placement-intro' }
   | { kind: 'placement' }
   | { kind: 'exercise' }
   | { kind: 'call' }

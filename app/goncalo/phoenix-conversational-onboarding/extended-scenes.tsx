@@ -8,10 +8,10 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
-import checkupPreview from './assets/checkup-preview.webp';
 import icCalendar from './assets/ic-calendar.svg';
 import icClock from './assets/ic-clock.svg';
 import icGift from './assets/ic-gift.svg';
+import icSecurity from './assets/ic-security.svg';
 import icTagClock from './assets/ic-tag-clock.svg';
 import icWorld from './assets/ic-world.svg';
 import jessicaPortrait from './assets/jessica-portrait.png';
@@ -22,6 +22,8 @@ import {
   ACTIVITIES,
   CALL_NO_LABEL,
   CALL_YES_LABEL,
+  CAMERA_PRIVACY,
+  ENABLE_CAMERA_LABEL,
   LATER_LABEL,
   REMIND_NO_LABEL,
   REMIND_YES_LABEL,
@@ -52,6 +54,9 @@ import { useScrollFade } from './use-scroll-fade';
 function assetSrc(asset: string | { src: string }) {
   return typeof asset === 'string' ? asset : asset.src;
 }
+
+const SESSION_PREVIEW_SRC =
+  '/goncalo/phoenix-conversational-onboarding/session-preview.mp4';
 
 const PANEL_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const PANEL_CONTENT_MS = 800;
@@ -272,46 +277,103 @@ function SubmitReveal({
   );
 }
 
+const CAMERA_CTA_HOLD_MS = 900;
+
 export function CameraPanel({
-  onContinue,
+  onEnable,
   contentReady,
 }: {
-  onContinue: () => void;
+  onEnable: () => void;
   contentReady?: boolean;
 }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [headlineReady, setHeadlineReady] = useState(Boolean(contentReady));
+  const [ctaReady, setCtaReady] = useState(Boolean(contentReady));
 
   useEffect(() => {
     if (contentReady) {
       setHeadlineReady(true);
       return;
     }
-    // Fallback if the last stream character's animationend never fires.
-    const count = Array.from(cameraLine()).length;
-    const durationMs = count === 0 ? 0 : (count - 1) * 40 + 400;
-    const id = window.setTimeout(() => setHeadlineReady(true), durationMs);
+    const id = window.setTimeout(
+      () => setHeadlineReady(true),
+      streamDurationMs(cameraLine()),
+    );
     return () => window.clearTimeout(id);
   }, [contentReady]);
 
+  useEffect(() => {
+    if (!headlineReady || ctaReady) return;
+    const id = window.setTimeout(() => setCtaReady(true), CAMERA_CTA_HOLD_MS);
+    return () => window.clearTimeout(id);
+  }, [headlineReady, ctaReady]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!headlineReady) {
+      video.pause();
+      if (video.readyState > 0) video.currentTime = 0;
+      return;
+    }
+
+    const playFromStart = () => {
+      video.currentTime = 0;
+      void video.play();
+    };
+
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      playFromStart();
+      return;
+    }
+
+    video.addEventListener('loadeddata', playFromStart, { once: true });
+    return () => video.removeEventListener('loadeddata', playFromStart);
+  }, [headlineReady]);
+
   return (
-    <button
-      type="button"
-      onClick={onContinue}
-      className="mt-8 flex min-h-0 flex-1 cursor-pointer flex-col items-stretch text-left"
-      inert={!headlineReady || undefined}
-    >
+    <div className="mt-8 flex min-h-0 flex-1 flex-col">
       <OfferPiece
         index={0}
         ready={headlineReady}
-        className="relative min-h-0 flex-1 overflow-hidden rounded-[36px] bg-white"
+        className="relative h-[300px] overflow-hidden rounded-3xl bg-white"
       >
-        <img
-          alt=""
-          src={assetSrc(checkupPreview)}
-          className="absolute inset-x-0 top-0 w-full rounded-[36px]"
+        <video
+          ref={videoRef}
+          loop
+          muted
+          playsInline
+          preload="auto"
+          aria-hidden
+          src={SESSION_PREVIEW_SRC}
+          className="absolute inset-0 size-full object-cover"
         />
       </OfferPiece>
-    </button>
+      <div
+        className="mt-auto flex w-full shrink-0 flex-col gap-4 pb-2"
+        inert={!ctaReady || undefined}
+      >
+        <OfferPiece index={0} ready={ctaReady} className="w-full">
+          <div className="flex items-center gap-1.5">
+            <span className="relative size-4 shrink-0 overflow-clip">
+              <img
+                alt=""
+                aria-hidden
+                src={assetSrc(icSecurity)}
+                className="absolute inset-0 size-full"
+              />
+            </span>
+            <p className="text-body-small-default text-foreground-neutral-default">
+              {CAMERA_PRIVACY}
+            </p>
+          </div>
+        </OfferPiece>
+        <OfferPiece index={1} ready={ctaReady} className="w-full">
+          <PrimaryAction onClick={onEnable}>{ENABLE_CAMERA_LABEL}</PrimaryAction>
+        </OfferPiece>
+      </div>
+    </div>
   );
 }
 

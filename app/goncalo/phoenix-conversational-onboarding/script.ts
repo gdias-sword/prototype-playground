@@ -62,6 +62,7 @@ export const SAFETY_FLAGS = [
 export const SAFETY_NONE_LABEL = 'None of the above';
 
 export const START_SESSION_LABEL = "I'm ready";
+export const ENABLE_CAMERA_LABEL = 'Enable camera access';
 export const LATER_LABEL = 'I’ll do it later';
 export const CALL_YES_LABEL = 'Yes, let’s talk';
 export const CALL_NO_LABEL = 'Not right now';
@@ -188,6 +189,9 @@ export function cameraLine() {
   return 'We’ll use your camera to follow your movements and give you feedback in real time.';
 }
 
+export const CAMERA_PRIVACY =
+  'Vision AI ensures you perform every exercise safely and effectively. We never record, save, or store video. Your data remains private.';
+
 export function offerLine() {
   return 'Takes just a few minutes. Ready to start?';
 }
@@ -216,6 +220,10 @@ export function safetyLine() {
 
 export function safetyHint() {
   return 'Select any that apply.';
+}
+
+export function placementIntroLine() {
+  return "Great. Let's get you set up for your first session.";
 }
 
 export function callCareLine() {
