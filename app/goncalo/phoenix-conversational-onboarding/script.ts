@@ -226,6 +226,14 @@ export function callQuestion() {
   return 'In the meantime, would you like to schedule a quick call with our team?';
 }
 
+export function flagsCareLine() {
+  return 'Thanks for letting me know.';
+}
+
+export function flagsQuestion() {
+  return 'A couple of things came up, so we think it’s best to start with a quick call.';
+}
+
 export function scheduleLine() {
   return 'Let’s schedule your call';
 }
@@ -350,11 +358,11 @@ export function chatIntro(
     return [
       {
         from: 'Phoenix',
-        text: `You’re cleared. I’ll stay with you through this ${area.toLowerCase()} check-up.`,
+        text: `Nice work — I captured your ${area.toLowerCase()} movement.`,
       },
       {
         from: 'Lauren',
-        text: 'I’ll review your movement after. You’re in good hands.',
+        text: 'I’ll review this and we’ll use it in your program.',
       },
     ];
   }

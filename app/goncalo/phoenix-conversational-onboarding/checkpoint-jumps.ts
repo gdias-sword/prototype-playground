@@ -19,7 +19,12 @@ import {
   MORE_NO_LABEL,
   moreQuestion,
   READY_LABEL,
+  SAFETY_FLAGS,
+  safetyLine,
   sessionIntroLine,
+  START_SESSION_LABEL,
+  flagsCareLine,
+  flagsQuestion,
   type ActivityId,
   type Answers,
   type DoorId,
@@ -33,7 +38,9 @@ export type JumpDestinationId =
   | 'ready'
   | 'area'
   | 'activity'
-  | 'session';
+  | 'session'
+  | 'assess'
+  | 'flags';
 
 export interface JumpDestination {
   id: JumpDestinationId;
@@ -47,6 +54,8 @@ export const JUMP_DESTINATIONS: JumpDestination[] = [
   { id: 'area', label: 'Area', shortcut: '3' },
   { id: 'activity', label: 'Activity', shortcut: '4' },
   { id: 'session', label: 'Session', shortcut: '5' },
+  { id: 'assess', label: 'Assess', shortcut: '6' },
+  { id: 'flags', label: 'Flags', shortcut: '7' },
 ];
 
 export interface JumpCheckpoint {
@@ -137,6 +146,8 @@ function checkpointLabel(
   if (step.kind === 'camera') return 'Camera';
   if (step.kind === 'offer') return 'Session';
   if (step.kind === 'safety') return 'Safety';
+  if (step.kind === 'placement') return 'Placement';
+  if (step.kind === 'exercise') return 'Exercise';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
@@ -194,6 +205,13 @@ function demoIntakeAnswers(): Answers {
 
 function demoActivityAnswers(): Answers {
   return { ...demoIntakeAnswers(), activity: DEMO_ACTIVITY };
+}
+
+function demoFlagAnswers(): Answers {
+  return {
+    ...demoActivityAnswers(),
+    safetyFlags: [SAFETY_FLAGS[0]],
+  };
 }
 
 class TurnBuilder {
@@ -268,6 +286,24 @@ function buildActivityTurns(nextTurnId: () => string) {
     .member(activityLabel(DEMO_ACTIVITY))
     .phoenix(activityCareLine(DEMO_ACTIVITY), 'care')
     .phoenix(sessionIntroLine(currentArea(demoIntakeAnswers())));
+  return builder.snapshot();
+}
+
+function buildSafetyTurns(nextTurnId: () => string) {
+  const builder = new TurnBuilder(nextTurnId);
+  buildActivityTurns(nextTurnId).forEach((turn) => {
+    builder.turns.push(turn);
+  });
+  builder.member(START_SESSION_LABEL).phoenix(safetyLine());
+  return builder.snapshot();
+}
+
+function buildFlagTurns(nextTurnId: () => string) {
+  const builder = new TurnBuilder(nextTurnId);
+  buildSafetyTurns(nextTurnId).forEach((turn) => {
+    builder.turns.push(turn);
+  });
+  builder.phoenix(flagsCareLine(), 'care').phoenix(flagsQuestion());
   return builder.snapshot();
 }
 
@@ -534,14 +570,100 @@ export function buildJumpState(
       0,
     ),
   );
+
+  if (destinationId === 'session') {
+    return finishJump(
+      destinationId,
+      checkpoints,
+      checkpoints.length - 1,
+      activityTurns,
+      activityAnswers,
+      'phoenix',
+      { kind: 'offer' },
+      'listen',
+      null,
+      0,
+      {
+        isHero: true,
+        panelLayoutReady: false,
+        cameraContentReady: true,
+        offerContentReady: true,
+        safetyContentReady: false,
+        confirmContentReady: false,
+      },
+    );
+  }
+
+  const safetyTurns = buildSafetyTurns(nextTurnId);
+  checkpoints.push(
+    makeCheckpoint(
+      'phoenix',
+      { kind: 'safety' },
+      activityAnswers,
+      safetyTurns,
+      'listen',
+      null,
+      0,
+    ),
+  );
+
+  if (destinationId === 'assess') {
+    const placementStep: PhoenixStep = { kind: 'placement' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        placementStep,
+        activityAnswers,
+        safetyTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    return finishJump(
+      destinationId,
+      checkpoints,
+      checkpoints.length - 1,
+      safetyTurns,
+      activityAnswers,
+      'phoenix',
+      placementStep,
+      'listen',
+      null,
+      0,
+      {
+        isHero: true,
+        panelLayoutReady: false,
+        cameraContentReady: true,
+        offerContentReady: true,
+        safetyContentReady: true,
+        confirmContentReady: false,
+      },
+    );
+  }
+
+  const flagAnswers = demoFlagAnswers();
+  const flagTurns = buildFlagTurns(nextTurnId);
+  const callStep: PhoenixStep = { kind: 'call' };
+  checkpoints.push(
+    makeCheckpoint(
+      'phoenix',
+      callStep,
+      flagAnswers,
+      flagTurns,
+      'listen',
+      null,
+      0,
+    ),
+  );
   return finishJump(
     destinationId,
     checkpoints,
     checkpoints.length - 1,
-    activityTurns,
-    activityAnswers,
+    flagTurns,
+    flagAnswers,
     'phoenix',
-    { kind: 'offer' },
+    callStep,
     'listen',
     null,
     0,
@@ -550,7 +672,7 @@ export function buildJumpState(
       panelLayoutReady: false,
       cameraContentReady: true,
       offerContentReady: true,
-      safetyContentReady: false,
+      safetyContentReady: true,
       confirmContentReady: false,
     },
   );

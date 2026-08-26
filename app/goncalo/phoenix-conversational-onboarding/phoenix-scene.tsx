@@ -46,6 +46,8 @@ export type PhoenixStep =
   | { kind: 'camera' }
   | { kind: 'offer' }
   | { kind: 'safety' }
+  | { kind: 'placement' }
+  | { kind: 'exercise' }
   | { kind: 'call' }
   | { kind: 'schedule' }
   | { kind: 'confirm' }
@@ -58,6 +60,10 @@ export function isPanelStep(step: PhoenixStep) {
     step.kind === 'safety' ||
     step.kind === 'confirm'
   );
+}
+
+export function isImmersiveStep(step: PhoenixStep) {
+  return step.kind === 'placement' || step.kind === 'exercise';
 }
 
 export function hasConversationTools(step: PhoenixStep) {

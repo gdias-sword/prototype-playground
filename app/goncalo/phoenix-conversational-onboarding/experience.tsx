@@ -12,6 +12,7 @@ import {
   buildJumpState,
   type JumpDestinationId,
 } from './checkpoint-jumps';
+import { AssessmentScene } from './assessment-scene';
 import { ChatScene } from './chat-scene';
 import { PhoenixCopy } from './conversation-variants';
 import { HomeIndicatorSpace, StatusBar } from './device-frame';
@@ -32,6 +33,7 @@ import { LaurenPortrait, laurenPortraitSrc } from './lauren-portrait';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
 import {
   hasConversationTools,
+  isImmersiveStep,
   isPanelStep,
   streamDurationMs,
   type ConversationProps,
@@ -67,6 +69,8 @@ import {
   durationCareLine,
   durationQuestion,
   doorLabel,
+  flagsCareLine,
+  flagsQuestion,
   areaQuestion,
   followUpQuestion,
   intensityAnswer,
@@ -90,7 +94,8 @@ type Layout =
   | 'compact'
   | 'avatar'
   | 'panel'
-  | 'panel-header';
+  | 'panel-header'
+  | 'immersive';
 
 const PAIR_SIZE_PX = 120;
 const PAIR_OVERLAP_PX = 20;
@@ -104,6 +109,8 @@ const LATER_CARE_LEAD_MS = 500;
 const STREAM_FALLBACK_MS = 800;
 const CAMERA_TO_OFFER_HOLD_MS = 900;
 const SCHEDULE_MORPH_HOLD_MS = 500;
+const PLACEMENT_HOLD_MS = 2500;
+const EXERCISE_HOLD_MS = 3000;
 
 const pairCutoutStyle = {
   WebkitMaskImage: PAIR_CUTOUT_MASK,
@@ -153,7 +160,9 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'more') return moreQuestion(answers.area ?? 'that');
   if (step.kind === 'activity') return activityQuestion();
   if (step.kind === 'session') return sessionIntroLine(currentArea(answers));
-  if (step.kind === 'call') return callQuestion();
+  if (step.kind === 'call') {
+    return answers.safetyFlags.length > 0 ? flagsQuestion() : callQuestion();
+  }
   if (step.kind === 'remind') return remindQuestion();
   if (step.kind === 'know' && step.index === 0) {
     return areaQuestion(answers.completed.length);
@@ -205,6 +214,8 @@ function checkpointLabel(
   if (step.kind === 'camera') return 'Camera';
   if (step.kind === 'offer') return 'Session';
   if (step.kind === 'safety') return 'Safety';
+  if (step.kind === 'placement') return 'Placement';
+  if (step.kind === 'exercise') return 'Exercise';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
@@ -512,9 +523,7 @@ export function Experience({
     if (restoringRef.current) return;
     if (
       phase !== 'phoenix' ||
-      !isPanelStep(step) ||
-      step.kind === 'camera' ||
-      step.kind === 'safety'
+      (!isPanelStep(step) && !isImmersiveStep(step))
     ) {
       return;
     }
@@ -533,6 +542,24 @@ export function Experience({
     }, delay(1600));
     return () => window.clearTimeout(id);
   }, [phase, step, mood, fastDemo]);
+
+  useEffect(() => {
+    if (restoringRef.current) return;
+    if (phase !== 'phoenix' || step.kind !== 'placement') return;
+    const id = window.setTimeout(() => {
+      setStep({ kind: 'exercise' });
+    }, delay(PLACEMENT_HOLD_MS));
+    return () => window.clearTimeout(id);
+  }, [phase, step, fastDemo]);
+
+  useEffect(() => {
+    if (restoringRef.current) return;
+    if (phase !== 'phoenix' || step.kind !== 'exercise') return;
+    const id = window.setTimeout(() => {
+      enterChat('session');
+    }, delay(EXERCISE_HOLD_MS));
+    return () => window.clearTimeout(id);
+  }, [phase, step, fastDemo]);
 
   useEffect(() => {
     if (restoringRef.current) return;
@@ -628,24 +655,27 @@ export function Experience({
       ? 'avatar'
       : phase === 'entering' && !isHero
         ? 'seed'
-        : phase === 'phoenix' &&
-            (step.kind === 'camera' ||
-              step.kind === 'offer' ||
-              step.kind === 'safety' ||
-              (step.kind === 'schedule' && panelLayoutReady))
-          ? 'panel-header'
-          : phase === 'phoenix' && isPanelStep(step)
-            ? 'panel'
-            : phase === 'phoenix' &&
-                step.kind !== 'guide' &&
-                step.kind !== 'ready'
-              ? 'compact'
-              : 'hero';
+        : phase === 'phoenix' && isImmersiveStep(step)
+          ? 'immersive'
+          : phase === 'phoenix' &&
+              (step.kind === 'camera' ||
+                step.kind === 'offer' ||
+                step.kind === 'safety' ||
+                (step.kind === 'schedule' && panelLayoutReady))
+            ? 'panel-header'
+            : phase === 'phoenix' && isPanelStep(step)
+              ? 'panel'
+              : phase === 'phoenix' &&
+                  step.kind !== 'guide' &&
+                  step.kind !== 'ready'
+                ? 'compact'
+                : 'hero';
 
   const showChat = phase === 'exiting' || phase === 'chat';
   const showConversation =
     (phase === 'phoenix' || phase === 'exiting') &&
     !isPanelStep(step) &&
+    !isImmersiveStep(step) &&
     !(step.kind === 'schedule' && panelLayoutReady);
   const confirmDay =
     SCHEDULE_DAYS.find(
@@ -843,7 +873,7 @@ export function Experience({
           phase !== 'phoenix' && 'pointer-events-none',
         )}
       >
-        <StatusBar />
+        {layout !== 'immersive' ? <StatusBar /> : null}
         <div
           className={cn(
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
@@ -851,16 +881,30 @@ export function Experience({
             layout === 'compact' && !compactToolsReady && 'h-[108px]',
             (layout === 'panel' ||
               layout === 'panel-header' ||
+              layout === 'immersive' ||
               compactToolsReady) &&
               'h-0',
             layout !== 'hero' &&
               layout !== 'compact' &&
               layout !== 'panel' &&
               layout !== 'panel-header' &&
+              layout !== 'immersive' &&
               'h-[232px]',
           )}
         />
         {showConversation ? <PhoenixCopy {...conversation} /> : null}
+        {phase === 'phoenix' && isImmersiveStep(step) ? (
+          <AssessmentScene
+            beat={step.kind === 'exercise' ? 'exercise' : 'placement'}
+            onAdvance={() => {
+              if (step.kind === 'placement') {
+                goToPanel({ kind: 'exercise' });
+                return;
+              }
+              enterChat('session');
+            }}
+          />
+        ) : null}
         {phase === 'phoenix' &&
         (step.kind === 'camera' || step.kind === 'offer') ? (
           <ContinuityPanel
@@ -944,8 +988,23 @@ export function Experience({
             <SafetyPanel
               contentReady={safetyContentReady || rushExperience}
               onContinue={(flags) => {
-                setAnswers((current) => ({ ...current, safetyFlags: flags }));
-                enterChat('session');
+                const nextAnswers = { ...answers, safetyFlags: flags };
+                setAnswers(nextAnswers);
+                if (flags.length > 0) {
+                  discardFutureCheckpoints();
+                  setSkipToolDelay(false);
+                  setStep({ kind: 'call' });
+                  setMood('think');
+                  speakCareThen(flagsCareLine(), () => {
+                    pushTurns({
+                      role: 'phoenix',
+                      text: flagsQuestion(),
+                      kind: 'question',
+                    });
+                  });
+                  return;
+                }
+                goToPanel({ kind: 'placement' });
               }}
             />
           </ContinuityPanel>
@@ -987,7 +1046,7 @@ export function Experience({
             onConfirm={() => enterChat('scheduled')}
           />
         ) : null}
-        <HomeIndicatorSpace />
+        {layout !== 'immersive' ? <HomeIndicatorSpace /> : null}
       </div>
 
       <div
@@ -1022,6 +1081,8 @@ export function Experience({
             'top-[76px] left-1/2 h-[120px] w-[220px]',
           orbLayout === 'compact' && 'top-[48px] left-1/2 size-[80px]',
           orbLayout === 'panel' && 'pointer-events-none invisible size-0 opacity-0',
+          orbLayout === 'immersive' &&
+            'pointer-events-none invisible size-0 opacity-0',
           // `left` is the visual center (`-translate-x-1/2` is always on).
           // left-9 = left-4 + half of size-10; 60px = 44px + half of 32px.
           orbLayout === 'panel-header' && 'top-[64px] left-9 size-10',
@@ -1035,6 +1096,7 @@ export function Experience({
             orbLayout === 'hero' && (isPaired ? 'size-[120px]' : 'size-[148px]'),
             orbLayout === 'compact' && 'size-[80px]',
             orbLayout === 'panel' && 'size-0',
+            orbLayout === 'immersive' && 'size-0',
             orbLayout === 'panel-header' && 'size-10',
             orbLayout === 'avatar' && 'size-[32px]',
           )}
