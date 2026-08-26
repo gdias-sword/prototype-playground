@@ -55,8 +55,10 @@ function assetSrc(asset: string | { src: string }) {
   return typeof asset === 'string' ? asset : asset.src;
 }
 
-const SESSION_PREVIEW_SRC =
-  '/goncalo/phoenix-conversational-onboarding/session-preview.mp4';
+const SESSION_PREVIEW_SRC = new URL(
+  './assets/session-preview.mp4',
+  import.meta.url,
+).href;
 
 const PANEL_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const PANEL_CONTENT_MS = 800;

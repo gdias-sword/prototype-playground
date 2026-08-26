@@ -3,11 +3,11 @@ import path from 'node:path';
 
 export function readPlaygroundUsername(): string | null {
   const file = path.join(process.cwd(), '.playground');
-  if (!fs.existsSync(file)) {
+  if (!fs.existsSync(/* turbopackIgnore: true */ file)) {
     return null;
   }
 
-  const text = fs.readFileSync(file, 'utf-8');
+  const text = fs.readFileSync(/* turbopackIgnore: true */ file, 'utf-8');
   for (const line of text.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) {

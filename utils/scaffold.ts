@@ -72,9 +72,13 @@ export function planPrototypeScaffold(input: {
     };
   }
 
-  const targetDir = path.join(input.appRoot, username, slug);
-  const resolvedTarget = path.resolve(targetDir);
-  const resolvedAppRoot = path.resolve(input.appRoot);
+  const targetDir = path.join(
+    /* turbopackIgnore: true */ input.appRoot,
+    username,
+    slug,
+  );
+  const resolvedTarget = path.resolve(/* turbopackIgnore: true */ targetDir);
+  const resolvedAppRoot = path.resolve(/* turbopackIgnore: true */ input.appRoot);
 
   if (
     !resolvedTarget.startsWith(resolvedAppRoot + path.sep) &&
@@ -85,9 +89,15 @@ export function planPrototypeScaffold(input: {
 
   const pascal = toPascal(input.title);
   const component = pascal && !/^[0-9]/.test(pascal) ? pascal : 'Prototype';
-  const pagePath = path.join(resolvedTarget, 'page.tsx');
-  const metaPath = path.join(resolvedTarget, 'meta.json');
-  const pathAbsolute = path.resolve(pagePath);
+  const pagePath = path.join(
+    /* turbopackIgnore: true */ resolvedTarget,
+    'page.tsx',
+  );
+  const metaPath = path.join(
+    /* turbopackIgnore: true */ resolvedTarget,
+    'meta.json',
+  );
+  const pathAbsolute = path.resolve(/* turbopackIgnore: true */ pagePath);
   const pathRelative = path
     .join('app', username, slug, 'page.tsx')
     .split(path.sep)
