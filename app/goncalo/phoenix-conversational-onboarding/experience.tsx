@@ -24,7 +24,6 @@ import {
   ContinuityPanel,
   OFFER_HEADING_TURN,
   OfferPanel,
-  SAFETY_HEADING_TURN,
   SafetyPanel,
   SchedulePanel,
   panelHeadingTurn,
@@ -56,6 +55,7 @@ import {
   MORE_YES_LABEL,
   REMIND_NO_LABEL,
   REMIND_YES_LABEL,
+  SAFETY_NONE_LABEL,
   SCHEDULE_DAYS,
   START_SESSION_LABEL,
   activityCareLine,
@@ -81,6 +81,7 @@ import {
   selectedAreas,
   scheduleLine,
   sessionIntroLine,
+  safetyLine,
   startNextCondition,
   tinglingCareLine,
   appointmentDayLabel,
@@ -402,7 +403,9 @@ export function Experience({
     setMood(snapshot.mood);
     setDoor(snapshot.door);
     setChatCount(snapshot.chatCount);
-    setPanelLayoutReady(snapshot.step.kind === 'schedule');
+    setPanelLayoutReady(
+      snapshot.step.kind === 'schedule' || snapshot.step.kind === 'safety',
+    );
     setCameraContentReady(snapshot.step.kind === 'camera');
     setOfferContentReady(snapshot.step.kind === 'offer');
     setSafetyContentReady(snapshot.step.kind === 'safety');
@@ -563,7 +566,9 @@ export function Experience({
 
   useEffect(() => {
     if (restoringRef.current) return;
-    if (step.kind !== 'schedule') setPanelLayoutReady(false);
+    if (step.kind !== 'schedule' && step.kind !== 'safety') {
+      setPanelLayoutReady(false);
+    }
     if (step.kind !== 'camera') setCameraContentReady(false);
     if (step.kind !== 'offer') setOfferContentReady(false);
     if (step.kind !== 'safety') setSafetyContentReady(false);
@@ -660,8 +665,8 @@ export function Experience({
           : phase === 'phoenix' &&
               (step.kind === 'camera' ||
                 step.kind === 'offer' ||
-                step.kind === 'safety' ||
-                (step.kind === 'schedule' && panelLayoutReady))
+                ((step.kind === 'schedule' || step.kind === 'safety') &&
+                  panelLayoutReady))
             ? 'panel-header'
             : phase === 'phoenix' && isPanelStep(step)
               ? 'panel'
@@ -676,7 +681,8 @@ export function Experience({
     (phase === 'phoenix' || phase === 'exiting') &&
     !isPanelStep(step) &&
     !isImmersiveStep(step) &&
-    !(step.kind === 'schedule' && panelLayoutReady);
+    !(step.kind === 'schedule' && panelLayoutReady) &&
+    !(step.kind === 'safety' && panelLayoutReady);
   const confirmDay =
     SCHEDULE_DAYS.find(
       (day) => appointmentDayLabel(day) === answers.appointmentDay,
@@ -729,8 +735,13 @@ export function Experience({
           chatCount,
         ),
       );
-      if (stepRef.current.kind === 'schedule') {
-        later(() => setPanelLayoutReady(true), delay(SCHEDULE_MORPH_HOLD_MS));
+      if (stepRef.current.kind === 'schedule' || stepRef.current.kind === 'safety') {
+        later(() => {
+          setPanelLayoutReady(true);
+          if (stepRef.current.kind === 'safety') {
+            setSafetyContentReady(true);
+          }
+        }, delay(SCHEDULE_MORPH_HOLD_MS));
       }
     },
     onGuideAdvance: () => {
@@ -940,12 +951,23 @@ export function Experience({
                 contentReady={offerContentReady || rushExperience}
                 onStart={() => {
                   discardFutureCheckpoints();
+                  setSkipToolDelay(false);
                   pushTurns({
                     role: 'member',
                     text: START_SESSION_LABEL,
                     kind: 'answer',
                   });
-                  goToPanel({ kind: 'safety' });
+                  setMood('think');
+                  setPanelLayoutReady(false);
+                  setSafetyContentReady(false);
+                  later(() => {
+                    pushTurns({
+                      role: 'phoenix',
+                      text: safetyLine(),
+                      kind: 'question',
+                    });
+                    setStep({ kind: 'safety' });
+                  }, delay(620));
                 }}
                 onLater={() => {
                   discardFutureCheckpoints();
@@ -973,14 +995,15 @@ export function Experience({
             )}
           </ContinuityPanel>
         ) : null}
-        {phase === 'phoenix' && step.kind === 'safety' ? (
+        {phase === 'phoenix' && step.kind === 'safety' && panelLayoutReady ? (
           <ContinuityPanel
-            heading={SAFETY_HEADING_TURN}
+            heading={panelHeadingTurn('safety', turns)}
             hasStreamedTurn={conversation.hasStreamedTurn}
             instantStream={fastDemo}
             onTurnStreamComplete={(turnId) => {
               conversation.onTurnStreamComplete(turnId);
-              if (turnId === SAFETY_HEADING_TURN.id) {
+              const heading = panelHeadingTurn('safety', turns);
+              if (turnId === heading.id) {
                 setSafetyContentReady(true);
               }
             }}
@@ -1004,6 +1027,15 @@ export function Experience({
                   });
                   return;
                 }
+                discardFutureCheckpoints();
+                setSkipToolDelay(false);
+                setPanelLayoutReady(false);
+                setSafetyContentReady(false);
+                pushTurns({
+                  role: 'member',
+                  text: SAFETY_NONE_LABEL,
+                  kind: 'answer',
+                });
                 goToPanel({ kind: 'placement' });
               }}
             />

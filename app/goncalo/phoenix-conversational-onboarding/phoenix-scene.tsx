@@ -57,7 +57,6 @@ export function isPanelStep(step: PhoenixStep) {
   return (
     step.kind === 'camera' ||
     step.kind === 'offer' ||
-    step.kind === 'safety' ||
     step.kind === 'confirm'
   );
 }

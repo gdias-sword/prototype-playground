@@ -61,7 +61,7 @@ export const SAFETY_FLAGS = [
 
 export const SAFETY_NONE_LABEL = 'None of the above';
 
-export const START_SESSION_LABEL = 'Start my first session';
+export const START_SESSION_LABEL = "I'm ready";
 export const LATER_LABEL = 'I’ll do it later';
 export const CALL_YES_LABEL = 'Yes, let’s talk';
 export const CALL_NO_LABEL = 'Not right now';
@@ -215,7 +215,7 @@ export function safetyLine() {
 }
 
 export function safetyHint() {
-  return 'Select all that apply, or choose none of the above.';
+  return 'Select any that apply.';
 }
 
 export function callCareLine() {

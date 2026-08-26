@@ -3,6 +3,7 @@
 import { mergeTailwindClasses as cn } from '@/design/utils';
 import {
   useEffect,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -94,11 +95,20 @@ const SPECIALIST_NAME_CLASS =
   'bg-gradient-to-r from-[#5f97f0] to-[#3a70c7] bg-clip-text text-transparent';
 
 export function panelHeadingTurn(
-  kind: 'camera' | 'offer' | 'schedule',
+  kind: 'camera' | 'offer' | 'schedule' | 'safety',
   turns: StackTurn[],
 ): StackTurn {
   if (kind === 'camera') return CAMERA_HEADING_TURN;
   if (kind === 'offer') return OFFER_HEADING_TURN;
+  if (kind === 'safety') {
+    for (let index = turns.length - 1; index >= 0; index -= 1) {
+      const turn = turns[index];
+      if (turn.role === 'phoenix' && turn.text === safetyLine()) {
+        return turn;
+      }
+    }
+    return SAFETY_HEADING_TURN;
+  }
   for (let index = turns.length - 1; index >= 0; index -= 1) {
     const turn = turns[index];
     if (turn.role === 'phoenix' && turn.text === scheduleLine()) {
@@ -138,7 +148,7 @@ export function ContinuityPanel({
             key={heading.id}
             text={heading.text}
             kind={heading.kind}
-            shouldStream={!hasStreamedTurn?.(heading.id)}
+            shouldStream={playLineIn}
             instantStream={instantStream}
             onStreamComplete={() => onTurnStreamComplete(heading.id)}
           />
@@ -197,6 +207,43 @@ export function FooterActions({ children }: { children: ReactNode }) {
 }
 
 const SUBMIT_REVEAL_EASE = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
+
+function WipeLabelAction({
+  hasFlags,
+  onClick,
+}: {
+  hasFlags: boolean;
+  onClick: () => void;
+}) {
+  const label = hasFlags ? 'Continue' : SAFETY_NONE_LABEL;
+  const prevLabelRef = useRef<string | null>(null);
+  const shouldAnimate =
+    prevLabelRef.current !== null && prevLabelRef.current !== label;
+
+  useEffect(() => {
+    prevLabelRef.current = label;
+  }, [label]);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-body-large-strong bg-background-neutral-inverse text-foreground-neutral-inverse flex h-12 w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl"
+    >
+      <span className="grid overflow-hidden">
+        <span
+          key={label}
+          className={cn(
+            'col-start-1 row-start-1',
+            shouldAnimate && 'phoenix-cta-label-wipe',
+          )}
+        >
+          {label}
+        </span>
+      </span>
+    </button>
+  );
+}
 
 function SubmitReveal({
   visible,
@@ -415,15 +462,11 @@ export function SafetyPanel({
   }, [contentReady]);
 
   function toggle(flag: string) {
-    setSelected((current) => {
-      if (flag === SAFETY_NONE_LABEL) {
-        return current.includes(SAFETY_NONE_LABEL) ? [] : [SAFETY_NONE_LABEL];
-      }
-      const flags = current.filter((item) => item !== SAFETY_NONE_LABEL);
-      return flags.includes(flag)
-        ? flags.filter((item) => item !== flag)
-        : [...flags, flag];
-    });
+    setSelected((current) =>
+      current.includes(flag)
+        ? current.filter((item) => item !== flag)
+        : [...current, flag],
+    );
   }
 
   return (
@@ -459,26 +502,13 @@ export function SafetyPanel({
               {flag}
             </GlassCheckRow>
           ))}
-          <GlassCheckRow
-            selected={selected.includes(SAFETY_NONE_LABEL)}
-            onClick={() => toggle(SAFETY_NONE_LABEL)}
-            className="mt-1"
-          >
-            {SAFETY_NONE_LABEL}
-          </GlassCheckRow>
         </div>
       </OfferPiece>
       <OfferPiece index={2} ready={headlineReady} className="mt-auto w-full pb-2">
-        <SubmitReveal
-          visible={selected.length > 0}
-          onClick={() =>
-            onContinue(
-              selected.filter((item) => item !== SAFETY_NONE_LABEL),
-            )
-          }
-        >
-          Continue
-        </SubmitReveal>
+        <WipeLabelAction
+          hasFlags={selected.length > 0}
+          onClick={() => onContinue(selected)}
+        />
       </OfferPiece>
     </div>
   );
