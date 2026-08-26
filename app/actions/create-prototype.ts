@@ -27,11 +27,11 @@ export async function createPrototype(
   }
 
   const appRoot = path.join(process.cwd(), 'app');
-  const createdAt = new Date().toISOString().slice(0, 10);
+  const created = new Date().toISOString().slice(0, 10);
   const planned = planPrototypeScaffold({
     title,
     description,
-    createdAt,
+    created,
     appRoot,
     username: readPlaygroundUsername(),
   });

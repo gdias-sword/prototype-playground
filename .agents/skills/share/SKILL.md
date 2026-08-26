@@ -51,7 +51,7 @@ Announce the resolved target before continuing: `Sharing <username>/<slug>...`.
 Read `app/<username>/<slug>/meta.json`.
 
 - Must parse as JSON.
-- Must contain `title` (string) and `createdAt` (`YYYY-MM-DD`).
+- Must contain `title` (string) and `created` (`YYYY-MM-DD`).
 - `description` is optional.
 
 If invalid, fix it before continuing. Fixes here don't count toward the post-push attempt cap in step 6.

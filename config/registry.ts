@@ -6,7 +6,7 @@ export type Prototype = {
   slug: string;
   title: string;
   description?: string;
-  createdAt: string;
+  created: string;
 };
 
 export function getPrototypes(): Prototype[] {
@@ -26,5 +26,5 @@ export function getPrototypes(): Prototype[] {
     }
   }
 
-  return prototypes.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return prototypes.sort((a, b) => b.created.localeCompare(a.created));
 }

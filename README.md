@@ -15,7 +15,7 @@ Open [http://localhost:3000](http://localhost:3000) to browse all prototypes.
 
 1. Create a folder at `app/[your-name]/[prototype-name]/`
 2. Add a `page.tsx` with a default-exported React component
-3. Add a `meta.json` with title, description, and createdAt
+3. Add a `meta.json` with title, description, and created
 
 ```
 app/
@@ -31,7 +31,7 @@ app/
 {
   "title": "Your New Prototype",
   "description": "What you're exploring",
-  "createdAt": "2026-04-23"
+  "created": "2026-04-23"
 }
 ```
 

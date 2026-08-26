@@ -4,7 +4,7 @@ import { isSafePathSegment, toPascal, toSlug } from '@/utils/identifiers';
 
 export interface Meta {
   title: string;
-  createdAt: string;
+  created: string;
   description?: string;
 }
 
@@ -54,7 +54,7 @@ const PLAYGROUND_USERNAME_ERROR =
 export function planPrototypeScaffold(input: {
   title: string;
   description?: string;
-  createdAt: string;
+  created: string;
   appRoot: string;
   username: string | null;
 }): PlanPrototypeScaffoldResult {
@@ -95,7 +95,7 @@ export function planPrototypeScaffold(input: {
 
   const meta: Meta = {
     title: input.title,
-    createdAt: input.createdAt,
+    created: input.created,
   };
   if (input.description) {
     meta.description = input.description;

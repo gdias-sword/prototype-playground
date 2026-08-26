@@ -36,7 +36,7 @@ The only required input is `title`.
   - Only ask the user when the request gives you nothing to derive from.
 - **`description`**: take from the prompt if the user provided one (or anything that clearly reads as a one-line summary). If they didn't, **omit the field** from `meta.json` — it's optional in `lib/registry.ts`.
 - **`slug`**: derive from `title` via kebab-case (lowercase, non-alphanumerics → hyphens, collapse runs, trim leading/trailing hyphens).
-- **`createdAt`**: today's date in `YYYY-MM-DD`. Use the system date; do not ask.
+- **`created`**: today's date in `YYYY-MM-DD`. Use the system date; do not ask.
 - **`username`**: from `.playground` (`USERNAME`), unless the user explicitly named a different contributor in the prompt.
 
 ### 3. Check for collisions
@@ -53,7 +53,7 @@ Create exactly two files. Do not create an `assets/` folder; create one only on 
 {
   "title": "<title>",
   "description": "<description>",
-  "createdAt": "<YYYY-MM-DD>"
+  "created": "<YYYY-MM-DD>"
 }
 ```
 
