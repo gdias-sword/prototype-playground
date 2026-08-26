@@ -25,6 +25,7 @@ import {
   REMIND_NO_LABEL,
   REMIND_YES_LABEL,
   SAFETY_FLAGS,
+  SAFETY_NONE_LABEL,
   SCHEDULE_DAYS,
   SCHEDULE_MONTH,
   SCHEDULE_ZONE,
@@ -43,7 +44,7 @@ import {
   type ScheduleDay,
   type StackTurn,
 } from './script';
-import { GlassChip, glassSurfaceClasses } from './glass';
+import { GlassCheckRow, GlassChip, glassSurfaceClasses } from './glass';
 import { PanelHeaderStack } from './panel-header';
 import { useScrollFade } from './use-scroll-fade';
 
@@ -148,7 +149,7 @@ export function ContinuityPanel({
   );
 }
 
-function PrimaryAction({
+export function PrimaryAction({
   children,
   disabled,
   onClick,
@@ -187,10 +188,39 @@ function SecondaryAction({
   );
 }
 
-function FooterActions({ children }: { children: ReactNode }) {
+export function FooterActions({ children }: { children: ReactNode }) {
   return (
     <div className="mt-auto flex shrink-0 flex-col items-center gap-2 pb-2">
       {children}
+    </div>
+  );
+}
+
+const SUBMIT_REVEAL_EASE = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
+
+function SubmitReveal({
+  visible,
+  onClick,
+  children,
+  className,
+}: {
+  visible: boolean;
+  onClick: () => void;
+  children: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'grid w-full transition-[grid-template-rows] duration-500',
+        SUBMIT_REVEAL_EASE,
+        visible ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+        className,
+      )}
+    >
+      <div className="overflow-hidden">
+        <PrimaryAction onClick={onClick}>{children}</PrimaryAction>
+      </div>
     </div>
   );
 }
@@ -368,6 +398,9 @@ export function SafetyPanel({
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [headlineReady, setHeadlineReady] = useState(Boolean(contentReady));
+  const { scrollerRef, fadeTop, fadeBottom, onScroll } = useScrollFade([
+    headlineReady,
+  ]);
 
   useEffect(() => {
     if (contentReady) {
@@ -382,11 +415,15 @@ export function SafetyPanel({
   }, [contentReady]);
 
   function toggle(flag: string) {
-    setSelected((current) =>
-      current.includes(flag)
-        ? current.filter((item) => item !== flag)
-        : [...current, flag],
-    );
+    setSelected((current) => {
+      if (flag === SAFETY_NONE_LABEL) {
+        return current.includes(SAFETY_NONE_LABEL) ? [] : [SAFETY_NONE_LABEL];
+      }
+      const flags = current.filter((item) => item !== SAFETY_NONE_LABEL);
+      return flags.includes(flag)
+        ? flags.filter((item) => item !== flag)
+        : [...flags, flag];
+    });
   }
 
   return (
@@ -402,26 +439,47 @@ export function SafetyPanel({
       <OfferPiece
         index={1}
         ready={headlineReady}
-        className="mt-8 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-4"
+        className="mt-8 flex min-h-0 flex-1 flex-col pb-4"
       >
-        {SAFETY_FLAGS.map((flag) => (
-          <GlassChip
-            key={flag}
-            selected={selected.includes(flag)}
-            onClick={() => toggle(flag)}
-            className="text-left"
+        <div
+          ref={scrollerRef}
+          role="group"
+          aria-label="Safety considerations"
+          className="phoenix-chip-scroller -mx-4 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-2"
+          data-fade-top={fadeTop || undefined}
+          data-fade-bottom={fadeBottom || undefined}
+          onScroll={onScroll}
+        >
+          {SAFETY_FLAGS.map((flag) => (
+            <GlassCheckRow
+              key={flag}
+              selected={selected.includes(flag)}
+              onClick={() => toggle(flag)}
+            >
+              {flag}
+            </GlassCheckRow>
+          ))}
+          <GlassCheckRow
+            selected={selected.includes(SAFETY_NONE_LABEL)}
+            onClick={() => toggle(SAFETY_NONE_LABEL)}
+            className="mt-1"
           >
-            {flag}
-          </GlassChip>
-        ))}
+            {SAFETY_NONE_LABEL}
+          </GlassCheckRow>
+        </div>
       </OfferPiece>
-      <FooterActions>
-        <OfferPiece index={2} ready={headlineReady} className="w-full">
-          <PrimaryAction onClick={() => onContinue(selected)}>
-            Continue
-          </PrimaryAction>
-        </OfferPiece>
-      </FooterActions>
+      <OfferPiece index={2} ready={headlineReady} className="mt-auto w-full pb-2">
+        <SubmitReveal
+          visible={selected.length > 0}
+          onClick={() =>
+            onContinue(
+              selected.filter((item) => item !== SAFETY_NONE_LABEL),
+            )
+          }
+        >
+          Continue
+        </SubmitReveal>
+      </OfferPiece>
     </div>
   );
 }
@@ -717,26 +775,15 @@ export function ActivityTool({
           );
         })}
       </div>
-      <div
-        className={cn(
-          'mt-auto grid transition-[grid-template-rows] duration-500',
-          ACTIVITY_EASE,
-          selected ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
-        )}
+      <SubmitReveal
+        visible={Boolean(selected)}
+        className="mt-auto pb-2"
+        onClick={() => {
+          if (selected) onCommit(selected);
+        }}
       >
-        <div className="overflow-hidden">
-          <div className="pb-2">
-            <PrimaryAction
-              disabled={!selected}
-              onClick={() => {
-                if (selected) onCommit(selected);
-              }}
-            >
-              Continue
-            </PrimaryAction>
-          </div>
-        </div>
-      </div>
+        Continue
+      </SubmitReveal>
     </div>
   );
 }

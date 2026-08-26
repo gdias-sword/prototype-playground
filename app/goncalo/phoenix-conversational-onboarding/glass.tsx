@@ -1,5 +1,6 @@
 import { mergeTailwindClasses as cn } from '@/design/utils';
-import type { ButtonHTMLAttributes, InputHTMLAttributes } from 'react';
+import { Check } from 'lucide-react';
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 
 /**
  * Shared glassmorphism surface treatment: translucent white surface with
@@ -43,6 +44,52 @@ export function GlassChip({
       })}
       {...props}
     />
+  );
+}
+
+export function GlassCheckRow({
+  children,
+  className,
+  selected,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  selected?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={selected}
+      className={glassSurfaceClasses({
+        selected,
+        className: cn(
+          'flex w-full cursor-pointer items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left',
+          className,
+        ),
+      })}
+      {...props}
+    >
+      <span className="text-body-large-subtle text-foreground-neutral-strong min-w-0 flex-1">
+        {children}
+      </span>
+      <span
+        aria-hidden
+        className={cn(
+          'flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-[background-color,border-color] duration-300',
+          selected
+            ? 'border-background-brand-default bg-background-brand-default'
+            : 'border-border-neutral-default bg-background-neutral-default',
+        )}
+      >
+        {selected ? (
+          <Check
+            className="text-foreground-neutral-inverse size-3"
+            strokeWidth={3}
+          />
+        ) : null}
+      </span>
+    </button>
   );
 }
 

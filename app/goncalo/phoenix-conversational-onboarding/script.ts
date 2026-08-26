@@ -51,13 +51,15 @@ export const ACTIVITIES: {
 ];
 
 export const SAFETY_FLAGS = [
-  'I have dizziness or balance issues',
-  'I’ve had surgery in the last 3 months',
-  'I get chest pain or shortness of breath',
-  'I feel numbness or tingling',
-  'I have fever or feeling unwell',
-  'I’m currently pregnant',
+  'Dizziness or balance issues',
+  'Surgery in the last 3 months',
+  'Chest pain or shortness of breath',
+  'Numbness or tingling',
+  'Fever or feeling unwell',
+  'Pregnancy',
 ];
+
+export const SAFETY_NONE_LABEL = 'None of the above';
 
 export const START_SESSION_LABEL = 'Start my first session';
 export const LATER_LABEL = 'I’ll do it later';
@@ -213,7 +215,7 @@ export function safetyLine() {
 }
 
 export function safetyHint() {
-  return 'Review and flag anything below that applies.';
+  return 'Select all that apply, or choose none of the above.';
 }
 
 export function callCareLine() {

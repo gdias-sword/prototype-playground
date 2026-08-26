@@ -17,6 +17,8 @@ import intensityKnob from './assets/intensity-knob.svg';
 import {
   ActivityTool,
   CallActions,
+  FooterActions,
+  PrimaryAction,
   RemindActions,
 } from './extended-scenes';
 import { GlassChip } from './glass';
@@ -132,6 +134,16 @@ function phraseStartIndex(characters: string[], phrase: string) {
 }
 
 const TOOL_MOTION_MS = 800;
+
+function toolShellFills(step: PhoenixStep) {
+  return (
+    step.kind === 'ready' ||
+    (step.kind === 'know' && (step.index === 0 || step.index === 2)) ||
+    step.kind === 'activity' ||
+    step.kind === 'call' ||
+    step.kind === 'remind'
+  );
+}
 
 function ToolShell({
   children,
@@ -262,7 +274,7 @@ function IntensityTool({ onCommit }: { onCommit: (value: number) => void }) {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-col gap-2">
         <div
           role="slider"
@@ -322,9 +334,9 @@ function IntensityTool({ onCommit }: { onCommit: (value: number) => void }) {
           <span>Worst pain</span>
         </div>
       </div>
-      <GlassChip className="text-center" onClick={() => onCommit(value)}>
-        Continue
-      </GlassChip>
+      <FooterActions>
+        <PrimaryAction onClick={() => onCommit(value)}>Continue</PrimaryAction>
+      </FooterActions>
     </div>
   );
 }
@@ -369,9 +381,7 @@ function ReadyTool({ onCommit }: { onCommit: () => void }) {
           {DISCLAIMER}
         </p>
       </div>
-      <GlassChip className="text-center" onClick={onCommit}>
-        {READY_LABEL}
-      </GlassChip>
+      <PrimaryAction onClick={onCommit}>{READY_LABEL}</PrimaryAction>
     </div>
   );
 }
@@ -408,16 +418,7 @@ export function PhoenixTools({
   onRemindNo: () => void;
 }) {
   return (
-    <ToolShell
-      show={show}
-      fill={
-        step.kind === 'ready' ||
-        (step.kind === 'know' && step.index === 0) ||
-        step.kind === 'activity' ||
-        step.kind === 'call' ||
-        step.kind === 'remind'
-      }
-    >
+    <ToolShell show={show} fill={toolShellFills(step)}>
       {step.kind === 'ready' ? <ReadyTool onCommit={onReady} /> : null}
       {step.kind === 'know' && step.index === 0 ? (
         <AreaTool exclude={excludedAreas} onCommit={onArea} />
