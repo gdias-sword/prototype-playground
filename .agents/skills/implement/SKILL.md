@@ -28,3 +28,7 @@ Reach for a component from `@/design/components/` before building a custom one â
 Every prototype must be responsive across breakpoints. Use the custom breakpoint values defined in `design/globals.css` to set responsive variants throughout the styling work.
 
 If the reference design only covers one breakpoint, infer the others using standard responsive design heuristics: stack on mobile, expand on desktop.
+
+## Dependencies
+
+Never install prototype-specific packages into the root `package.json`. If this prototype needs a library that is not already a root dependency, add it to a `package.json` inside the prototype folder (`name`: `@<username>/<slug>`, `private`: true) and run `npm install` from the repo root.

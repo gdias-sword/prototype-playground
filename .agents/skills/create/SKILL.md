@@ -87,3 +87,4 @@ The file is a tiny env-style document (one `KEY=VALUE` per line). It is gitignor
 - The slug determines the public URL at `/<username>/<slug>`; keep derivation deterministic.
 - The function name is cosmetic but must be a valid TypeScript identifier so `page.tsx` compiles.
 - Never edit another contributor's namespace under `app/<other-username>/` unless the user explicitly asks for that contributor.
+- Never add prototype-specific dependencies to the root `package.json`. If a prototype needs a library that is not already a root dependency, add a `package.json` inside that prototype folder (`name`: `@<username>/<slug>`, `private`: true) and run `npm install` from the repo root.

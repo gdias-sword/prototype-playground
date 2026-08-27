@@ -47,6 +47,31 @@ Your prototype will appear in the gallery automatically at `localhost:3000/[your
 
 Folders without a `meta.json` are ignored by the gallery — useful for WIP work you're not ready to surface yet.
 
+### Dependencies
+
+The root `package.json` is for shared core packages used across the playground (Next.js, React, the design system, and other reusable libraries). Do not add a dependency there because one prototype needs it.
+
+If a prototype needs its own library, add a `package.json` inside that prototype folder:
+
+```
+app/goncalo/my-new-prototype/
+├── package.json
+├── page.tsx
+└── meta.json
+```
+
+```json
+{
+  "name": "@goncalo/my-new-prototype",
+  "private": true,
+  "dependencies": {
+    "some-library": "^1.0.0"
+  }
+}
+```
+
+Then run `npm install` from the repo root. Prototype folders are npm workspaces (`app/*/*`), so those dependencies install with the rest of the project.
+
 ## Design system
 
 The Sword design system lives in `design/` at the root of the repo:
