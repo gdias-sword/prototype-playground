@@ -55,7 +55,6 @@ import {
   MORE_YES_LABEL,
   REMIND_NO_LABEL,
   REMIND_YES_LABEL,
-  SAFETY_NONE_LABEL,
   SCHEDULE_DAYS,
   START_SESSION_LABEL,
   activityCareLine,
@@ -83,11 +82,17 @@ import {
   scheduleLine,
   sessionIntroLine,
   safetyLine,
+  safetyHint,
   startNextCondition,
   tinglingCareLine,
   appointmentDayLabel,
 } from './script';
 import { WorldBackdrop } from './world-scene';
+import { SafetySheet, SAFETY_SHEET_OUT_MS, safetyFlagsSummary } from './safety-sheet';
+import {
+  DEFAULT_SAFETY_BACKDROP,
+  type SafetyBackdrop,
+} from './safety-variants';
 
 type Phase = 'entering' | 'phoenix' | 'exiting' | 'chat';
 type Layout =
@@ -112,6 +117,9 @@ const STREAM_FALLBACK_MS = 800;
 const SCHEDULE_MORPH_HOLD_MS = 500;
 const PLACEMENT_HOLD_MS = 2500;
 const EXERCISE_HOLD_MS = 3000;
+const SAFETY_OFFER_SHEET_DELAY_MS = 320;
+const SAFETY_LINE_SHEET_DELAY_MS = 420;
+const SAFETY_ORB_SHEET_DELAY_MS = 900;
 
 const pairCutoutStyle = {
   WebkitMaskImage: PAIR_CUTOUT_MASK,
@@ -161,6 +169,7 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'more') return moreQuestion(answers.area ?? 'that');
   if (step.kind === 'activity') return activityQuestion();
   if (step.kind === 'session') return sessionIntroLine(currentArea(answers));
+  if (step.kind === 'safety') return safetyLine();
   if (step.kind === 'placement-intro') return placementIntroLine();
   if (step.kind === 'call') {
     return answers.safetyFlags.length > 0 ? flagsQuestion() : callQuestion();
@@ -242,10 +251,12 @@ export function Experience({
   navigatorRef,
   onControlsChange,
   fastDemo = false,
+  safetyBackdrop = DEFAULT_SAFETY_BACKDROP,
 }: {
   navigatorRef?: Ref<ExperienceHandle | null>;
   onControlsChange?: (state: ExperienceControls) => void;
   fastDemo?: boolean;
+  safetyBackdrop?: SafetyBackdrop;
 } = {}) {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
@@ -275,6 +286,12 @@ export function Experience({
   const [offerContentReady, setOfferContentReady] = useState(false);
   const [safetyContentReady, setSafetyContentReady] = useState(false);
   const [confirmContentReady, setConfirmContentReady] = useState(false);
+  const [safetySheet, setSafetySheet] = useState<'closed' | 'open' | 'exiting'>(
+    'closed',
+  );
+  const [safetySubmitted, setSafetySubmitted] = useState(false);
+  const [safetyLineReady, setSafetyLineReady] = useState(false);
+  const [safetyReplayKey, setSafetyReplayKey] = useState(0);
   const rushExperience = skipToolDelay || fastDemo;
   const toolReady = useDelayedTool(
     phase === 'phoenix' && hasConversationTools(step) && mood === 'listen',
@@ -287,6 +304,15 @@ export function Experience({
 
   function hasStreamedTurn(turnId: string) {
     return streamedTurnIdsRef.current.has(turnId);
+  }
+
+  function safetyLineIsReady(nextTurns: StackTurn[]) {
+    const heading = panelHeadingTurn('safety', nextTurns);
+    return (
+      nextTurns.some(
+        (turn) => turn.role === 'phoenix' && turn.text === safetyLine(),
+      ) && streamedTurnIdsRef.current.has(heading.id)
+    );
   }
 
   phaseRef.current = phase;
@@ -406,12 +432,22 @@ export function Experience({
     setDoor(snapshot.door);
     setChatCount(snapshot.chatCount);
     setPanelLayoutReady(
-      snapshot.step.kind === 'schedule' || snapshot.step.kind === 'safety',
+      snapshot.step.kind === 'schedule' ||
+        (snapshot.step.kind === 'safety' && safetyBackdrop === 'panel'),
     );
     setCameraContentReady(snapshot.step.kind === 'camera');
-    setOfferContentReady(snapshot.step.kind === 'offer');
-    setSafetyContentReady(snapshot.step.kind === 'safety');
+    setOfferContentReady(
+      snapshot.step.kind === 'offer' || snapshot.step.kind === 'safety',
+    );
+    setSafetyContentReady(
+      snapshot.step.kind === 'safety' && safetyBackdrop === 'panel',
+    );
     setConfirmContentReady(snapshot.step.kind === 'confirm');
+    setSafetySheet('closed');
+    setSafetySubmitted(false);
+    setSafetyLineReady(
+      snapshot.step.kind === 'safety' && safetyLineIsReady(snapshot.turns),
+    );
   }
 
   function jumpTo(destinationId: JumpDestinationId) {
@@ -434,11 +470,22 @@ export function Experience({
     setMood(jump.mood);
     setDoor(jump.door);
     setChatCount(jump.chatCount);
-    setPanelLayoutReady(jump.panelLayoutReady);
+    setPanelLayoutReady(
+      jump.panelLayoutReady ||
+        (jump.step.kind === 'safety' && safetyBackdrop === 'panel'),
+    );
     setCameraContentReady(jump.cameraContentReady);
     setOfferContentReady(jump.offerContentReady);
-    setSafetyContentReady(jump.safetyContentReady);
+    setSafetyContentReady(
+      jump.safetyContentReady ||
+        (jump.step.kind === 'safety' && safetyBackdrop === 'panel'),
+    );
     setConfirmContentReady(jump.confirmContentReady);
+    setSafetySheet('closed');
+    setSafetySubmitted(false);
+    setSafetyLineReady(
+      jump.step.kind === 'safety' && safetyLineIsReady(jump.turns),
+    );
   }
 
   useImperativeHandle(navigatorRef, () => ({
@@ -590,10 +637,70 @@ export function Experience({
     else if (streamedTurnIdsRef.current.has(CAMERA_HEADING_TURN.id)) {
       setCameraContentReady(true);
     }
-    if (step.kind !== 'offer') setOfferContentReady(false);
-    if (step.kind !== 'safety') setSafetyContentReady(false);
+    if (step.kind !== 'offer' && step.kind !== 'safety') {
+      setOfferContentReady(false);
+    }
+    if (step.kind !== 'safety') {
+      setSafetySheet('closed');
+      setSafetySubmitted(false);
+      setSafetyLineReady(false);
+      setSafetyContentReady(false);
+    }
     if (step.kind !== 'confirm') setConfirmContentReady(false);
   }, [step.kind]);
+
+  useEffect(() => {
+    if (stepRef.current.kind !== 'safety') return;
+    clearTimers();
+    setSafetySubmitted(false);
+    setSafetySheet('closed');
+    setSafetyLineReady(safetyLineIsReady(turnsRef.current));
+    if (safetyBackdrop === 'panel') {
+      setPanelLayoutReady(true);
+      setSafetyContentReady(true);
+    } else {
+      setPanelLayoutReady(false);
+    }
+    setSafetyReplayKey((value) => value + 1);
+  }, [safetyBackdrop]);
+
+  useEffect(() => {
+    if (step.kind !== 'safety') return;
+    if (safetyBackdrop === 'panel') return;
+    if (safetySubmitted) return;
+    if (safetySheet !== 'closed') return;
+
+    const lineInStack = turns.some(
+      (turn) => turn.role === 'phoenix' && turn.text === safetyLine(),
+    );
+    if (safetyBackdrop === 'line') {
+      if (!lineInStack) return;
+      if (!safetyLineReady && !fastDemo) return;
+    }
+
+    const wait =
+      safetyBackdrop === 'orb'
+        ? SAFETY_ORB_SHEET_DELAY_MS
+        : safetyBackdrop === 'offer'
+          ? SAFETY_OFFER_SHEET_DELAY_MS
+          : SAFETY_LINE_SHEET_DELAY_MS;
+
+    const id = window.setTimeout(() => {
+      setSafetySheet('open');
+      setMood('listen');
+    }, delay(wait));
+    timersRef.current.push(id);
+    return () => window.clearTimeout(id);
+  }, [
+    step.kind,
+    safetyBackdrop,
+    safetySubmitted,
+    safetySheet,
+    safetyLineReady,
+    safetyReplayKey,
+    fastDemo,
+    turns,
+  ]);
 
   useEffect(() => {
     if (restoringRef.current) return;
@@ -675,6 +782,66 @@ export function Experience({
     setMood('listen');
   }
 
+  function advanceFromSafety(flags: string[]) {
+    const nextAnswers = { ...answers, safetyFlags: flags };
+    setAnswers(nextAnswers);
+    discardFutureCheckpoints();
+    setSkipToolDelay(false);
+    pushTurns({
+      role: 'member',
+      text: safetyFlagsSummary(flags),
+      kind: 'answer',
+    });
+    setMood('think');
+
+    if (flags.length > 0) {
+      setStep({ kind: 'call' });
+      speakCareThen(flagsCareLine(), () => {
+        pushTurns({
+          role: 'phoenix',
+          text: flagsQuestion(),
+          kind: 'question',
+        });
+      });
+      return;
+    }
+
+    setPanelLayoutReady(false);
+    later(() => {
+      pushTurns({
+        role: 'phoenix',
+        text: placementIntroLine(),
+        kind: 'question',
+      });
+      setStep({ kind: 'placement-intro' });
+    }, delay(620));
+  }
+
+  function submitSafetyFlags(flags: string[]) {
+    if (safetySheet !== 'open') return;
+    if (safetySubmitted) return;
+    setSafetySubmitted(true);
+    setAnswers({ ...answers, safetyFlags: flags });
+    setSafetySheet('exiting');
+    later(() => {
+      setSafetySheet('closed');
+      advanceFromSafety(flags);
+    }, delay(SAFETY_SHEET_OUT_MS));
+  }
+
+  const keepOffer =
+    step.kind === 'safety' &&
+    safetyBackdrop === 'offer' &&
+    !safetySubmitted;
+  const quietOrb =
+    step.kind === 'safety' &&
+    safetyBackdrop === 'orb' &&
+    !safetySubmitted;
+  const showSafetyPanel =
+    step.kind === 'safety' &&
+    safetyBackdrop === 'panel' &&
+    panelLayoutReady;
+
   const layout: Layout =
     phase === 'chat' || phase === 'exiting'
       ? 'avatar'
@@ -682,27 +849,32 @@ export function Experience({
         ? 'seed'
         : phase === 'phoenix' && isImmersiveStep(step)
           ? 'immersive'
-          : phase === 'phoenix' &&
-              (step.kind === 'camera' ||
-                step.kind === 'offer' ||
-                ((step.kind === 'schedule' || step.kind === 'safety') &&
-                  panelLayoutReady))
-            ? 'panel-header'
-            : phase === 'phoenix' && isPanelStep(step)
-              ? 'panel'
-              : phase === 'phoenix' &&
-                  step.kind !== 'guide' &&
-                  step.kind !== 'ready'
-                ? 'compact'
-                : 'hero';
+          : phase === 'phoenix' && quietOrb
+            ? 'hero'
+            : phase === 'phoenix' &&
+                (step.kind === 'camera' ||
+                  step.kind === 'offer' ||
+                  keepOffer ||
+                  showSafetyPanel ||
+                  (step.kind === 'schedule' && panelLayoutReady))
+              ? 'panel-header'
+              : phase === 'phoenix' && isPanelStep(step)
+                ? 'panel'
+                : phase === 'phoenix' &&
+                    step.kind !== 'guide' &&
+                    step.kind !== 'ready'
+                  ? 'compact'
+                  : 'hero';
 
   const showChat = phase === 'exiting' || phase === 'chat';
   const showConversation =
     (phase === 'phoenix' || phase === 'exiting') &&
     !isPanelStep(step) &&
     !isImmersiveStep(step) &&
-    !(step.kind === 'schedule' && panelLayoutReady) &&
-    !(step.kind === 'safety' && panelLayoutReady);
+    !keepOffer &&
+    !quietOrb &&
+    !showSafetyPanel &&
+    !(step.kind === 'schedule' && panelLayoutReady);
   const confirmDay =
     SCHEDULE_DAYS.find(
       (day) => appointmentDayLabel(day) === answers.appointmentDay,
@@ -729,6 +901,10 @@ export function Experience({
     instantStream: fastDemo,
     onTurnStreamComplete: (turnId: string) => {
       streamedTurnIdsRef.current.add(turnId);
+      if (stepRef.current.kind === 'safety') {
+        const heading = panelHeadingTurn('safety', turnsRef.current);
+        if (turnId === heading.id) setSafetyLineReady(true);
+      }
       const currentTurn = turnsRef.current.at(-1);
       if (
         phaseRef.current !== 'phoenix' ||
@@ -756,12 +932,18 @@ export function Experience({
           chatCount,
         ),
       );
-      if (stepRef.current.kind === 'schedule' || stepRef.current.kind === 'safety') {
+      if (stepRef.current.kind === 'schedule') {
         later(() => {
           setPanelLayoutReady(true);
-          if (stepRef.current.kind === 'safety') {
-            setSafetyContentReady(true);
-          }
+        }, delay(SCHEDULE_MORPH_HOLD_MS));
+      }
+      if (
+        stepRef.current.kind === 'safety' &&
+        safetyBackdrop === 'panel'
+      ) {
+        later(() => {
+          setPanelLayoutReady(true);
+          setSafetyContentReady(true);
         }, delay(SCHEDULE_MORPH_HOLD_MS));
       }
     },
@@ -947,9 +1129,9 @@ export function Experience({
           />
         ) : null}
         {phase === 'phoenix' &&
-        (step.kind === 'camera' || step.kind === 'offer') ? (
+        (step.kind === 'camera' || step.kind === 'offer' || keepOffer) ? (
           <ContinuityPanel
-            key={step.kind}
+            key={keepOffer ? 'offer' : step.kind}
             heading={
               step.kind === 'camera' ? CAMERA_HEADING_TURN : OFFER_HEADING_TURN
             }
@@ -972,56 +1154,98 @@ export function Experience({
                 onEnable={() => goToPanel({ kind: 'placement' })}
               />
             ) : (
-              <OfferPanel
-                area={currentArea(answers)}
-                contentReady={offerContentReady || rushExperience}
-                onStart={() => {
-                  discardFutureCheckpoints();
-                  setSkipToolDelay(false);
-                  pushTurns({
-                    role: 'member',
-                    text: START_SESSION_LABEL,
-                    kind: 'answer',
-                  });
-                  setMood('think');
-                  setPanelLayoutReady(false);
-                  setSafetyContentReady(false);
-                  later(() => {
-                    pushTurns({
-                      role: 'phoenix',
-                      text: safetyLine(),
-                      kind: 'question',
-                    });
-                    setStep({ kind: 'safety' });
-                  }, delay(620));
-                }}
-                onLater={() => {
-                  discardFutureCheckpoints();
-                  setSkipToolDelay(false);
-                  pushTurns({
-                    role: 'member',
-                    text: LATER_LABEL,
-                    kind: 'answer',
-                  });
-                  setStep({ kind: 'call' });
-                  setMood('think');
-                  speakCareThen(
-                    callCareLine(),
-                    () => {
+              <div
+                className="flex min-h-0 flex-1 flex-col"
+                inert={keepOffer || undefined}
+              >
+                <OfferPanel
+                  area={currentArea(answers)}
+                  contentReady={offerContentReady || rushExperience}
+                  onStart={() => {
+                    setSafetySheet('closed');
+                    setSafetySubmitted(false);
+                    if (safetyBackdrop === 'panel') {
+                      discardFutureCheckpoints();
+                      setSkipToolDelay(false);
                       pushTurns({
-                        role: 'phoenix',
-                        text: callQuestion(),
-                        kind: 'question',
+                        role: 'member',
+                        text: START_SESSION_LABEL,
+                        kind: 'answer',
                       });
-                    },
-                    LATER_CARE_LEAD_MS,
-                  );
-                }}
-              />
+                      setMood('think');
+                      setPanelLayoutReady(false);
+                      setSafetyContentReady(false);
+                      later(() => {
+                        pushTurns({
+                          role: 'phoenix',
+                          text: safetyLine(),
+                          kind: 'question',
+                        });
+                        setStep({ kind: 'safety' });
+                      }, delay(620));
+                      return;
+                    }
+                    if (safetyBackdrop === 'line') {
+                      commitMember(
+                        START_SESSION_LABEL,
+                        { kind: 'safety' },
+                        answers,
+                      );
+                      return;
+                    }
+
+                    discardFutureCheckpoints();
+                    setSkipToolDelay(false);
+                    const memberId = nextTurnId();
+                    const lineId = nextTurnId();
+                    streamedTurnIdsRef.current.add(lineId);
+                    setTurns((current) => [
+                      ...current,
+                      {
+                        id: memberId,
+                        role: 'member',
+                        text: START_SESSION_LABEL,
+                        kind: 'answer',
+                      },
+                      {
+                        id: lineId,
+                        role: 'phoenix',
+                        text: safetyLine(),
+                        kind: 'question',
+                      },
+                    ]);
+                    setSafetyLineReady(true);
+                    setMood('listen');
+                    setStep({ kind: 'safety' });
+                  }}
+                  onLater={() => {
+                    discardFutureCheckpoints();
+                    setSkipToolDelay(false);
+                    pushTurns({
+                      role: 'member',
+                      text: LATER_LABEL,
+                      kind: 'answer',
+                    });
+                    setStep({ kind: 'call' });
+                    setMood('think');
+                    speakCareThen(
+                      callCareLine(),
+                      () => {
+                        pushTurns({
+                          role: 'phoenix',
+                          text: callQuestion(),
+                          kind: 'question',
+                        });
+                      },
+                      LATER_CARE_LEAD_MS,
+                    );
+                  }}
+                />
+              </div>
             )}
           </ContinuityPanel>
         ) : null}
-        {phase === 'phoenix' && step.kind === 'safety' && panelLayoutReady ? (
+        {phase === 'phoenix' && showSafetyPanel ? (
           <ContinuityPanel
             heading={panelHeadingTurn('safety', turns)}
             hasStreamedTurn={conversation.hasStreamedTurn}
@@ -1036,44 +1260,24 @@ export function Experience({
           >
             <SafetyPanel
               contentReady={safetyContentReady || rushExperience}
-              onContinue={(flags) => {
-                const nextAnswers = { ...answers, safetyFlags: flags };
-                setAnswers(nextAnswers);
-                if (flags.length > 0) {
-                  discardFutureCheckpoints();
-                  setSkipToolDelay(false);
-                  setStep({ kind: 'call' });
-                  setMood('think');
-                  speakCareThen(flagsCareLine(), () => {
-                    pushTurns({
-                      role: 'phoenix',
-                      text: flagsQuestion(),
-                      kind: 'question',
-                    });
-                  });
-                  return;
-                }
-                discardFutureCheckpoints();
-                setSkipToolDelay(false);
-                setPanelLayoutReady(false);
-                setSafetyContentReady(false);
-                pushTurns({
-                  role: 'member',
-                  text: SAFETY_NONE_LABEL,
-                  kind: 'answer',
-                });
-                setMood('think');
-                later(() => {
-                  pushTurns({
-                    role: 'phoenix',
-                    text: placementIntroLine(),
-                    kind: 'question',
-                  });
-                  setStep({ kind: 'placement-intro' });
-                }, delay(620));
-              }}
+              onContinue={advanceFromSafety}
             />
           </ContinuityPanel>
+        ) : null}
+        {phase === 'phoenix' &&
+        step.kind === 'safety' &&
+        safetyBackdrop !== 'panel' ? (
+          <SafetySheet
+            open={safetySheet === 'open'}
+            exiting={safetySheet === 'exiting'}
+            title={
+              safetyBackdrop === 'line' ? safetyHint() : safetyLine()
+            }
+            subtitle={
+              safetyBackdrop === 'line' ? undefined : safetyHint()
+            }
+            onContinue={submitSafetyFlags}
+          />
         ) : null}
         {phase === 'phoenix' &&
         step.kind === 'schedule' &&

@@ -1,0 +1,624 @@
+.reward-copy {
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(18px);
+}
+
+.reward-copy-visible {
+  pointer-events: auto;
+  visibility: visible;
+  animation: reward-copy-in 700ms cubic-bezier(0.16, 1, 0.3, 1) 420ms both;
+}
+
+@keyframes reward-copy-in {
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.reward-light-sweep {
+  background: linear-gradient(
+    125deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.75) 42%,
+    rgba(135, 159, 240, 0.08) 50%,
+    transparent 62%
+  );
+  transform: translateX(-100%);
+  animation: reward-light-sweep 4.8s ease-in-out infinite;
+}
+
+@keyframes reward-light-sweep {
+  0%,
+  35% {
+    transform: translateX(-100%);
+  }
+  70%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.reward-parcel {
+  filter: drop-shadow(0 24px 38px rgba(83, 80, 145, 0.16));
+  transform-style: preserve-3d;
+}
+
+.reward-parcel-halo {
+  position: absolute;
+  inset: -28px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.9),
+    rgba(133, 154, 238, 0.16) 48%,
+    transparent 72%
+  );
+  animation: reward-halo-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes reward-halo-breathe {
+  50% {
+    opacity: 0.6;
+    transform: scale(1.08);
+  }
+}
+
+.reward-parcel-half {
+  position: absolute;
+  top: 24px;
+  bottom: 24px;
+  width: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.88),
+      rgba(219, 225, 255, 0.48)
+    ),
+    radial-gradient(
+      circle at 60% 30%,
+      rgba(255, 148, 139, 0.18),
+      transparent 55%
+    );
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.95),
+    0 20px 50px rgba(75, 80, 145, 0.1);
+  backdrop-filter: blur(20px);
+  transition:
+    transform 900ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 650ms ease;
+}
+
+.reward-parcel-left {
+  left: 0;
+  border-radius: 42% 9% 9% 42% / 32% 10% 10% 32%;
+  transform: rotateY(6deg) rotate(-3deg);
+}
+
+.reward-parcel-right {
+  right: 0;
+  border-radius: 9% 42% 42% 9% / 10% 32% 32% 10%;
+  transform: rotateY(-6deg) rotate(3deg);
+}
+
+.reward-parcel-ribbon {
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 50%;
+  width: 22px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 133, 127, 0.76),
+    rgba(120, 145, 238, 0.78)
+  );
+  box-shadow: 0 0 28px rgba(123, 145, 237, 0.25);
+  transform: translateX(-50%);
+  transition:
+    opacity 260ms ease,
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reward-parcel-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: var(--color-foreground-neutral-subtle);
+  transform: translate(-50%, -50%);
+  transition:
+    opacity 220ms ease,
+    transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reward-parcel-open .reward-parcel-left {
+  opacity: 0;
+  transform: translate3d(-100px, 18px, 30px) rotate(-24deg) rotateY(38deg);
+}
+
+.reward-parcel-open .reward-parcel-right {
+  opacity: 0;
+  transform: translate3d(100px, 18px, 30px) rotate(24deg) rotateY(-38deg);
+}
+
+.reward-parcel-open .reward-parcel-ribbon {
+  opacity: 0;
+  transform: translateX(-50%) scaleY(1.7);
+}
+
+.reward-parcel-open .reward-parcel-icon {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.8) rotate(16deg);
+}
+
+.reward-band-burst {
+  visibility: hidden;
+  opacity: 0;
+  filter: blur(16px);
+  transform: translateX(-50%) translateY(72px) scale(0.5) rotate(-7deg);
+}
+
+.reward-band-burst-visible {
+  visibility: visible;
+  animation: reward-band-burst 1150ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
+}
+
+@keyframes reward-band-burst {
+  58% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(-50%) translateY(-18px) scale(1.05) rotate(2deg);
+  }
+  78% {
+    transform: translateX(-50%) translateY(4px) scale(0.98) rotate(-1deg);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(-50%) translateY(0) scale(1) rotate(0);
+  }
+}
+
+.reward-light-fragment {
+  --fragment-angle: calc(var(--fragment-index) * 45deg);
+  position: absolute;
+  top: 132px;
+  left: calc(50% - 3px);
+  width: 6px;
+  height: 22px;
+  border-radius: 999px;
+  opacity: 0;
+  background: linear-gradient(#ff958d, #7898ee);
+  transform: rotate(var(--fragment-angle)) translateY(-20px) scaleY(0.2);
+}
+
+.reward-light-fragment-visible {
+  animation: reward-fragment-out 900ms cubic-bezier(0.16, 1, 0.3, 1)
+    calc(80ms + var(--fragment-index) * 24ms) both;
+}
+
+@keyframes reward-fragment-out {
+  35% {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--fragment-angle)) translateY(-174px) scaleY(1);
+  }
+}
+
+.reward-hold-control {
+  background: conic-gradient(
+    from -90deg,
+    var(--color-background-brand-default) calc(var(--hold-progress, 0) * 1turn),
+    rgb(255 255 255 / 0.8) 0
+  );
+}
+
+.reward-seal {
+  perspective: 800px;
+}
+
+.reward-seal-aura {
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.82),
+    rgba(127, 151, 239, 0.12) 55%,
+    transparent 72%
+  );
+  animation: reward-halo-breathe 3.2s ease-in-out infinite;
+}
+
+.reward-seal-shell {
+  position: absolute;
+  inset: 22px;
+  border-radius: 42% 58% 52% 48% / 48% 44% 56% 52%;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.68),
+    rgba(216, 224, 255, 0.22)
+  );
+  box-shadow:
+    inset -12px -18px 38px rgba(111, 138, 229, 0.12),
+    inset 12px 12px 36px rgba(255, 255, 255, 0.8),
+    0 24px 60px rgba(73, 76, 130, 0.12);
+  backdrop-filter: blur(16px);
+  transition:
+    opacity 700ms ease,
+    transform 1050ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: reward-seal-float 4.2s ease-in-out infinite;
+}
+
+@keyframes reward-seal-float {
+  50% {
+    border-radius: 54% 46% 42% 58% / 42% 56% 44% 58%;
+    transform: translateY(-6px) rotate(2deg);
+  }
+}
+
+.reward-seal-ring {
+  position: absolute;
+  inset: 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(119, 146, 235, 0.2);
+  transition:
+    transform 1s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 800ms ease;
+}
+
+.reward-seal-ring-two {
+  inset: 1px;
+  border-color: rgba(255, 139, 132, 0.14);
+  transform: rotate(48deg) scaleX(0.92);
+}
+
+.reward-seal-product {
+  position: absolute;
+  inset: -18px -2px;
+  opacity: 0.28;
+  filter: blur(4px) saturate(0.75);
+  transform: scale(0.75) translateY(12px);
+  transition: all 1100ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reward-seal-lock {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: var(--color-foreground-neutral-subtle);
+  filter: drop-shadow(0 2px 12px rgba(80, 80, 140, 0.2));
+  transform: translate(-50%, -50%);
+  transition: all 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reward-seal-open .reward-seal-shell {
+  opacity: 0;
+  transform: scale(1.42) rotate(15deg);
+}
+
+.reward-seal-open .reward-seal-ring-one {
+  opacity: 0;
+  transform: scale(1.35) rotate(100deg);
+}
+
+.reward-seal-open .reward-seal-ring-two {
+  opacity: 0;
+  transform: scale(1.5) rotate(-80deg);
+}
+
+.reward-seal-open .reward-seal-product {
+  opacity: 1;
+  filter: blur(0) saturate(1);
+  transform: scale(1) translateY(-14px);
+}
+
+.reward-seal-open .reward-seal-lock {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.7) rotate(18deg);
+}
+
+.reward-band-chip {
+  opacity: 0;
+  transform: translateY(18px) scale(0.9);
+  animation: reward-chip-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.reward-band-chip:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.reward-band-chip:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+@keyframes reward-chip-in {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.reward-band-chip-selected {
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 15px 42px rgba(80, 77, 145, 0.17);
+  transform: translateY(-9px) scale(1.06);
+}
+
+.reward-session-trace {
+  z-index: 4;
+  cursor: pointer;
+  transition:
+    transform 800ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 500ms ease,
+    filter 500ms ease;
+}
+
+.reward-session-trace:nth-of-type(1) {
+  top: 34px;
+  left: 2px;
+  transform: rotate(-5deg);
+}
+
+.reward-session-trace:nth-of-type(2) {
+  top: 48px;
+  right: 0;
+  transform: rotate(5deg);
+}
+
+.reward-session-trace:nth-of-type(3) {
+  bottom: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.reward-session-trace-collected {
+  pointer-events: none;
+  opacity: 0;
+  filter: blur(5px);
+  transform: translate(120px, 120px) scale(0.25) !important;
+}
+
+.reward-energy-orb {
+  opacity: 1;
+  filter: drop-shadow(0 14px 32px rgba(95, 104, 190, 0.16));
+  transition:
+    transform 950ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 500ms ease,
+    filter 500ms ease;
+}
+
+.reward-energy-band {
+  visibility: hidden;
+  opacity: 0;
+  filter: blur(20px);
+  transform: translateX(-50%) scale(0.48);
+}
+
+.reward-energy-stage-revealed .reward-energy-orb {
+  opacity: 0;
+  filter: blur(14px);
+  transform: translateX(-50%) scale(1.8);
+}
+
+.reward-energy-stage-revealed .reward-energy-band {
+  visibility: visible;
+  animation: reward-energy-materialize 1250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes reward-energy-materialize {
+  45% {
+    opacity: 1;
+    filter: blur(2px) saturate(0.4) brightness(1.5);
+    transform: translateX(-50%) scale(1.08);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0) saturate(1) brightness(1);
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.reward-showroom {
+  background:
+    radial-gradient(
+      circle at 50% 28%,
+      rgba(255, 255, 255, 0.98),
+      transparent 38%
+    ),
+    linear-gradient(180deg, #fdfdff 0%, #f4f6fd 64%, #eef1fa 100%);
+}
+
+.reward-showroom-stage {
+  perspective: 900px;
+}
+
+.reward-showroom-horizon {
+  position: absolute;
+  inset: 36% -30% auto;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(117, 144, 229, 0.12),
+    rgba(255, 145, 136, 0.06) 42%,
+    transparent 70%
+  );
+  filter: blur(18px);
+}
+
+.reward-showroom-turntable {
+  position: absolute;
+  top: 277px;
+  left: 50%;
+  width: 260px;
+  height: 62px;
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(212, 219, 242, 0.34)
+  );
+  box-shadow:
+    0 30px 38px rgba(72, 78, 130, 0.12),
+    inset 0 8px 18px rgba(255, 255, 255, 0.85);
+  transform: translateX(-50%) rotateX(58deg);
+}
+
+.reward-showroom-beam {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  width: 96px;
+  height: 380px;
+  opacity: 0.25;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.95),
+    transparent
+  );
+  filter: blur(8px);
+  transform: translateX(-220px) skewX(-10deg);
+  transition: transform 1400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reward-showroom-product {
+  opacity: 0.3;
+  filter: blur(7px) grayscale(1) brightness(0.7);
+  transform: translateX(-50%) perspective(900px)
+    rotateY(var(--showroom-rotation)) scale(0.82);
+  transition:
+    opacity 950ms ease,
+    filter 1200ms ease,
+    transform 1200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reward-showroom-veil {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  width: 280px;
+  height: 320px;
+  border-radius: 46% 54% 42% 58% / 58% 42% 58% 42%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.82),
+    rgba(218, 225, 251, 0.32)
+  );
+  box-shadow: inset 0 0 45px rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  transform: translateX(-50%);
+  transition:
+    opacity 900ms ease,
+    filter 900ms ease,
+    transform 1200ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: reward-showroom-veil-float 5s ease-in-out infinite;
+}
+
+@keyframes reward-showroom-veil-float {
+  0%,
+  100% {
+    transform: translateX(-50%);
+  }
+  50% {
+    border-radius: 54% 46% 58% 42% / 44% 58% 42% 56%;
+    transform: translateX(-50%) translateY(-6px) rotate(2deg);
+  }
+}
+
+.reward-showroom-nameplate {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  display: flex;
+  width: 250px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 14px;
+  opacity: 0;
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow: 0 10px 32px rgba(72, 76, 130, 0.09);
+  color: var(--color-foreground-neutral-faded);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-align: center;
+  backdrop-filter: blur(18px);
+  transform: translate(-50%, 12px);
+  transition: all 700ms cubic-bezier(0.16, 1, 0.3, 1) 500ms;
+}
+
+.reward-showroom-nameplate strong {
+  color: var(--color-foreground-neutral-strong);
+  font-size: 11px;
+}
+
+.reward-showroom-stage-revealed .reward-showroom-product {
+  opacity: 1;
+  filter: blur(0) grayscale(0) brightness(1);
+  transform: translateX(-50%) perspective(900px)
+    rotateY(var(--showroom-rotation)) scale(1);
+}
+
+.reward-showroom-stage-revealed .reward-showroom-veil {
+  opacity: 0;
+  filter: blur(20px);
+  transform: translateX(-50%) scale(1.35) rotate(8deg);
+}
+
+.reward-showroom-stage-revealed .reward-showroom-beam {
+  transform: translateX(110px) skewX(-10deg);
+}
+
+.reward-showroom-stage-revealed .reward-showroom-nameplate {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reward-light-sweep,
+  .reward-parcel-halo,
+  .reward-seal-shell,
+  .reward-seal-aura,
+  .reward-showroom-veil {
+    animation: none !important;
+  }
+
+  .reward-copy-visible,
+  .reward-band-burst-visible,
+  .reward-light-fragment-visible,
+  .reward-band-chip,
+  .reward-energy-stage-revealed .reward-energy-band {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  .reward-parcel-half,
+  .reward-parcel-ribbon,
+  .reward-parcel-icon,
+  .reward-seal-shell,
+  .reward-seal-ring,
+  .reward-seal-product,
+  .reward-seal-lock,
+  .reward-session-trace,
+  .reward-energy-orb,
+  .reward-showroom-product,
+  .reward-showroom-veil,
+  .reward-showroom-beam,
+  .reward-showroom-nameplate {
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
+}

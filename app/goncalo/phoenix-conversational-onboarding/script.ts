@@ -219,7 +219,7 @@ export function safetyLine() {
 }
 
 export function safetyHint() {
-  return 'Select any that apply.';
+  return 'Do any of these apply to you?';
 }
 
 export function placementIntroLine() {

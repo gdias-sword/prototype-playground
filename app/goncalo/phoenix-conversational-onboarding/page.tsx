@@ -21,6 +21,12 @@ import {
   type ExperienceHandle,
 } from './experience';
 import './motion.css';
+import { SafetyVariantSwitcher } from './safety-variant-switcher';
+import {
+  DEFAULT_SAFETY_BACKDROP,
+  readSafetyBackdrop,
+  type SafetyBackdrop,
+} from './safety-variants';
 
 const EMPTY_CONTROLS: ExperienceControls = {
   canPrev: false,
@@ -32,6 +38,13 @@ export default function PhoenixConversationalOnboarding() {
   const [replayKey, setReplayKey] = useState(0);
   const [fastDemo, setFastDemo] = useState(false);
   const [controls, setControls] = useState(EMPTY_CONTROLS);
+  const [safetyBackdrop, setSafetyBackdrop] = useState<SafetyBackdrop>(
+    DEFAULT_SAFETY_BACKDROP,
+  );
+
+  useEffect(() => {
+    setSafetyBackdrop(readSafetyBackdrop());
+  }, []);
 
   function handleReplay() {
     setReplayKey((value) => value + 1);
@@ -108,12 +121,17 @@ export default function PhoenixConversationalOnboarding() {
           <Experience
             key={replayKey}
             fastDemo={fastDemo}
+            safetyBackdrop={safetyBackdrop}
             navigatorRef={navigatorRef}
             onControlsChange={setControls}
           />
         </DeviceFrame>
       </div>
 
+      <SafetyVariantSwitcher
+        current={safetyBackdrop}
+        onChange={setSafetyBackdrop}
+      />
       <Popover.Root>
         <Popover.Trigger
           aria-label="Prototype controls"

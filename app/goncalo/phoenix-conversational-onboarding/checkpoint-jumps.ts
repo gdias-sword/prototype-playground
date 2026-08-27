@@ -41,6 +41,7 @@ export type JumpDestinationId =
   | 'area'
   | 'activity'
   | 'session'
+  | 'safety'
   | 'assess'
   | 'flags';
 
@@ -57,7 +58,8 @@ export const JUMP_DESTINATIONS: JumpDestination[] = [
   { id: 'activity', label: 'Activity', shortcut: '4' },
   { id: 'session', label: 'Session', shortcut: '5' },
   { id: 'assess', label: 'Assess', shortcut: '6' },
-  { id: 'flags', label: 'Flags', shortcut: '7' },
+  { id: 'safety', label: 'Safety', shortcut: '7' },
+  { id: 'flags', label: 'Flags', shortcut: '8' },
 ];
 
 export interface JumpCheckpoint {
@@ -622,20 +624,44 @@ export function buildJumpState(
     );
   }
 
-  if (destinationId === 'assess') {
-    const safetyTurns = buildSafetyTurns(nextTurnId);
-    const safetyStep: PhoenixStep = { kind: 'safety' };
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        safetyStep,
-        activityAnswers,
-        safetyTurns,
-        'listen',
-        null,
-        0,
-      ),
+  const safetyTurns = buildSafetyTurns(nextTurnId);
+  const safetyStep: PhoenixStep = { kind: 'safety' };
+  checkpoints.push(
+    makeCheckpoint(
+      'phoenix',
+      safetyStep,
+      activityAnswers,
+      safetyTurns,
+      'listen',
+      null,
+      0,
+    ),
+  );
+
+  if (destinationId === 'safety') {
+    return finishJump(
+      destinationId,
+      checkpoints,
+      checkpoints.length - 1,
+      safetyTurns,
+      activityAnswers,
+      'phoenix',
+      safetyStep,
+      'listen',
+      null,
+      0,
+      {
+        isHero: true,
+        panelLayoutReady: false,
+        cameraContentReady: false,
+        offerContentReady: true,
+        safetyContentReady: false,
+        confirmContentReady: false,
+      },
     );
+  }
+
+  if (destinationId === 'assess') {
     const clearanceTurns = buildClearanceTurns(nextTurnId);
     const placementIntroStep: PhoenixStep = { kind: 'placement-intro' };
     checkpoints.push(

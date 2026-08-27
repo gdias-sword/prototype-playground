@@ -433,7 +433,7 @@ export function OfferPanel({
 
   return (
     <div
-      className="mt-8 flex min-h-0 flex-1 flex-col"
+      className="mt-8 flex min-h-0 flex-1 flex-col gap-6"
       inert={!headlineReady || undefined}
     >
       <div>
