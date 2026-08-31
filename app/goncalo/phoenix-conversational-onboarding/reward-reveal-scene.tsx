@@ -77,10 +77,10 @@ export function RewardRevealScene({
           {showHeadline ? (
             <h1
               className={cn(
-                'reward-headline-enter text-center font-serif font-medium tracking-[-0.02em] text-white',
+                'reward-headline-enter text-center font-serif font-medium tracking-[-0.04em] text-white',
                 beat === 'revealed' || beat === 'opening'
-                  ? 'text-display-medium-strong'
-                  : 'text-display-medium-strong',
+                  ? 'text-display-small-strong'
+                  : 'text-display-small-strong',
               )}
             >
               You&apos;ve earned
