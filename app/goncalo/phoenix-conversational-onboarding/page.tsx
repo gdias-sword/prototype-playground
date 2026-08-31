@@ -21,6 +21,7 @@ import {
   type ExperienceHandle,
 } from './experience';
 import './motion.css';
+import './reward-motion.css';
 
 const EMPTY_CONTROLS: ExperienceControls = {
   canPrev: false,

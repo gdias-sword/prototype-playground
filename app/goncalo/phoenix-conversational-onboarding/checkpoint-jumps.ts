@@ -42,6 +42,7 @@ export type JumpDestinationId =
   | 'activity'
   | 'session'
   | 'assess'
+  | 'reward'
   | 'flags';
 
 export interface JumpDestination {
@@ -57,6 +58,7 @@ export const JUMP_DESTINATIONS: JumpDestination[] = [
   { id: 'activity', label: 'Activity', shortcut: '4' },
   { id: 'session', label: 'Session', shortcut: '5' },
   { id: 'assess', label: 'Assess', shortcut: '6' },
+  { id: 'reward', label: 'Reward', shortcut: '8' },
   { id: 'flags', label: 'Flags', shortcut: '7' },
 ];
 
@@ -70,6 +72,7 @@ export interface JumpCheckpoint {
   mood: PhoenixMood;
   door: DoorId | null;
   chatCount: number;
+  sessionAfterReward: boolean;
 }
 
 export interface JumpState {
@@ -151,6 +154,9 @@ function checkpointLabel(
   if (step.kind === 'placement-intro') return 'Setup';
   if (step.kind === 'placement') return 'Placement';
   if (step.kind === 'exercise') return 'Exercise';
+  if (step.kind === 'reward-reveal') return 'Reward';
+  if (step.kind === 'reward-shipping') return 'Shipping';
+  if (step.kind === 'reward-confirmation') return 'Reward sent';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
@@ -178,6 +184,7 @@ function makeCheckpoint(
   nextMood: PhoenixMood,
   nextDoor: DoorId | null,
   nextChatCount: number,
+  nextSessionAfterReward = false,
 ): JumpCheckpoint {
   return {
     key: checkpointKey(nextPhase, nextStep, nextTurns.length),
@@ -189,6 +196,7 @@ function makeCheckpoint(
     mood: nextMood,
     door: nextDoor,
     chatCount: nextChatCount,
+    sessionAfterReward: nextSessionAfterReward,
   };
 }
 
@@ -617,6 +625,55 @@ export function buildJumpState(
         cameraContentReady: false,
         offerContentReady: true,
         safetyContentReady: false,
+        confirmContentReady: false,
+      },
+    );
+  }
+
+  if (destinationId === 'reward') {
+    const activityAnswers = demoActivityAnswers();
+    const clearanceTurns = buildClearanceTurns(nextTurnId);
+    const exerciseStep: PhoenixStep = { kind: 'exercise' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        exerciseStep,
+        activityAnswers,
+        clearanceTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    const rewardStep: PhoenixStep = { kind: 'reward-reveal' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        rewardStep,
+        activityAnswers,
+        clearanceTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    return finishJump(
+      destinationId,
+      checkpoints,
+      checkpoints.length - 1,
+      clearanceTurns,
+      activityAnswers,
+      'phoenix',
+      rewardStep,
+      'listen',
+      null,
+      0,
+      {
+        isHero: true,
+        panelLayoutReady: false,
+        cameraContentReady: false,
+        offerContentReady: true,
+        safetyContentReady: true,
         confirmContentReady: false,
       },
     );

@@ -49,6 +49,9 @@ export type PhoenixStep =
   | { kind: 'placement-intro' }
   | { kind: 'placement' }
   | { kind: 'exercise' }
+  | { kind: 'reward-reveal' }
+  | { kind: 'reward-shipping' }
+  | { kind: 'reward-confirmation' }
   | { kind: 'call' }
   | { kind: 'schedule' }
   | { kind: 'confirm' }
@@ -62,8 +65,20 @@ export function isPanelStep(step: PhoenixStep) {
   );
 }
 
+export function isRewardStep(step: PhoenixStep) {
+  return (
+    step.kind === 'reward-reveal' ||
+    step.kind === 'reward-shipping' ||
+    step.kind === 'reward-confirmation'
+  );
+}
+
 export function isImmersiveStep(step: PhoenixStep) {
-  return step.kind === 'placement' || step.kind === 'exercise';
+  return (
+    step.kind === 'placement' ||
+    step.kind === 'exercise' ||
+    isRewardStep(step)
+  );
 }
 
 export function hasConversationTools(step: PhoenixStep) {

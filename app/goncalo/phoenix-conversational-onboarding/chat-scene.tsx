@@ -105,14 +105,16 @@ export function ChatScene({
   history,
   avatarSlot,
   visibleCount,
+  afterReward = false,
 }: {
   door: DoorId;
   answers: Answers;
   history: StackTurn[];
   avatarSlot: boolean;
   visibleCount: number;
+  afterReward?: boolean;
 }) {
-  const messages = chatIntro(door, answers);
+  const messages = chatIntro(door, answers, { afterReward });
   const shown = messages.slice(0, visibleCount);
   const scrollRef = useRef<HTMLDivElement>(null);
 

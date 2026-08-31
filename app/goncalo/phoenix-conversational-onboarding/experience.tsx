@@ -13,6 +13,9 @@ import {
   type JumpDestinationId,
 } from './checkpoint-jumps';
 import { AssessmentScene } from './assessment-scene';
+import { RewardConfirmationScene } from './reward-confirmation-scene';
+import { RewardRevealScene } from './reward-reveal-scene';
+import { RewardShippingScene } from './reward-shipping-scene';
 import { ChatScene } from './chat-scene';
 import { PhoenixCopy } from './conversation-variants';
 import { HomeIndicatorSpace, StatusBar } from './device-frame';
@@ -34,6 +37,7 @@ import {
   hasConversationTools,
   isImmersiveStep,
   isPanelStep,
+  isRewardStep,
   streamDurationMs,
   type ConversationProps,
   type PhoenixStep,
@@ -141,6 +145,7 @@ interface Checkpoint {
   mood: PhoenixMood;
   door: DoorId | null;
   chatCount: number;
+  sessionAfterReward: boolean;
 }
 
 const EMPTY_ANSWERS: Answers = {
@@ -219,6 +224,9 @@ function checkpointLabel(
   if (step.kind === 'placement-intro') return 'Setup';
   if (step.kind === 'placement') return 'Placement';
   if (step.kind === 'exercise') return 'Exercise';
+  if (step.kind === 'reward-reveal') return 'Reward';
+  if (step.kind === 'reward-shipping') return 'Shipping';
+  if (step.kind === 'reward-confirmation') return 'Reward sent';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
@@ -275,6 +283,7 @@ export function Experience({
   const [offerContentReady, setOfferContentReady] = useState(false);
   const [safetyContentReady, setSafetyContentReady] = useState(false);
   const [confirmContentReady, setConfirmContentReady] = useState(false);
+  const [sessionAfterReward, setSessionAfterReward] = useState(false);
   const rushExperience = skipToolDelay || fastDemo;
   const toolReady = useDelayedTool(
     phase === 'phoenix' && hasConversationTools(step) && mood === 'listen',
@@ -350,6 +359,7 @@ export function Experience({
     nextMood: PhoenixMood,
     nextDoor: DoorId | null,
     nextChatCount: number,
+    nextSessionAfterReward: boolean,
   ): Checkpoint {
     return {
       key: checkpointKey(nextPhase, nextStep, nextTurns.length),
@@ -361,6 +371,7 @@ export function Experience({
       mood: nextMood,
       door: nextDoor,
       chatCount: nextChatCount,
+      sessionAfterReward: nextSessionAfterReward,
     };
   }
 
@@ -405,6 +416,7 @@ export function Experience({
     setMood(snapshot.mood);
     setDoor(snapshot.door);
     setChatCount(snapshot.chatCount);
+    setSessionAfterReward(snapshot.sessionAfterReward);
     setPanelLayoutReady(
       snapshot.step.kind === 'schedule' || snapshot.step.kind === 'safety',
     );
@@ -434,6 +446,9 @@ export function Experience({
     setMood(jump.mood);
     setDoor(jump.door);
     setChatCount(jump.chatCount);
+    setSessionAfterReward(
+      jump.checkpoints[jump.targetIndex]?.sessionAfterReward ?? false,
+    );
     setPanelLayoutReady(jump.panelLayoutReady);
     setCameraContentReady(jump.cameraContentReady);
     setOfferContentReady(jump.offerContentReady);
@@ -533,7 +548,16 @@ export function Experience({
       return;
     }
     recordCheckpoint(
-      makeCheckpoint(phase, step, answers, turns, 'listen', door, chatCount),
+      makeCheckpoint(
+        phase,
+        step,
+        answers,
+        turns,
+        'listen',
+        door,
+        chatCount,
+        sessionAfterReward,
+      ),
     );
   }, [phase, step]);
 
@@ -576,7 +600,7 @@ export function Experience({
     if (restoringRef.current) return;
     if (phase !== 'phoenix' || step.kind !== 'exercise') return;
     const id = window.setTimeout(() => {
-      enterChat('session');
+      beginRewardFlow();
     }, delay(EXERCISE_HOLD_MS));
     return () => window.clearTimeout(id);
   }, [phase, step, fastDemo]);
@@ -608,25 +632,40 @@ export function Experience({
   useEffect(() => {
     if (restoringRef.current) return;
     if (phase !== 'chat' || !door) return;
+    const messageCount = sessionAfterReward ? 1 : 2;
     if (fastDemo) {
-      setChatCount(2);
+      setChatCount(messageCount);
       return;
     }
     setChatCount(0);
     const first = window.setTimeout(() => setChatCount(1), 700);
+    if (messageCount === 1) {
+      return () => window.clearTimeout(first);
+    }
     const second = window.setTimeout(() => setChatCount(2), 1700);
     return () => {
       window.clearTimeout(first);
       window.clearTimeout(second);
     };
-  }, [phase, door, fastDemo]);
+  }, [phase, door, fastDemo, sessionAfterReward]);
 
   useEffect(() => {
-    if (phase !== 'chat' || !door || chatCount < 2) return;
+    if (phase !== 'chat' || !door) return;
+    const messageCount = sessionAfterReward ? 1 : 2;
+    if (chatCount < messageCount) return;
     recordCheckpoint(
-      makeCheckpoint('chat', step, answers, turns, 'breath', door, chatCount),
+      makeCheckpoint(
+        'chat',
+        step,
+        answers,
+        turns,
+        'breath',
+        door,
+        chatCount,
+        sessionAfterReward,
+      ),
     );
-  }, [phase, door, chatCount, step, answers, turns]);
+  }, [phase, door, chatCount, step, answers, turns, sessionAfterReward]);
 
   useEffect(() => {
     restoringRef.current = false;
@@ -668,6 +707,33 @@ export function Experience({
     setMood('think');
   }
 
+  function beginRewardFlow() {
+    discardFutureCheckpoints();
+    setSkipToolDelay(false);
+    setSessionAfterReward(false);
+    setStep({ kind: 'reward-reveal' });
+    setMood('listen');
+  }
+
+  function enterChatAfterReward() {
+    setSessionAfterReward(true);
+    enterChat('session');
+  }
+
+  function goToRewardShipping() {
+    discardFutureCheckpoints();
+    setSkipToolDelay(false);
+    setStep({ kind: 'reward-shipping' });
+    setMood('listen');
+  }
+
+  function goToRewardConfirmation() {
+    discardFutureCheckpoints();
+    setSkipToolDelay(false);
+    setStep({ kind: 'reward-confirmation' });
+    setMood('listen');
+  }
+
   function goToPanel(next: PhoenixStep) {
     discardFutureCheckpoints();
     setSkipToolDelay(false);
@@ -701,6 +767,7 @@ export function Experience({
     (phase === 'phoenix' || phase === 'exiting') &&
     !isPanelStep(step) &&
     !isImmersiveStep(step) &&
+    !isRewardStep(step) &&
     !(step.kind === 'schedule' && panelLayoutReady) &&
     !(step.kind === 'safety' && panelLayoutReady);
   const confirmDay =
@@ -754,6 +821,7 @@ export function Experience({
           'listen',
           door,
           chatCount,
+          sessionAfterReward,
         ),
       );
       if (stepRef.current.kind === 'schedule' || stepRef.current.kind === 'safety') {
@@ -934,7 +1002,8 @@ export function Experience({
           )}
         />
         {showConversation ? <PhoenixCopy {...conversation} /> : null}
-        {phase === 'phoenix' && isImmersiveStep(step) ? (
+        {phase === 'phoenix' &&
+        (step.kind === 'placement' || step.kind === 'exercise') ? (
           <AssessmentScene
             beat={step.kind === 'exercise' ? 'exercise' : 'placement'}
             onAdvance={() => {
@@ -942,9 +1011,21 @@ export function Experience({
                 goToPanel({ kind: 'exercise' });
                 return;
               }
-              enterChat('session');
+              beginRewardFlow();
             }}
           />
+        ) : null}
+        {phase === 'phoenix' && step.kind === 'reward-reveal' ? (
+          <RewardRevealScene
+            fastDemo={fastDemo}
+            onContinue={goToRewardShipping}
+          />
+        ) : null}
+        {phase === 'phoenix' && step.kind === 'reward-shipping' ? (
+          <RewardShippingScene onSubmit={goToRewardConfirmation} />
+        ) : null}
+        {phase === 'phoenix' && step.kind === 'reward-confirmation' ? (
+          <RewardConfirmationScene onContinue={enterChatAfterReward} />
         ) : null}
         {phase === 'phoenix' &&
         (step.kind === 'camera' || step.kind === 'offer') ? (
@@ -1129,6 +1210,7 @@ export function Experience({
             history={turns}
             avatarSlot
             visibleCount={phase === 'chat' ? chatCount : 0}
+            afterReward={sessionAfterReward}
           />
         ) : null}
       </div>

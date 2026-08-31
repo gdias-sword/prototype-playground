@@ -359,10 +359,20 @@ export function intensityAnswer(value: number) {
 export function chatIntro(
   door: DoorId,
   answers: Answers,
+  options?: { afterReward?: boolean },
 ): { from: 'Phoenix' | 'Lauren'; text: string }[] {
   const area = answers.area ?? answers.completed.at(-1)?.area ?? 'that';
 
   if (door === 'session') {
+    if (options?.afterReward) {
+      return [
+        {
+          from: 'Lauren',
+          text: 'I’ll review this and we’ll use it in your program.',
+        },
+      ];
+    }
+
     return [
       {
         from: 'Phoenix',
