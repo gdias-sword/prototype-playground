@@ -1,0 +1,36 @@
+.commitment-headline-enter {
+  animation: commitment-headline-enter 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.commitment-slider-enter {
+  animation: commitment-slider-enter 700ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+
+@keyframes commitment-headline-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes commitment-slider-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commitment-headline-enter,
+  .commitment-slider-enter {
+    animation: none;
+  }
+}

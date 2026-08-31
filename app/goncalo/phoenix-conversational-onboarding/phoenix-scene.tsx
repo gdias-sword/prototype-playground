@@ -52,6 +52,7 @@ export type PhoenixStep =
   | { kind: 'reward-reveal' }
   | { kind: 'reward-shipping' }
   | { kind: 'reward-confirmation' }
+  | { kind: 'reward-commitment' }
   | { kind: 'call' }
   | { kind: 'schedule' }
   | { kind: 'confirm' }
@@ -71,6 +72,10 @@ export function isRewardStep(step: PhoenixStep) {
     step.kind === 'reward-shipping' ||
     step.kind === 'reward-confirmation'
   );
+}
+
+export function isCommitmentStep(step: PhoenixStep) {
+  return step.kind === 'reward-commitment';
 }
 
 export function isImmersiveStep(step: PhoenixStep) {

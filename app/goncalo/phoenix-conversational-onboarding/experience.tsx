@@ -13,6 +13,7 @@ import {
   type JumpDestinationId,
 } from './checkpoint-jumps';
 import { AssessmentScene } from './assessment-scene';
+import { RewardCommitmentScene } from './reward-commitment-scene';
 import { RewardConfirmationScene } from './reward-confirmation-scene';
 import { RewardRevealScene } from './reward-reveal-scene';
 import { RewardShippingScene } from './reward-shipping-scene';
@@ -35,6 +36,7 @@ import { LaurenPortrait, laurenPortraitSrc } from './lauren-portrait';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
 import {
   hasConversationTools,
+  isCommitmentStep,
   isImmersiveStep,
   isPanelStep,
   isRewardStep,
@@ -227,6 +229,7 @@ function checkpointLabel(
   if (step.kind === 'reward-reveal') return 'Reward';
   if (step.kind === 'reward-shipping') return 'Shipping';
   if (step.kind === 'reward-confirmation') return 'Reward sent';
+  if (step.kind === 'reward-commitment') return 'Commitment';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
@@ -720,6 +723,13 @@ export function Experience({
     enterChat('session');
   }
 
+  function goToRewardCommitment() {
+    discardFutureCheckpoints();
+    setSkipToolDelay(false);
+    setStep({ kind: 'reward-commitment' });
+    setMood('breath');
+  }
+
   function goToRewardShipping() {
     discardFutureCheckpoints();
     setSkipToolDelay(false);
@@ -768,6 +778,7 @@ export function Experience({
     !isPanelStep(step) &&
     !isImmersiveStep(step) &&
     !isRewardStep(step) &&
+    !isCommitmentStep(step) &&
     !(step.kind === 'schedule' && panelLayoutReady) &&
     !(step.kind === 'safety' && panelLayoutReady);
   const confirmDay =
@@ -784,6 +795,8 @@ export function Experience({
     toolReady &&
     step.kind === 'know' &&
     step.index === 0;
+  const hideFloatingOrb =
+    phase === 'phoenix' && (isImmersiveStep(step) || isCommitmentStep(step));
   const orbLayout: Layout = compactToolsReady ? 'panel-header' : layout;
 
   const conversation: ConversationProps = {
@@ -1025,7 +1038,10 @@ export function Experience({
           <RewardShippingScene onSubmit={goToRewardConfirmation} />
         ) : null}
         {phase === 'phoenix' && step.kind === 'reward-confirmation' ? (
-          <RewardConfirmationScene onContinue={enterChatAfterReward} />
+          <RewardConfirmationScene onContinue={goToRewardCommitment} />
+        ) : null}
+        {phase === 'phoenix' && step.kind === 'reward-commitment' ? (
+          <RewardCommitmentScene onComplete={enterChatAfterReward} />
         ) : null}
         {phase === 'phoenix' &&
         (step.kind === 'camera' || step.kind === 'offer') ? (
@@ -1229,7 +1245,7 @@ export function Experience({
             'top-[76px] left-1/2 h-[120px] w-[220px]',
           orbLayout === 'compact' && 'top-[48px] left-1/2 size-[80px]',
           orbLayout === 'panel' && 'pointer-events-none invisible size-0 opacity-0',
-          orbLayout === 'immersive' &&
+          (orbLayout === 'immersive' || hideFloatingOrb) &&
             'pointer-events-none invisible size-0 opacity-0',
           // `left` is the visual center (`-translate-x-1/2` is always on).
           // left-9 = left-4 + half of size-10; 60px = 44px + half of 32px.
@@ -1244,7 +1260,7 @@ export function Experience({
             orbLayout === 'hero' && (isPaired ? 'size-[120px]' : 'size-[148px]'),
             orbLayout === 'compact' && 'size-[80px]',
             orbLayout === 'panel' && 'size-0',
-            orbLayout === 'immersive' && 'size-0',
+            (orbLayout === 'immersive' || hideFloatingOrb) && 'size-0',
             orbLayout === 'panel-header' && 'size-10',
             orbLayout === 'avatar' && 'size-[32px]',
           )}

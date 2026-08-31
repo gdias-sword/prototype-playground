@@ -1,0 +1,10 @@
+{
+  "name": "@goncalo/phoenix-conversational-onboarding",
+  "private": true,
+  "dependencies": {
+    "canvas-confetti": "^1.9.3"
+  },
+  "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0"
+  }
+}

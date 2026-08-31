@@ -1,5 +1,6 @@
 import { mergeTailwindClasses as cn } from '@/design/utils';
 import type { ReactNode } from 'react';
+import { DeviceConfettiProvider } from './device-confetti';
 
 function CellularSignal() {
   return (
@@ -111,10 +112,10 @@ export function HomeIndicatorSpace() {
 export function DeviceFrame({ children }: { children: ReactNode }) {
   return (
     <div className="border-background-neutral-inverse bg-background-neutral-default h-[812px] w-[375px] overflow-hidden rounded-[44px] border-[10px]">
-      <div className="relative h-full w-full">
+      <DeviceConfettiProvider>
         {children}
         <HomeIndicator />
-      </div>
+      </DeviceConfettiProvider>
     </div>
   );
 }
