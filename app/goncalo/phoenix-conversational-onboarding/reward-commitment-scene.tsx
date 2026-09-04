@@ -2,10 +2,6 @@
 
 import { mergeTailwindClasses as cn } from '@/design/utils';
 import {
-  confettiOriginFromElement,
-  useDeviceConfetti,
-} from './device-confetti';
-import {
   useCallback,
   useEffect,
   useRef,
@@ -13,6 +9,10 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from 'react';
+import {
+  confettiOriginFromElement,
+  useDeviceConfetti,
+} from './device-confetti';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
 
 const COMMIT_THRESHOLD = 0.85;
@@ -225,7 +225,8 @@ function SlideToCommit({ onComplete }: { onComplete: () => void }) {
       'transition-[left,width] duration-150 ease-out',
     isSnapping &&
       'transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
-    isCommitted && 'transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+    isCommitted &&
+      'transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
   );
 
   return (
@@ -317,8 +318,8 @@ export function RewardCommitmentScene({
 }) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-4 pb-24">
-      <div className="flex w-full max-w-[343px] flex-col items-center gap-12">
-        <h1 className="commitment-headline-enter text-title-large-strong text-foreground-neutral-default text-center font-serif font-medium tracking-[-0.04em]">
+      <div className="flex w-full flex-col items-center gap-12">
+        <h1 className="commitment-headline-enter text-display-small-strong text-foreground-neutral-default font-sans font-medium tracking-[-0.02em] text-balance">
           Let&apos;s commit to feeling better
         </h1>
         <div className="commitment-slider-enter w-full">

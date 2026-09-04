@@ -41,7 +41,7 @@ export function AssessmentScene({
             'bg-background-neutral-inverse/80 backdrop-blur-md',
           )}
         >
-          <p className="text-display-small-strong text-foreground-neutral-inverse text-center font-serif font-medium tracking-[-0.02em]">
+          <p className="text-display-small-strong text-foreground-neutral-inverse text-center font-sans font-medium tracking-[-0.02em]">
             Take a step back so we can see your entire body within the circle.
           </p>
         </div>

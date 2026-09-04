@@ -58,7 +58,7 @@ export function RewardConfirmationScene({
           </div>
 
           <div className="mt-6 flex w-full max-w-[343px] flex-col gap-4 text-center">
-            <h1 className="text-display-small-strong text-foreground-neutral-default font-serif font-medium tracking-[-0.04em]">
+            <h1 className="text-display-small-strong text-foreground-neutral-default font-sans font-medium tracking-[-0.02em]">
               Your new resistance bands are on the way
             </h1>
             <p className="text-body-large-default text-foreground-neutral-strong">

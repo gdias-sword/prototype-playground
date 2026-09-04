@@ -72,11 +72,14 @@ function StackFrame({
 }
 
 function phoenixLineClass(
-  isCurrent: boolean,
+  fromEnd: number,
   kind: ConversationProps['turns'][number]['kind'],
 ) {
+  const isCurrent = fromEnd === 0;
+
   return cn(
-    'text-title-large-strong text-left font-serif font-medium tracking-[-0.04em]',
+    isCurrent ? 'text-title-large-strong' : 'text-title-medium-strong',
+    'text-left font-sans font-medium tracking-[-0.02em]',
     isCurrent
       ? 'text-foreground-neutral-default'
       : kind === 'care'
@@ -140,7 +143,7 @@ export function PhoenixTurn({
 }) {
   return (
     <p
-      className={phoenixLineClass(isCurrent, turn.kind)}
+      className={phoenixLineClass(fromEnd, turn.kind)}
       style={lineMotion(fromEnd, 'phoenix', isLeavingWindow)}
     >
       <PhoenixLineText
@@ -196,7 +199,7 @@ export function PhoenixCopy(props: ConversationProps) {
             return (
               <p
                 key={turn.id}
-                className="text-title-large-strong text-foreground-brand-default pr-1 text-right font-serif font-medium tracking-[-0.04em]"
+                className="text-title-medium-strong text-foreground-brand-default pr-1 text-right font-sans font-medium tracking-[-0.02em]"
                 style={lineMotion(fromEnd, 'member', isLeavingWindow)}
               >
                 {turn.text}
