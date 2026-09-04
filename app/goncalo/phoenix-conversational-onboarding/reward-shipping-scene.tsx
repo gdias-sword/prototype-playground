@@ -29,7 +29,7 @@ export function RewardShippingScene({
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         <StatusBar />
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-8 pb-4">
-          <h1 className="text-title-large-strong text-foreground-neutral-default max-w-[320px] font-serif font-medium tracking-[-0.04em]">
+          <h1 className="text-title-large-strong text-foreground-neutral-default max-w-[320px] font-sans font-medium tracking-[-0.02em]">
             Where should we send your reward?
           </h1>
 

@@ -144,7 +144,7 @@ export function ContinuityPanel({
     <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
       <PanelHeaderStack>
         <p
-          className="text-title-large-strong text-foreground-neutral-default text-left font-serif font-medium tracking-[-0.04em]"
+          className="text-title-large-strong text-foreground-neutral-default text-left font-sans font-medium tracking-[-0.02em]"
           style={
             playLineIn && !instantStream
               ? { animation: `line-in 1300ms ${PANEL_EASE} backwards` }
@@ -464,7 +464,7 @@ export function OfferPanel({
               8:00
             </span>
           </div>
-          <p className="text-title-large-strong absolute inset-x-5 bottom-4 font-serif font-medium tracking-[-0.04em] text-white">
+          <p className="text-title-large-strong absolute inset-x-5 bottom-4 font-sans font-medium tracking-[-0.02em] text-white">
             {checkupTitle(area)}
           </p>
         </OfferPiece>
@@ -775,7 +775,7 @@ export function ConfirmPanel({
             />
           </div>
         </div>
-        <p className="text-title-large-strong text-foreground-neutral-default whitespace-pre-wrap text-center font-serif font-medium tracking-[-0.04em]">
+        <p className="text-title-large-strong text-foreground-neutral-default whitespace-pre-wrap text-center font-sans font-medium tracking-[-0.02em]">
           <PhoenixLineText
             key={heading.id}
             text={heading.text}
@@ -826,20 +826,27 @@ const ACTIVITY_EASE = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
 
 export function ActivityTool({
   onCommit,
+  initialSelected = null,
+  rewindHighlight = false,
 }: {
   onCommit: (id: ActivityId) => void;
+  initialSelected?: ActivityId | null;
+  rewindHighlight?: boolean;
 }) {
-  const [selected, setSelected] = useState<ActivityId | null>(null);
+  const [selected, setSelected] = useState<ActivityId | null>(initialSelected);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-col gap-2">
         {ACTIVITIES.map((activity) => {
           const isSelected = selected === activity.id;
+          const isRewindSelected =
+            rewindHighlight && initialSelected === activity.id;
           return (
             <GlassChip
               key={activity.id}
               selected={isSelected}
+              rewindSelected={isRewindSelected}
               onClick={() => setSelected(activity.id)}
               className={cn(
                 'grid justify-items-center overflow-hidden text-center',
