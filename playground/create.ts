@@ -1,7 +1,7 @@
 'use server';
 
-import { readPlaygroundUsername } from '@/config/user';
-import { planPrototypeScaffold } from '@/utils/scaffold';
+import { readPlaygroundUsername } from '@/playground/identity';
+import { planPrototypeScaffold } from '@/playground/scaffold';
 import { redirect } from 'next/navigation';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,7 +26,7 @@ export async function createPrototype(
     return { error: 'Enter a title.' };
   }
 
-  const appRoot = path.join(/* turbopackIgnore: true */ process.cwd(), 'app');
+  const appRoot = path.join(process.cwd(), 'app');
   const created = new Date().toISOString().slice(0, 10);
   const planned = planPrototypeScaffold({
     title,
@@ -50,20 +50,16 @@ export async function createPrototype(
     pageSource,
   } = planned;
 
-  if (fs.existsSync(/* turbopackIgnore: true */ resolvedTarget)) {
+  if (fs.existsSync(resolvedTarget)) {
     return {
       error: `That title is already taken (app/${username}/${slug}/ exists). Change the title.`,
     };
   }
 
-  fs.mkdirSync(/* turbopackIgnore: true */ resolvedTarget, { recursive: true });
+  fs.mkdirSync(resolvedTarget, { recursive: true });
 
-  fs.writeFileSync(
-    /* turbopackIgnore: true */ metaPath,
-    `${JSON.stringify(meta, null, 2)}\n`,
-    'utf-8',
-  );
-  fs.writeFileSync(/* turbopackIgnore: true */ pagePath, pageSource, 'utf-8');
+  fs.writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`, 'utf-8');
+  fs.writeFileSync(pagePath, pageSource, 'utf-8');
 
   redirect(`/${username}/${slug}`);
 }
