@@ -15,15 +15,28 @@ Open [http://localhost:3000](http://localhost:3000) to browse all prototypes.
 
 1. Create a folder at `app/[your-name]/[prototype-name]/`
 2. Add a `page.tsx` with a default-exported React component
-3. Add a `meta.json` with title, description, and created
+3. Add a `profile.json` for the author with their team
+4. Add a `meta.json` with title, description, and created
 
 ```
 app/
 └── goncalo/
+    ├── profile.json
     └── my-new-prototype/
         ├── page.tsx
         └── meta.json
 ```
+
+### `profile.json`
+
+```json
+{
+  "name": "Your Name",
+  "team": "Product Design"
+}
+```
+
+Author teams are `Product Design`, `Product Management`, or `Engineering`. The team applies to every prototype by that author.
 
 ### `meta.json`
 

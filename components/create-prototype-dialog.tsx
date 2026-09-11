@@ -9,6 +9,7 @@ import { Input } from '@/design/components/input';
 import { Textarea } from '@/design/components/textarea';
 import { cn } from '@/design/utils';
 import { Dialog } from '@base-ui/react/dialog';
+import { Plus } from 'lucide-react';
 import { useActionState, useState } from 'react';
 
 const initialFormState: CreatePrototypeState = {};
@@ -92,9 +93,22 @@ export function CreatePrototypeDialog(props: CreatePrototypeDialogProps) {
     >
       <Dialog.Trigger
         type="button"
-        className={cn(buttonVariants({ variant: 'solid', size: 'medium' }))}
+        className={cn(
+          buttonVariants({ variant: 'solid', size: 'medium' }),
+          'hidden sm:inline-flex',
+        )}
       >
         Create prototype
+      </Dialog.Trigger>
+      <Dialog.Trigger
+        type="button"
+        aria-label="Create prototype"
+        className={cn(
+          buttonVariants({ variant: 'solid' }),
+          'fixed right-5 bottom-5 size-14 rounded-full p-0 shadow-lg sm:hidden',
+        )}
+      >
+        <Plus className="size-6" aria-hidden />
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop

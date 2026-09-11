@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sans.variable} ${serif.variable}`}>
-      <body className="bg-background-neutral-default text-foreground-neutral-default flex min-h-dvh flex-col antialiased lg:flex-row lg:overscroll-none">
+      <body className="bg-background-neutral-default text-foreground-neutral-default relative min-h-dvh font-sans antialiased">
         {children}
       </body>
     </html>
