@@ -1,4 +1,4 @@
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import type { ReactNode } from 'react';
 import { DeviceConfettiProvider } from './device-confetti';
 

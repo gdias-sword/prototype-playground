@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/design/components/button';
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 
 interface PrototypeStarterProps {
   title: string;

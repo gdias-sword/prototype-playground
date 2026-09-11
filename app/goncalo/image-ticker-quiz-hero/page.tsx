@@ -7,7 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/design/components/tooltip';
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import { ArrowRight, ChevronDown, Globe } from 'lucide-react';
 import { useState } from 'react';
 

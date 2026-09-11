@@ -4,7 +4,7 @@ import gradient from '@/app/goncalo/canada-pricing-interstitial/assets/gradient.
 import { AnimatedPrice } from '@/app/goncalo/canada-pricing-interstitial/motion/animated-price';
 import { SwordLogo } from '@/design/assets/logos/sword';
 import { Button } from '@/design/components/button';
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import { ChevronDown, Globe } from 'lucide-react';
 import { useState } from 'react';
 

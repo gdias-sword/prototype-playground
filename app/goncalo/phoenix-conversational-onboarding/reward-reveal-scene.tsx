@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/design/components/button';
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import { useEffect, useState, type CSSProperties } from 'react';
 import bandHeavy from './assets/reward-band-heavy.png';
 import bandLight from './assets/reward-band-light.png';

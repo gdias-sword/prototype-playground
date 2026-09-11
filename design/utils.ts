@@ -1,29 +1,28 @@
-import { clsx, type ClassValue } from 'clsx';
-import { extendTailwindMerge } from 'tailwind-merge';
+import { createCn } from 'cn/config';
 
-const twMerge = extendTailwindMerge({
+export const cn = createCn({
   extend: {
-    classGroups: {
-      'font-size': [
-        'text-display-large-strong',
-        'text-display-medium-strong',
-        'text-display-small-strong',
-        'text-title-large-strong',
-        'text-title-medium-strong',
-        'text-title-small-strong',
-        'text-body-large-strong',
-        'text-body-large-subtle',
-        'text-body-large-default',
-        'text-body-medium-strong',
-        'text-body-medium-subtle',
-        'text-body-medium-default',
-        'text-body-small-subtle',
-        'text-body-small-default',
+    theme: {
+      text: [
+        'body-small-default',
+        'body-small-subtle',
+        'body-small-strong',
+        'body-medium-default',
+        'body-medium-subtle',
+        'body-medium-strong',
+        'body-large-default',
+        'body-large-subtle',
+        'body-large-strong',
+        'title-small-strong',
+        'title-medium-strong',
+        'title-large-subtle',
+        'title-large-strong',
+        'display-small-strong',
+        'display-medium-strong',
+        'display-large-strong',
       ],
     },
   },
 });
 
-export function mergeTailwindClasses(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export { cn as mergeTailwindClasses };

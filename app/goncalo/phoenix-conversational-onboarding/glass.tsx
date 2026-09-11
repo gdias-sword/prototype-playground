@@ -1,4 +1,4 @@
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import { Check } from 'lucide-react';
 import type {
   ButtonHTMLAttributes,

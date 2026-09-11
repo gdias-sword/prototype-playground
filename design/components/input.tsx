@@ -1,6 +1,6 @@
 'use client';
 
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import { Field } from '@base-ui/react/field';
 import { Input as InputPrimitive } from '@base-ui/react/input';
 import { cva } from 'class-variance-authority';
