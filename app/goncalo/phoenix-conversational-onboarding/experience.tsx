@@ -1,6 +1,6 @@
 'use client';
 
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import {
   useEffect,
   useImperativeHandle,
@@ -8,10 +8,7 @@ import {
   useState,
   type Ref,
 } from 'react';
-import {
-  buildJumpState,
-  type JumpDestinationId,
-} from './checkpoint-jumps';
+import { buildJumpState, type JumpDestinationId } from './checkpoint-jumps';
 import { AssessmentScene } from './assessment-scene';
 import { RewardCommitmentScene } from './reward-commitment-scene';
 import { RewardConfirmationScene } from './reward-confirmation-scene';
@@ -59,6 +56,7 @@ import {
   MAX_BODY_AREAS,
   MORE_NO_LABEL,
   MORE_YES_LABEL,
+  IMPACT_NONE_LABEL,
   REMIND_NO_LABEL,
   REMIND_YES_LABEL,
   SAFETY_NONE_LABEL,
@@ -78,12 +76,17 @@ import {
   flagsCareLine,
   flagsQuestion,
   areaQuestion,
+  conditionWrapLine,
   followUpQuestion,
+  impactCareLine,
+  impactQuestion,
   intensityAnswer,
   intensityCareLine,
   intensityQuestion,
   moreQuestion,
   placementIntroLine,
+  regionAnswer,
+  regionQuestion,
   remindQuestion,
   selectedAreas,
   scheduleLine,
@@ -155,6 +158,8 @@ const EMPTY_ANSWERS: Answers = {
   duration: null,
   intensity: null,
   tingling: null,
+  regions: [],
+  impacts: [],
   completed: [],
   activity: null,
   safetyFlags: [],
@@ -176,8 +181,12 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'know' && step.index === 0) {
     return areaQuestion(answers.completed.length);
   }
-  if (step.kind === 'know' && step.index === 1) return durationQuestion();
+  if (step.kind === 'region') return regionQuestion(answers.area ?? 'that');
+  if (step.kind === 'know' && step.index === 1) {
+    return durationQuestion(answers.area ?? undefined);
+  }
   if (step.kind === 'know' && step.index === 2) return intensityQuestion();
+  if (step.kind === 'impact') return impactQuestion();
   if (step.kind === 'know') return followUpQuestion(answers.area ?? 'Neck');
   return '';
 }
@@ -190,7 +199,13 @@ function turnKind(step: PhoenixStep): StackTurn['kind'] {
 function cloneAnswers(answers: Answers): Answers {
   return {
     ...answers,
-    completed: answers.completed.map((condition) => ({ ...condition })),
+    completed: answers.completed.map((condition) => ({
+      ...condition,
+      regions: [...(condition.regions ?? [])],
+      impacts: [...(condition.impacts ?? [])],
+    })),
+    regions: [...(answers.regions ?? [])],
+    impacts: [...(answers.impacts ?? [])],
     safetyFlags: [...answers.safetyFlags],
   };
 }
@@ -234,11 +249,17 @@ function checkpointLabel(
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
   if (step.kind === 'remind') return 'Remind';
+  if (step.kind === 'region') {
+    return answers.area ? `Region · ${answers.area}` : 'Region';
+  }
+  if (step.kind === 'impact') {
+    return answers.area ? `Impact · ${answers.area}` : 'Impact';
+  }
   if (step.kind === 'know') {
     const round = answers.completed.length + 1;
     const suffix = round > 1 ? ` ${round}` : '';
     if (step.index === 0) return `Area${suffix}`;
-    if (step.index === 1) {
+    if (step.kind === 'know' && step.index === 1) {
       return answers.area ? `Duration · ${answers.area}` : 'Duration';
     }
     if (step.index === 2) {
@@ -544,10 +565,7 @@ export function Experience({
 
   useEffect(() => {
     if (restoringRef.current) return;
-    if (
-      phase !== 'phoenix' ||
-      (!isPanelStep(step) && !isImmersiveStep(step))
-    ) {
+    if (phase !== 'phoenix' || (!isPanelStep(step) && !isImmersiveStep(step))) {
       return;
     }
     recordCheckpoint(
@@ -793,8 +811,7 @@ export function Experience({
   const compactToolsReady =
     layout === 'compact' &&
     toolReady &&
-    step.kind === 'know' &&
-    step.index === 0;
+    ((step.kind === 'know' && step.index === 0) || step.kind === 'impact');
   const hideFloatingOrb =
     phase === 'phoenix' && (isImmersiveStep(step) || isCommitmentStep(step));
   const orbLayout: Layout = compactToolsReady ? 'panel-header' : layout;
@@ -805,6 +822,7 @@ export function Experience({
     toolReady,
     reserveOrbSlot: compactToolsReady,
     excludedAreas: selectedAreas(answers),
+    area: answers.area,
     hasStreamedTurn,
     instantStream: fastDemo,
     onTurnStreamComplete: (turnId: string) => {
@@ -837,7 +855,10 @@ export function Experience({
           sessionAfterReward,
         ),
       );
-      if (stepRef.current.kind === 'schedule' || stepRef.current.kind === 'safety') {
+      if (
+        stepRef.current.kind === 'schedule' ||
+        stepRef.current.kind === 'safety'
+      ) {
         later(() => {
           setPanelLayoutReady(true);
           if (stepRef.current.kind === 'safety') {
@@ -878,9 +899,18 @@ export function Experience({
       commitMember(READY_LABEL, { kind: 'know', index: 0 }, answers);
     },
     onArea: (area: string) => {
-      const nextAnswers = { ...answers, area };
+      const nextAnswers = { ...answers, area, regions: [], impacts: [] };
       setAnswers(nextAnswers);
-      commitMember(area, { kind: 'know', index: 1 }, nextAnswers);
+      commitMember(area, { kind: 'region' }, nextAnswers);
+    },
+    onRegions: (regions: string[]) => {
+      const nextAnswers = { ...answers, regions };
+      setAnswers(nextAnswers);
+      commitMember(
+        regionAnswer(regions),
+        { kind: 'know', index: 1 },
+        nextAnswers,
+      );
     },
     onDuration: (duration: string) => {
       const nextAnswers = { ...answers, duration };
@@ -897,9 +927,23 @@ export function Experience({
       setAnswers(nextAnswers);
       commitMember(
         intensityAnswer(intensity),
-        { kind: 'know', index: 3 },
+        { kind: 'impact' },
         nextAnswers,
         intensityCareLine(intensity),
+      );
+    },
+    onImpact: (impacts: string[]) => {
+      const nextAnswers = completeCondition({ ...answers, impacts });
+      setAnswers(nextAnswers);
+      const atMax = nextAnswers.completed.length >= MAX_BODY_AREAS;
+      const label =
+        impacts.length > 0 ? regionAnswer(impacts) : IMPACT_NONE_LABEL;
+      const care = impacts.length > 0 ? impactCareLine() : undefined;
+      commitMember(
+        label,
+        atMax ? { kind: 'activity' } : { kind: 'more' },
+        nextAnswers,
+        care ?? (atMax ? activityIntroLine() : conditionWrapLine(currentArea(nextAnswers))),
       );
     },
     onTingling: (tingling: boolean) => {
@@ -910,11 +954,7 @@ export function Experience({
         tingling ? 'Yes' : 'No',
         atMax ? { kind: 'activity' } : { kind: 'more' },
         nextAnswers,
-        tingling
-          ? tinglingCareLine()
-          : atMax
-            ? activityIntroLine()
-            : undefined,
+        tingling ? tinglingCareLine() : atMax ? activityIntroLine() : undefined,
       );
     },
     onMore: (wantsMore: boolean) => {
@@ -979,7 +1019,7 @@ export function Experience({
   };
 
   return (
-    <div className="relative h-full overflow-hidden bg-[#f6f4fb] select-none">
+    <div className="relative h-full overflow-hidden bg-[#f2f2f2] select-none">
       <WorldBackdrop />
       <div
         className={cn(
@@ -1172,9 +1212,7 @@ export function Experience({
             />
           </ContinuityPanel>
         ) : null}
-        {phase === 'phoenix' &&
-        step.kind === 'schedule' &&
-        panelLayoutReady ? (
+        {phase === 'phoenix' && step.kind === 'schedule' && panelLayoutReady ? (
           <ContinuityPanel
             heading={panelHeadingTurn('schedule', turns)}
             hasStreamedTurn={conversation.hasStreamedTurn}
@@ -1244,7 +1282,8 @@ export function Experience({
             isPaired &&
             'top-[76px] left-1/2 h-[120px] w-[220px]',
           orbLayout === 'compact' && 'top-[48px] left-1/2 size-[80px]',
-          orbLayout === 'panel' && 'pointer-events-none invisible size-0 opacity-0',
+          orbLayout === 'panel' &&
+            'pointer-events-none invisible size-0 opacity-0',
           (orbLayout === 'immersive' || hideFloatingOrb) &&
             'pointer-events-none invisible size-0 opacity-0',
           // `left` is the visual center (`-translate-x-1/2` is always on).
@@ -1257,7 +1296,8 @@ export function Experience({
           className={cn(
             'relative aspect-square shrink-0 transition-[width,height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
             orbLayout === 'seed' && 'size-[60px]',
-            orbLayout === 'hero' && (isPaired ? 'size-[120px]' : 'size-[148px]'),
+            orbLayout === 'hero' &&
+              (isPaired ? 'size-[120px]' : 'size-[148px]'),
             orbLayout === 'compact' && 'size-[80px]',
             orbLayout === 'panel' && 'size-0',
             (orbLayout === 'immersive' || hideFloatingOrb) && 'size-0',

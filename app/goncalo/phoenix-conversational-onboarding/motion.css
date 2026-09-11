@@ -172,6 +172,21 @@
   }
 }
 
+.phoenix-stack-window {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 56px,
+    #000 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 56px,
+    #000 100%
+  );
+}
+
 .phoenix-chip-scroller {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -223,6 +238,69 @@
   display: none;
 }
 
+/* Scroll-history (answer-edit B): hide the bar, fade only in the orb tuck. */
+.phoenix-scroll-history {
+  --phoenix-orb-tuck: 56px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--phoenix-orb-tuck),
+    #000 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--phoenix-orb-tuck),
+    #000 100%
+  );
+}
+
+.phoenix-scroll-history::-webkit-scrollbar {
+  display: none;
+}
+
+.phoenix-orb-history-fade {
+  pointer-events: none;
+  position: absolute;
+  inset: -42%;
+  z-index: 0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  mask-image: radial-gradient(circle at 50% 52%, #000 26%, transparent 70%);
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 52%,
+    #000 26%,
+    transparent 70%
+  );
+}
+
+.phoenix-rewind-selected {
+  animation: phoenix-rewind-highlight 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes phoenix-rewind-highlight {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(59, 130, 246, 0),
+      0 10px 36px rgba(59, 130, 246, 0);
+    transform: scale(0.985);
+  }
+  35% {
+    box-shadow:
+      0 0 0 3px rgba(59, 130, 246, 0.22),
+      0 12px 40px rgba(59, 130, 246, 0.18);
+    transform: scale(1.01);
+  }
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(59, 130, 246, 0.18),
+      0 10px 36px rgba(59, 130, 246, 0.14);
+    transform: scale(1);
+  }
+}
+
 .phoenix-summary-row {
   animation: rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -238,6 +316,22 @@
 .phoenix-offer-piece {
   animation: rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(var(--offer-stagger, 0) * 80ms);
+}
+
+.phoenix-card-mini-cta {
+  animation: phoenix-card-mini-cta-in 480ms cubic-bezier(0.22, 1, 0.36, 1) 180ms
+    backwards;
+}
+
+@keyframes phoenix-card-mini-cta-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes phoenix-cta-label-wipe {
@@ -270,7 +364,9 @@
   }
 
   .phoenix-summary-row,
-  .phoenix-offer-piece {
+  .phoenix-offer-piece,
+  .phoenix-card-mini-cta,
+  .phoenix-rewind-selected {
     animation-delay: 0ms !important;
     animation-duration: 1ms !important;
   }

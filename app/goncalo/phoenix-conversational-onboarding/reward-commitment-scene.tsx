@@ -1,6 +1,6 @@
 'use client';
 
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import {
   confettiOriginFromElement,
   useDeviceConfetti,
@@ -225,7 +225,8 @@ function SlideToCommit({ onComplete }: { onComplete: () => void }) {
       'transition-[left,width] duration-150 ease-out',
     isSnapping &&
       'transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
-    isCommitted && 'transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+    isCommitted &&
+      'transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
   );
 
   return (

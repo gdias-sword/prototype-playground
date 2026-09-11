@@ -1,4 +1,4 @@
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import virtualPt from './assets/virtual-pt.png';
 import { PT } from './script';
 

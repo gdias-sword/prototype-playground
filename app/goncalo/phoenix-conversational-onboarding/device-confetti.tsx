@@ -78,7 +78,11 @@ export function confettiOriginFromElement(
   const elementRect = element.getBoundingClientRect();
 
   return {
-    x: (elementRect.left + elementRect.width / 2 - frameRect.left) / frameRect.width,
-    y: (elementRect.top + elementRect.height / 2 - frameRect.top) / frameRect.height,
+    x:
+      (elementRect.left + elementRect.width / 2 - frameRect.left) /
+      frameRect.width,
+    y:
+      (elementRect.top + elementRect.height / 2 - frameRect.top) /
+      frameRect.height,
   };
 }

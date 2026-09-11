@@ -1,6 +1,6 @@
 'use client';
 
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import { useEffect, useRef } from 'react';
 import {
   MEMBER,
@@ -145,7 +145,10 @@ export function ChatScene({
           </p>
         </div>
       </div>
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 pt-2 pb-2">
+      <div
+        ref={scrollRef}
+        className="flex-1 space-y-4 overflow-y-auto px-4 pt-2 pb-2"
+      >
         <p className="text-body-small-default text-foreground-neutral-faded text-center">
           Today
         </p>

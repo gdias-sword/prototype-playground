@@ -1,6 +1,6 @@
 'use client';
 
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import { useMemo, type RefObject } from 'react';
 import { PanelHeaderStack } from './panel-header';
 import {
@@ -15,6 +15,7 @@ import {
   windowedTurns,
   type ConversationProps,
 } from './phoenix-scene';
+import { impactHint } from './script';
 
 const LIST_CLASS = 'flex w-full shrink-0 flex-col items-stretch gap-2.5';
 const STACK_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
@@ -41,10 +42,12 @@ function useConversationStack(props: ConversationProps) {
 function StackFrame({
   maxHeight,
   frameRef,
+  fadeTop,
   children,
 }: {
   maxHeight: number;
   frameRef: RefObject<HTMLDivElement | null>;
+  fadeTop?: boolean;
   children: React.ReactNode;
 }) {
   const frameStyle = {
@@ -55,7 +58,10 @@ function StackFrame({
   return (
     <div
       ref={frameRef}
-      className="relative shrink-0 overflow-visible"
+      className={cn(
+        'relative shrink-0 overflow-visible',
+        fadeTop && 'phoenix-stack-window',
+      )}
       style={{
         ...frameStyle,
         clipPath: 'inset(-8px 0 0)',
@@ -76,12 +82,12 @@ function phoenixLineClass(
   kind: ConversationProps['turns'][number]['kind'],
 ) {
   return cn(
-    'text-title-large-strong text-left font-serif font-medium tracking-[-0.04em]',
+    'text-start font-sans text-title-large-subtle',
     isCurrent
       ? 'text-foreground-neutral-default'
       : kind === 'care'
-        ? 'text-foreground-neutral-subtle'
-        : 'text-foreground-neutral-faded',
+        ? 'text-foreground-neutral-default'
+        : 'text-foreground-neutral-default/20',
   );
 }
 
@@ -106,11 +112,14 @@ function Tools(props: ConversationProps) {
       step={props.step}
       show={props.toolReady}
       excludedAreas={props.excludedAreas}
+      area={props.area}
       onReady={props.onReady}
       onArea={props.onArea}
+      onRegions={props.onRegions}
       onDuration={props.onDuration}
       onIntensity={props.onIntensity}
       onTingling={props.onTingling}
+      onImpact={props.onImpact}
       onMore={props.onMore}
       onActivity={props.onActivity}
       onCallYes={props.onCallYes}
@@ -183,7 +192,7 @@ export function PhoenixCopy(props: ConversationProps) {
     : visibleTurns;
 
   const stack = (
-    <StackFrame maxHeight={maxHeight} frameRef={frameRef}>
+    <StackFrame maxHeight={maxHeight} frameRef={frameRef} fadeTop={!isCompact}>
       <div ref={listRef} className={LIST_CLASS}>
         {stackTurns.map((turn, index) => {
           const fromEnd = stackTurns.length - 1 - index;
@@ -196,7 +205,7 @@ export function PhoenixCopy(props: ConversationProps) {
             return (
               <p
                 key={turn.id}
-                className="text-title-large-strong text-foreground-brand-default pr-1 text-right font-serif font-medium tracking-[-0.04em]"
+                className="text-foreground-brand-default pr-1 text-right font-sans text-[26px] leading-8 font-medium"
                 style={lineMotion(fromEnd, 'member', isLeavingWindow)}
               >
                 {turn.text}
@@ -235,7 +244,20 @@ export function PhoenixCopy(props: ConversationProps) {
             : undefined
       }
     >
-      {reserveOrbSlot ? <PanelHeaderStack>{stack}</PanelHeaderStack> : stack}
+      {reserveOrbSlot ? (
+        <PanelHeaderStack>
+          <div className="flex flex-col gap-4">
+            {stack}
+            {step.kind === 'impact' ? (
+              <p className="text-body-large-default text-foreground-neutral-default">
+                {impactHint()}
+              </p>
+            ) : null}
+          </div>
+        </PanelHeaderStack>
+      ) : (
+        stack
+      )}
       <Tools {...props} />
     </div>
   );

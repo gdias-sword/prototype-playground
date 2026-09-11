@@ -4,22 +4,95 @@ export const PT = 'Lauren';
 export const BODY_AREAS = [
   'Neck',
   'Shoulder',
-  'Upper back',
-  'Lower back',
+  'Elbow',
+  'Wrist/Hand',
+  'Back',
   'Hip',
   'Knee',
   'Ankle',
-  'Wrist',
-  'Elbow',
-  'Head',
 ] as const;
 
+export type BodyArea = (typeof BODY_AREAS)[number];
+
+export const AREA_REGIONS: Record<BodyArea, readonly string[]> = {
+  Neck: ['Base of skull', 'Side of neck', 'Front of neck'],
+  Shoulder: ['Upper chest', 'Shoulder blade', 'Upper arm'],
+  Elbow: ['Inner elbow', 'Outer elbow', 'Forearm'],
+  'Wrist/Hand': ['Wrist', 'Palm', 'Fingers'],
+  Back: ['Upper back', 'Mid-back', 'Lower back'],
+  Hip: ['Front of hip', 'Side of hip', 'Buttock'],
+  Knee: ['Front of knee', 'Inner knee', 'Back of knee'],
+  Ankle: ['Inner ankle', 'Outer ankle', 'Top of foot'],
+};
+
+export const AREA_IMPACTS: Record<BodyArea, readonly string[]> = {
+  Neck: [
+    'Looking over your shoulder',
+    'Working at a computer',
+    'Sleeping through the night',
+    'Carrying a bag',
+    'Turning your head quickly',
+  ],
+  Shoulder: [
+    'Reaching overhead',
+    'Carrying a bag or groceries',
+    'Lying comfortably on that side',
+    'Doing recreational activities',
+    'Using both arms equally',
+  ],
+  Elbow: [
+    'Lifting everyday objects',
+    'Rotating your forearm',
+    'Carrying a bag',
+    'Doing recreational activities',
+    'Straightening your arm fully',
+  ],
+  'Wrist/Hand': [
+    'Gripping or opening jars',
+    'Typing or using a phone',
+    'Carrying a bag',
+    'Doing recreational activities',
+    'Twisting a doorknob',
+  ],
+  Back: [
+    'Bending forward',
+    'Sitting for long periods',
+    'Getting out of bed',
+    'Doing recreational activities',
+    'Standing up from a chair',
+  ],
+  Hip: [
+    'Walking longer distances',
+    'Going up stairs',
+    'Putting on shoes',
+    'Doing recreational activities',
+    'Lying on that side',
+  ],
+  Knee: [
+    'Going up or down stairs',
+    'Squatting or sitting low',
+    'Walking longer distances',
+    'Doing recreational activities',
+    'Getting up from a chair',
+  ],
+  Ankle: [
+    'Walking on uneven ground',
+    'Going up or down stairs',
+    'Standing for long periods',
+    'Doing recreational activities',
+    'Pushing off when you walk',
+  ],
+};
+
 export const DURATIONS = [
-  'Less than 2 weeks',
-  '2–4 weeks',
-  '1–3 months',
-  'More than 3 months',
+  'Less than 2 weeks ago',
+  '2–4 weeks ago',
+  '1–3 months ago',
+  'More than 3 months ago',
 ] as const;
+
+export const IMPACT_MAX = 2;
+export const IMPACT_NONE_LABEL = 'None of the above';
 
 export type DoorId = 'session' | 'scheduled' | 'later';
 
@@ -115,8 +188,7 @@ export const GUIDE_LINES = [
   'It takes about 2 minutes. Ready?',
 ] as const;
 
-export const DISCLAIMER =
-  'Your answers are confidential and won’t be shared';
+export const DISCLAIMER = 'Your answers are confidential and won’t be shared';
 
 export const READY_LABEL = 'I’m ready';
 
@@ -124,8 +196,8 @@ export const THERAPIST_PHRASE = PT;
 
 export const MAX_BODY_AREAS = 3;
 
-export const MORE_YES_LABEL = 'Yes, I want to treat another area';
-export const MORE_NO_LABEL = 'No, that’s everything';
+export const MORE_YES_LABEL = 'Yes, I have pain somewhere else';
+export const MORE_NO_LABEL = 'No, that’s all';
 export const MORE_HINT = 'You can choose up to 3 body areas';
 
 export type Condition = {
@@ -133,6 +205,8 @@ export type Condition = {
   duration: string;
   intensity: number;
   tingling: boolean | null;
+  regions: string[];
+  impacts: string[];
 };
 
 export type Answers = {
@@ -140,6 +214,8 @@ export type Answers = {
   duration: string | null;
   intensity: number | null;
   tingling: boolean | null;
+  regions: string[];
+  impacts: string[];
   completed: Condition[];
   activity: ActivityId | null;
   safetyFlags: string[];
@@ -156,11 +232,52 @@ export type StackTurn = {
 
 export function areaQuestion(completedCount = 0) {
   if (completedCount > 0) return 'Where else is bothering you?';
-  return 'Where are you feeling pain or symptoms?';
+  return 'Where do you feel pain?';
 }
 
-export function moreQuestion(area: string) {
-  return `That’s everything we need to know about your ${area.toLowerCase()} pain. Anywhere else bothering you?`;
+export function regionQuestion(area: string) {
+  return `Where does it hurt the most in your ${area.toLowerCase()}?`;
+}
+
+export function regionAnswer(regions: string[]) {
+  if (regions.length === 0) return '';
+  if (regions.length === 1) return regions[0];
+  const rest = regions.slice(1).map((item) => {
+    const [first, ...tail] = item;
+    return `${first.toLowerCase()}${tail.join('')}`;
+  });
+  if (rest.length === 1) return `${regions[0]} and ${rest[0]}`;
+  return `${regions[0]}, ${rest.slice(0, -1).join(', ')}, and ${rest.at(-1)}`;
+}
+
+export function regionsFor(area: string | null) {
+  if (!area) return [];
+  return AREA_REGIONS[area as BodyArea] ?? [];
+}
+
+export function impactsFor(area: string | null) {
+  if (!area) return [];
+  return AREA_IMPACTS[area as BodyArea] ?? [];
+}
+
+export function moreQuestion(_area?: string) {
+  return 'Anywhere else hurting right now?';
+}
+
+export function conditionWrapLine(area: string) {
+  return `That’s all about your ${area.toLowerCase()} for now.`;
+}
+
+export function impactQuestion() {
+  return 'Which of these are you struggling with most?';
+}
+
+export function impactHint() {
+  return 'Select up to 2 options that you find most disruptive to your life.';
+}
+
+export function impactCareLine() {
+  return 'We’ll make sure your exercises help you get back to these tasks.';
 }
 
 export function activityIntroLine() {
@@ -254,12 +371,13 @@ export function remindQuestion() {
   return 'No worries. Do you want me to remind you about your session later instead?';
 }
 
-export function durationQuestion() {
-  return 'When did it start?';
+export function durationQuestion(area?: string) {
+  if (!area) return 'When did it start?';
+  return `When did you first start feeling pain in your ${area.toLowerCase()}?`;
 }
 
 export function intensityQuestion() {
-  return 'How intense has it been lately?';
+  return 'How intense has your pain been lately?';
 }
 
 export function followUpQuestion(area: string) {
@@ -286,6 +404,8 @@ export function completeCondition(answers: Answers): Answers {
         duration: answers.duration,
         intensity: answers.intensity,
         tingling: answers.tingling,
+        regions: [...(answers.regions ?? [])],
+        impacts: [...(answers.impacts ?? [])],
       },
     ],
   };
@@ -297,6 +417,8 @@ export function startNextCondition(answers: Answers): Answers {
     duration: null,
     intensity: null,
     tingling: null,
+    regions: [],
+    impacts: [],
     completed: answers.completed,
     activity: answers.activity,
     safetyFlags: answers.safetyFlags,
@@ -323,13 +445,13 @@ export function selectedAreas(answers: Answers) {
 }
 
 export function durationCareLine(duration: string) {
-  if (duration === 'Less than 2 weeks') {
+  if (duration.startsWith('Less than 2 weeks')) {
     return 'You’re catching this early — that’s a smart move.';
   }
-  if (duration === '2–4 weeks') {
+  if (duration.startsWith('2–4 weeks')) {
     return 'Acting quickly gives you a real advantage.';
   }
-  if (duration === '1–3 months') {
+  if (duration.startsWith('1–3 months')) {
     return 'That’s more common than you think.';
   }
   return 'It’s never too late to start feeling better.';

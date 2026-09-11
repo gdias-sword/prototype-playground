@@ -1,6 +1,6 @@
 'use client';
 
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import {
   useEffect,
   useRef,
@@ -372,7 +372,9 @@ export function CameraPanel({
           </div>
         </OfferPiece>
         <OfferPiece index={1} ready={ctaReady} className="w-full">
-          <PrimaryAction onClick={onEnable}>{ENABLE_CAMERA_LABEL}</PrimaryAction>
+          <PrimaryAction onClick={onEnable}>
+            {ENABLE_CAMERA_LABEL}
+          </PrimaryAction>
         </OfferPiece>
       </div>
     </div>
@@ -568,7 +570,11 @@ export function SafetyPanel({
           ))}
         </div>
       </OfferPiece>
-      <OfferPiece index={2} ready={headlineReady} className="mt-auto w-full pb-2">
+      <OfferPiece
+        index={2}
+        ready={headlineReady}
+        className="mt-auto w-full pb-2"
+      >
         <WipeLabelAction
           hasFlags={selected.length > 0}
           onClick={() => onContinue(selected)}
@@ -775,7 +781,7 @@ export function ConfirmPanel({
             />
           </div>
         </div>
-        <p className="text-title-large-strong text-foreground-neutral-default whitespace-pre-wrap text-center font-serif font-medium tracking-[-0.04em]">
+        <p className="text-title-large-strong text-foreground-neutral-default text-center font-serif font-medium tracking-[-0.04em] whitespace-pre-wrap">
           <PhoenixLineText
             key={heading.id}
             text={heading.text}

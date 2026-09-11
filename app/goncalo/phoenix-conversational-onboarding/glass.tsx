@@ -1,6 +1,10 @@
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import { Check } from 'lucide-react';
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+} from 'react';
 
 /**
  * Shared glassmorphism surface treatment: translucent white surface with
@@ -11,18 +15,23 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react
  */
 export function glassSurfaceClasses({
   selected,
+  rewindSelected,
   interactive = true,
   className,
 }: {
   selected?: boolean;
+  rewindSelected?: boolean;
   interactive?: boolean;
   className?: string;
 } = {}) {
   return cn(
-    'border border-white/70 bg-white/55 shadow-[0_8px_32px_rgba(80,70,140,0.08)] backdrop-blur-xl transition-[transform,background-color,box-shadow] duration-300',
+    'border border-white/70 bg-white/55 shadow-[0_8px_32px_rgba(80,70,140,0.08)] backdrop-blur-xl transition-[transform,background-color,box-shadow,border-color] duration-300',
     interactive && 'hover:bg-white/75 active:scale-[0.98]',
     selected &&
+      !rewindSelected &&
       'border-white bg-white/88 shadow-[0_10px_40px_rgba(90,80,180,0.14)]',
+    rewindSelected &&
+      'phoenix-rewind-selected border-background-brand-default/55 bg-background-brand-faded/35 shadow-[0_0_0_1px_rgba(59,130,246,0.18),0_10px_36px_rgba(59,130,246,0.14)]',
     className,
   );
 }
@@ -30,19 +39,26 @@ export function glassSurfaceClasses({
 export function GlassChip({
   className,
   selected,
+  rewindSelected,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { selected?: boolean }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  selected?: boolean;
+  rewindSelected?: boolean;
+}) {
   return (
     <button
       type="button"
+      {...props}
+      aria-pressed={selected}
       className={glassSurfaceClasses({
         selected,
+        rewindSelected,
         className: cn(
           'text-body-large-subtle text-foreground-neutral-strong w-full cursor-pointer rounded-full px-5 py-3.5 text-left',
+          rewindSelected && 'text-foreground-brand-default font-medium',
           className,
         ),
       })}
-      {...props}
     />
   );
 }

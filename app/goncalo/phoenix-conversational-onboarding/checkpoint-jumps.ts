@@ -7,20 +7,24 @@ import {
   activityQuestion,
   areaQuestion,
   completeCondition,
+  conditionWrapLine,
   currentArea,
   doorLabel,
   durationCareLine,
   durationQuestion,
-  followUpQuestion,
   flagsCareLine,
   flagsQuestion,
   GUIDE_LINES,
+  impactCareLine,
+  impactQuestion,
   intensityAnswer,
   intensityCareLine,
   intensityQuestion,
   MORE_NO_LABEL,
   moreQuestion,
   READY_LABEL,
+  regionAnswer,
+  regionQuestion,
   SAFETY_FLAGS,
   SAFETY_NONE_LABEL,
   safetyLine,
@@ -96,10 +100,12 @@ export interface JumpState {
   confirmContentReady: boolean;
 }
 
-const DEMO_AREA = 'Neck';
-const DEMO_DURATION = '2–4 weeks';
-const DEMO_INTENSITY = 5;
+const DEMO_AREA = 'Shoulder';
+const DEMO_DURATION = '2–4 weeks ago';
+const DEMO_INTENSITY = 7;
 const DEMO_ACTIVITY: ActivityId = 'moderate';
+const DEMO_REGIONS = ['Shoulder blade', 'Upper arm'];
+const DEMO_IMPACTS = ['Carrying a bag or groceries'];
 
 const PANEL_HEADING_IDS = {
   camera: 'camera-heading',
@@ -114,6 +120,8 @@ const EMPTY_ANSWERS: Answers = {
   duration: null,
   intensity: null,
   tingling: null,
+  regions: [],
+  impacts: [],
   completed: [],
   activity: null,
   safetyFlags: [],
@@ -124,7 +132,13 @@ const EMPTY_ANSWERS: Answers = {
 function cloneAnswers(answers: Answers): Answers {
   return {
     ...answers,
-    completed: answers.completed.map((condition) => ({ ...condition })),
+    completed: answers.completed.map((condition) => ({
+      ...condition,
+      regions: [...(condition.regions ?? [])],
+      impacts: [...(condition.impacts ?? [])],
+    })),
+    regions: [...(answers.regions ?? [])],
+    impacts: [...(answers.impacts ?? [])],
     safetyFlags: [...answers.safetyFlags],
   };
 }
@@ -164,6 +178,12 @@ function checkpointLabel(
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
   if (step.kind === 'remind') return 'Remind';
+  if (step.kind === 'region') {
+    return answers.area ? `Region · ${answers.area}` : 'Region';
+  }
+  if (step.kind === 'impact') {
+    return answers.area ? `Impact · ${answers.area}` : 'Impact';
+  }
   if (step.kind === 'know') {
     const round = answers.completed.length + 1;
     const suffix = round > 1 ? ` ${round}` : '';
@@ -208,7 +228,9 @@ function demoIntakeAnswers(): Answers {
     area: DEMO_AREA,
     duration: DEMO_DURATION,
     intensity: DEMO_INTENSITY,
-    tingling: false,
+    tingling: null,
+    regions: [...DEMO_REGIONS],
+    impacts: [...DEMO_IMPACTS],
     completed: [],
     activity: null,
     safetyFlags: [],
@@ -276,15 +298,19 @@ function buildIntakeTurns(nextTurnId: () => string) {
     .member(READY_LABEL)
     .phoenix(areaQuestion(0))
     .member(DEMO_AREA)
-    .phoenix(durationQuestion())
+    .phoenix(regionQuestion(DEMO_AREA))
+    .member(regionAnswer(DEMO_REGIONS))
+    .phoenix(durationQuestion(DEMO_AREA))
     .member(DEMO_DURATION)
     .phoenix(durationCareLine(DEMO_DURATION), 'care')
     .phoenix(intensityQuestion())
     .member(intensityAnswer(DEMO_INTENSITY))
     .phoenix(intensityCareLine(DEMO_INTENSITY), 'care')
-    .phoenix(followUpQuestion(DEMO_AREA))
-    .member('No')
-    .phoenix(moreQuestion(DEMO_AREA))
+    .phoenix(impactQuestion())
+    .member(regionAnswer(DEMO_IMPACTS))
+    .phoenix(impactCareLine(), 'care')
+    .phoenix(conditionWrapLine(DEMO_AREA), 'care')
+    .phoenix(moreQuestion())
     .member(MORE_NO_LABEL)
     .phoenix(activityIntroLine(), 'care')
     .phoenix(activityQuestion());
@@ -450,7 +476,15 @@ export function buildJumpState(
       ),
     );
     checkpoints.push(
-      makeCheckpoint('phoenix', readyStep, EMPTY_ANSWERS, turns, 'listen', null, 0),
+      makeCheckpoint(
+        'phoenix',
+        readyStep,
+        EMPTY_ANSWERS,
+        turns,
+        'listen',
+        null,
+        0,
+      ),
     );
     return finishJump(
       destinationId,
@@ -506,10 +540,26 @@ export function buildJumpState(
       ),
     );
     checkpoints.push(
-      makeCheckpoint('phoenix', readyStep, EMPTY_ANSWERS, readyTurns, 'listen', null, 0),
+      makeCheckpoint(
+        'phoenix',
+        readyStep,
+        EMPTY_ANSWERS,
+        readyTurns,
+        'listen',
+        null,
+        0,
+      ),
     );
     checkpoints.push(
-      makeCheckpoint('phoenix', areaStep, EMPTY_ANSWERS, areaTurns, 'listen', null, 0),
+      makeCheckpoint(
+        'phoenix',
+        areaStep,
+        EMPTY_ANSWERS,
+        areaTurns,
+        'listen',
+        null,
+        0,
+      ),
     );
     return finishJump(
       destinationId,
@@ -570,7 +620,15 @@ export function buildJumpState(
     ),
   );
   checkpoints.push(
-    makeCheckpoint('phoenix', activityStep, intakeAnswers, intakeTurns, 'listen', null, 0),
+    makeCheckpoint(
+      'phoenix',
+      activityStep,
+      intakeAnswers,
+      intakeTurns,
+      'listen',
+      null,
+      0,
+    ),
   );
 
   if (destinationId === 'activity') {

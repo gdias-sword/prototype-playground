@@ -10,11 +10,7 @@ function assetSrc(asset: string | { src: string }) {
   return typeof asset === 'string' ? asset : asset.src;
 }
 
-export function RewardShippingScene({
-  onSubmit,
-}: {
-  onSubmit: () => void;
-}) {
+export function RewardShippingScene({ onSubmit }: { onSubmit: () => void }) {
   return (
     <div className="bg-background-neutral-default absolute inset-0 flex flex-col overflow-hidden">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[612px] opacity-40">
