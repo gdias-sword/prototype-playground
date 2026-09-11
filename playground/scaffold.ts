@@ -1,11 +1,31 @@
 import path from 'node:path';
 
-import { isSafePathSegment, toPascal, toSlug } from '@/utils/identifiers';
-
 export interface Meta {
   title: string;
   created: string;
   description?: string;
+}
+
+function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function toPascal(value: string): string {
+  const words = value.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+  if (words.length === 0) {
+    return '';
+  }
+  return words
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join('');
+}
+
+function isSafePathSegment(segment: string): boolean {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(segment);
 }
 
 function buildPrototypeSource(input: {
@@ -72,13 +92,16 @@ export function planPrototypeScaffold(input: {
     };
   }
 
+  // `appRoot` is injected rather than derived from `process.cwd()`, so
+  // Turbopack cannot statically scope these calls and would otherwise trace the
+  // entire project into the server bundle. These two opt-outs are load-bearing.
   const targetDir = path.join(
     /* turbopackIgnore: true */ input.appRoot,
     username,
     slug,
   );
   const resolvedTarget = path.resolve(/* turbopackIgnore: true */ targetDir);
-  const resolvedAppRoot = path.resolve(/* turbopackIgnore: true */ input.appRoot);
+  const resolvedAppRoot = path.resolve(input.appRoot);
 
   if (
     !resolvedTarget.startsWith(resolvedAppRoot + path.sep) &&
@@ -89,15 +112,9 @@ export function planPrototypeScaffold(input: {
 
   const pascal = toPascal(input.title);
   const component = pascal && !/^[0-9]/.test(pascal) ? pascal : 'Prototype';
-  const pagePath = path.join(
-    /* turbopackIgnore: true */ resolvedTarget,
-    'page.tsx',
-  );
-  const metaPath = path.join(
-    /* turbopackIgnore: true */ resolvedTarget,
-    'meta.json',
-  );
-  const pathAbsolute = path.resolve(/* turbopackIgnore: true */ pagePath);
+  const pagePath = path.join(resolvedTarget, 'page.tsx');
+  const metaPath = path.join(resolvedTarget, 'meta.json');
+  const pathAbsolute = path.resolve(pagePath);
   const pathRelative = path
     .join('app', username, slug, 'page.tsx')
     .split(path.sep)

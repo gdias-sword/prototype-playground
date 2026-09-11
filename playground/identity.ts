@@ -1,13 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { getContributors, type Contributor } from '@/playground/prototypes';
+
 export function readPlaygroundUsername(): string | null {
   const file = path.join(process.cwd(), '.playground');
-  if (!fs.existsSync(/* turbopackIgnore: true */ file)) {
+  if (!fs.existsSync(file)) {
     return null;
   }
 
-  const text = fs.readFileSync(/* turbopackIgnore: true */ file, 'utf-8');
+  const text = fs.readFileSync(file, 'utf-8');
   for (const line of text.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) {
@@ -24,4 +26,14 @@ export function readPlaygroundUsername(): string | null {
     }
   }
   return null;
+}
+
+export function getCurrentContributor(): Contributor | null {
+  const username = readPlaygroundUsername();
+  if (!username) return null;
+  return (
+    getContributors().find(
+      (contributor) => contributor.username === username,
+    ) ?? null
+  );
 }

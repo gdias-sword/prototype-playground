@@ -1,4 +1,4 @@
-import type { Prototype } from '@/config/registry';
+import type { Prototype } from '@/playground/prototypes';
 import Link from 'next/link';
 
 interface PlaygroundItemProps {

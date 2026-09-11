@@ -3,11 +3,11 @@
 import {
   createPrototype,
   type CreatePrototypeState,
-} from '@/app/actions/create-prototype';
+} from '@/playground/create';
 import { Button, buttonVariants } from '@/design/components/button';
 import { Input } from '@/design/components/input';
 import { Textarea } from '@/design/components/textarea';
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import { Dialog } from '@base-ui/react/dialog';
 import { useActionState, useState } from 'react';
 
