@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@/design/utils';
+import { mergeTailwindClasses as cn } from '@/design/utils';
 import {
   useEffect,
   useLayoutEffect,

@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@/design/utils';
+import { mergeTailwindClasses as cn } from '@/design/utils';
 import { useMemo, type RefObject } from 'react';
 import { PanelHeaderStack } from './panel-header';
 import {

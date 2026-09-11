@@ -1,4 +1,4 @@
-import { cn } from '@/design/utils';
+import { mergeTailwindClasses as cn } from '@/design/utils';
 import type { ReactNode } from 'react';
 
 /** Orb slot + gap shared by ContinuityPanel and compact conversation tool steps. Wrap only the current heading — not scrollback history. */
