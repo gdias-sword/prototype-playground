@@ -1,6 +1,6 @@
 'use client';
 
-import { mergeTailwindClasses as cn } from '@/design/utils';
+import { cn } from '@/design/utils';
 import assessmentMember from './assets/assessment-member.webp';
 
 function assetSrc(asset: string | { src: string }) {

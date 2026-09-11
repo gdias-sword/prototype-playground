@@ -1,5 +1,15 @@
 @import 'tailwindcss';
 
+:root {
+  ::selection {
+    background: color-mix(
+      in oklch,
+      var(--color-foreground-neutral-default) 20%,
+      transparent
+    );
+  }
+}
+
 @layer color {
   :root {
     --color-blue-50: oklch(0.96 0.02 260);
@@ -123,6 +133,9 @@
   --text-body-small-subtle: 12px;
   --text-body-small-subtle--line-height: 16px;
   --text-body-small-subtle--font-weight: 500;
+  --text-body-small-strong: 12px;
+  --text-body-small-strong--line-height: 16px;
+  --text-body-small-strong--font-weight: 600;
   --text-body-medium-default: 14px;
   --text-body-medium-default--line-height: 20px;
   --text-body-medium-default--font-weight: 400;
@@ -149,6 +162,10 @@
   --text-title-medium-strong--line-height: 28px;
   --text-title-medium-strong--font-weight: 600;
   --text-title-medium-strong--letter-spacing: -0.01em;
+  --text-title-large-subtle: 24px;
+  --text-title-large-subtle--line-height: 32px;
+  --text-title-large-subtle--font-weight: 500;
+  --text-title-large-subtle--letter-spacing: -0.01em;
   --text-title-large-strong: 24px;
   --text-title-large-strong--line-height: 32px;
   --text-title-large-strong--font-weight: 600;
