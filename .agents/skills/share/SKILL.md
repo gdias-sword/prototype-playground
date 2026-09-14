@@ -1,6 +1,7 @@
 ---
 name: share
 description: Commit and push a prototype iteration directly to main, wait for its Vercel deployment, and return a shareable deployment URL. Use when the user asks to share, deploy, push, publish, get a link for, or update a prototype.
+disable-model-invocation: true
 ---
 
 # Share

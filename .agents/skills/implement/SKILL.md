@@ -1,6 +1,7 @@
 ---
 name: implement
 description: Implement UI in a playground prototype using the Sword design system. Use when building, fleshing out, or coding a prototype screen or component.
+disable-model-invocation: true
 ---
 
 # Implement
