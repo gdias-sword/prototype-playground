@@ -28,13 +28,14 @@ export function Shell({ children }: ShellProps) {
   const contributor = getCurrentContributor();
   const contributorsByTeam = getContributorsByTeam();
   const prototypeCount = getPrototypes().length;
-  const displayName = contributor?.name ?? 'Local';
-  const initials = displayName
-    .split(' ')
-    .map((part) => part.charAt(0))
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  const initials = contributor
+    ? contributor.name
+        .split(' ')
+        .map((part) => part.charAt(0))
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : null;
 
   return (
     <div className="flex h-full">
@@ -82,19 +83,21 @@ export function Shell({ children }: ShellProps) {
             </div>
           ) : null}
         </SidebarContent>
-        <SidebarFooter>
-          <div className="flex items-center gap-3 rounded-md px-2 py-2">
-            <span
-              className="bg-background-neutral-strong text-body-small-subtle text-foreground-neutral-default flex size-8 shrink-0 items-center justify-center rounded-full"
-              aria-hidden
-            >
-              {initials}
-            </span>
-            <span className="text-body-large-subtle text-foreground-neutral-default">
-              {displayName}
-            </span>
-          </div>
-        </SidebarFooter>
+        {contributor ? (
+          <SidebarFooter>
+            <div className="flex items-center gap-3 rounded-md px-2 py-2">
+              <span
+                className="bg-background-neutral-strong text-body-small-subtle text-foreground-neutral-default flex size-8 shrink-0 items-center justify-center rounded-full"
+                aria-hidden
+              >
+                {initials}
+              </span>
+              <span className="text-body-large-subtle text-foreground-neutral-default">
+                {contributor.name}
+              </span>
+            </div>
+          </SidebarFooter>
+        ) : null}
       </Sidebar>
       <Container className="flex flex-col py-10">{children}</Container>
     </div>
