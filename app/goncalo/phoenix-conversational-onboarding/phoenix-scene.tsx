@@ -20,6 +20,8 @@ import {
   FooterActions,
   PrimaryAction,
   RemindActions,
+  SubmitReveal,
+  useRewindDraft,
 } from './extended-scenes';
 import { AREA_PHOTOS, REGION_PHOTOS } from './area-photos';
 import { GlassCheckRow, GlassChip } from './glass';
@@ -239,41 +241,55 @@ function AreaTool({
   selected?: string | null;
   onCommit: (area: string) => void;
 }) {
+  const rewind = useRewindDraft(selected ?? null);
+  const highlighted = rewind.value;
   const areas = BODY_AREAS.filter((area) => !exclude.includes(area));
   const { scrollerRef, fadeTop, fadeBottom, onScroll } = useScrollFade([areas]);
 
   useLayoutEffect(() => {
-    if (!selected) return;
+    if (!highlighted) return;
     const scroller = scrollerRef.current;
     if (!scroller) return;
     const tile = scroller.querySelector(
-      `[data-value="${CSS.escape(selected)}"]`,
+      `[data-value="${CSS.escape(highlighted)}"]`,
     );
     if (!(tile instanceof HTMLElement)) return;
     tile.scrollIntoView({ block: 'nearest' });
     onScroll();
-  }, [onScroll, scrollerRef, selected]);
+  }, [highlighted, onScroll, scrollerRef]);
 
   return (
-    <div
-      ref={scrollerRef}
-      className="phoenix-chip-scroller -mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-5"
-      data-fade-top={fadeTop || undefined}
-      data-fade-bottom={fadeBottom || undefined}
-      onScroll={onScroll}
-    >
-      <div className="grid grid-cols-2 gap-2">
-        {areas.map((area) => (
-          <div key={area} data-value={area}>
-            <PhotoTile
-              label={area}
-              image={AREA_PHOTOS[area]}
-              selected={area === selected}
-              onClick={() => onCommit(area)}
-            />
-          </div>
-        ))}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div
+        ref={scrollerRef}
+        className="phoenix-chip-scroller -mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-5"
+        data-fade-top={fadeTop || undefined}
+        data-fade-bottom={fadeBottom || undefined}
+        onScroll={onScroll}
+      >
+        <div className="grid grid-cols-2 gap-2">
+          {areas.map((area) => (
+            <div key={area} data-value={area}>
+              <PhotoTile
+                label={area}
+                image={AREA_PHOTOS[area]}
+                selected={area === highlighted}
+                rewindSelected={
+                  rewind.isRewind && !rewind.isDirty && area === selected
+                }
+                onClick={() => rewind.choose(area, onCommit)}
+              />
+            </div>
+          ))}
+        </div>
       </div>
+      <SubmitReveal
+        visible={rewind.isDirty}
+        className={rewind.isDirty ? 'pb-2' : undefined}
+        onClick={() => rewind.confirm(onCommit)}
+      >
+        Continue
+      </SubmitReveal>
     </div>
   );
 }
@@ -397,25 +413,36 @@ function ImpactTool({
 
 function DurationTool({
   selected,
-  rewindHighlight,
   onCommit,
 }: {
   selected?: string | null;
-  rewindHighlight?: boolean;
   onCommit: (value: string) => void;
 }) {
+  const rewind = useRewindDraft(selected ?? null);
+
   return (
-    <div className="flex flex-col gap-2">
-      {DURATIONS.map((item) => (
-        <GlassChip
-          key={item}
-          selected={item === selected || undefined}
-          rewindSelected={rewindHighlight && item === selected}
-          onClick={() => onCommit(item)}
-        >
-          {item}
-        </GlassChip>
-      ))}
+    <div className="flex flex-col">
+      <div className="flex flex-col gap-2">
+        {DURATIONS.map((item) => (
+          <GlassChip
+            key={item}
+            selected={item === rewind.value || undefined}
+            rewindSelected={
+              rewind.isRewind && !rewind.isDirty && item === selected
+            }
+            onClick={() => rewind.choose(item, onCommit)}
+          >
+            {item}
+          </GlassChip>
+        ))}
+      </div>
+      <SubmitReveal
+        visible={rewind.isDirty}
+        className={rewind.isDirty ? 'mt-2 mb-16' : undefined}
+        onClick={() => rewind.confirm(onCommit)}
+      >
+        Continue
+      </SubmitReveal>
     </div>
   );
 }
@@ -548,55 +575,92 @@ function IntensityTool({
 
 function YesNoTool({
   selected,
-  rewindHighlight,
   onCommit,
 }: {
   selected?: string | null;
-  rewindHighlight?: boolean;
   onCommit: (value: boolean) => void;
 }) {
+  const rewind = useRewindDraft(selected ?? null);
+
+  function commit(label: string) {
+    onCommit(label === 'Yes');
+  }
+
   return (
-    <div className="flex flex-col gap-2">
-      <GlassChip
-        selected={selected === 'Yes' || undefined}
-        rewindSelected={rewindHighlight && selected === 'Yes'}
-        onClick={() => onCommit(true)}
+    <div className="flex flex-col">
+      <div className="flex flex-col gap-2">
+        <GlassChip
+          selected={rewind.value === 'Yes' || undefined}
+          rewindSelected={
+            rewind.isRewind && !rewind.isDirty && selected === 'Yes'
+          }
+          onClick={() => rewind.choose('Yes', commit)}
+        >
+          Yes
+        </GlassChip>
+        <GlassChip
+          selected={rewind.value === 'No' || undefined}
+          rewindSelected={
+            rewind.isRewind && !rewind.isDirty && selected === 'No'
+          }
+          onClick={() => rewind.choose('No', commit)}
+        >
+          No
+        </GlassChip>
+      </div>
+      <SubmitReveal
+        visible={rewind.isDirty}
+        className={rewind.isDirty ? 'mt-2 mb-16' : undefined}
+        onClick={() => rewind.confirm(commit)}
       >
-        Yes
-      </GlassChip>
-      <GlassChip
-        selected={selected === 'No' || undefined}
-        rewindSelected={rewindHighlight && selected === 'No'}
-        onClick={() => onCommit(false)}
-      >
-        No
-      </GlassChip>
+        Continue
+      </SubmitReveal>
     </div>
   );
 }
 
 function MoreTool({
   selected,
-  rewindHighlight,
   onCommit,
 }: {
   selected?: string | null;
-  rewindHighlight?: boolean;
   onCommit: (wantsMore: boolean) => void;
 }) {
+  const rewind = useRewindDraft(selected ?? null);
+
+  function commit(label: string) {
+    onCommit(label === MORE_YES_LABEL);
+  }
+
   return (
     <FooterActions>
-      <PrimaryAction onClick={() => onCommit(false)}>
-        {MORE_NO_LABEL}
-      </PrimaryAction>
+      <div
+        className={cn(
+          'w-full rounded-2xl',
+          rewind.isRewind &&
+            !rewind.isDirty &&
+            rewind.value === MORE_NO_LABEL &&
+            'phoenix-rewind-selected',
+        )}
+      >
+        <PrimaryAction onClick={() => rewind.choose(MORE_NO_LABEL, commit)}>
+          {MORE_NO_LABEL}
+        </PrimaryAction>
+      </div>
       <button
         type="button"
-        aria-pressed={selected === MORE_YES_LABEL || undefined}
-        onClick={() => onCommit(true)}
+        aria-pressed={rewind.value === MORE_YES_LABEL || undefined}
+        onClick={() => rewind.choose(MORE_YES_LABEL, commit)}
         className="text-body-large-strong text-foreground-neutral-default h-12 w-full cursor-pointer"
       >
         {MORE_YES_LABEL}
       </button>
+      <SubmitReveal
+        visible={rewind.isDirty}
+        onClick={() => rewind.confirm(commit)}
+      >
+        Continue
+      </SubmitReveal>
     </FooterActions>
   );
 }
@@ -689,11 +753,7 @@ export function PhoenixTools({
         />
       ) : null}
       {step.kind === 'know' && step.index === 1 ? (
-        <DurationTool
-          selected={selectedAnswer}
-          rewindHighlight={rewindHighlight}
-          onCommit={onDuration}
-        />
+        <DurationTool selected={selectedAnswer} onCommit={onDuration} />
       ) : null}
       {step.kind === 'know' && step.index === 2 ? (
         <IntensityTool
@@ -704,11 +764,7 @@ export function PhoenixTools({
         />
       ) : null}
       {step.kind === 'know' && step.index === 3 ? (
-        <YesNoTool
-          selected={selectedAnswer}
-          rewindHighlight={rewindHighlight}
-          onCommit={onTingling}
-        />
+        <YesNoTool selected={selectedAnswer} onCommit={onTingling} />
       ) : null}
       {step.kind === 'impact' && onImpact ? (
         <ImpactTool
@@ -719,23 +775,28 @@ export function PhoenixTools({
         />
       ) : null}
       {step.kind === 'more' ? (
-        <MoreTool
-          selected={selectedAnswer}
-          rewindHighlight={rewindHighlight}
-          onCommit={onMore}
-        />
+        <MoreTool selected={selectedAnswer} onCommit={onMore} />
       ) : null}
       {step.kind === 'activity' ? (
         <ActivityTool
           key={selectedAnswer ?? 'activity'}
+          selected={selectedAnswer}
           onCommit={onActivity}
         />
       ) : null}
       {step.kind === 'call' ? (
-        <CallActions onYes={onCallYes} onNo={onCallNo} />
+        <CallActions
+          selected={selectedAnswer}
+          onYes={onCallYes}
+          onNo={onCallNo}
+        />
       ) : null}
       {step.kind === 'remind' ? (
-        <RemindActions onYes={onRemindYes} onNo={onRemindNo} />
+        <RemindActions
+          selected={selectedAnswer}
+          onYes={onRemindYes}
+          onNo={onRemindNo}
+        />
       ) : null}
     </ToolShell>
   );
@@ -843,11 +904,7 @@ export function useStackWindow(visibleTurns: StackTurn[]) {
     const measuredFrame = frameRef.current;
 
     function measure() {
-      const cap =
-        measuredFrame && measuredFrame.clientHeight > 0
-          ? measuredFrame.clientHeight
-          : STACK_WINDOW_MAX_PX;
-      const nextIsFilled = measuredList.scrollHeight > cap + 2;
+      const nextIsFilled = measuredList.scrollHeight > STACK_WINDOW_MAX_PX + 2;
       setIsFilled((current) =>
         current === nextIsFilled ? current : nextIsFilled,
       );

@@ -233,7 +233,46 @@ export function FooterActions({ children }: { children: ReactNode }) {
 
 const SUBMIT_REVEAL_EASE = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
 
-function SubmitReveal({
+export function useRewindDraft<T>(
+  saved: T | null | undefined,
+  options?: { commitOnFirstSelect?: boolean },
+) {
+  const commitOnFirstSelect = options?.commitOnFirstSelect ?? true;
+  const [draft, setDraft] = useState<T | null>(() => saved ?? null);
+
+  useEffect(() => {
+    setDraft(saved ?? null);
+  }, [saved]);
+
+  const isRewind = saved != null;
+  const isDirty = isRewind && draft !== saved;
+  const value = draft ?? saved ?? null;
+
+  function choose(next: T, commit: (value: T) => void) {
+    if (!isRewind) {
+      if (commitOnFirstSelect) {
+        commit(next);
+        return;
+      }
+      setDraft(next);
+      return;
+    }
+    if (next === saved && draft === saved) {
+      commit(next);
+      return;
+    }
+    setDraft(next);
+  }
+
+  function confirm(commit: (value: T) => void) {
+    if (value == null) return;
+    commit(value);
+  }
+
+  return { value, isRewind, isDirty, choose, confirm };
+}
+
+export function SubmitReveal({
   visible,
   onClick,
   children,
@@ -246,10 +285,11 @@ function SubmitReveal({
 }) {
   return (
     <div
+      inert={!visible || undefined}
       className={cn(
-        'grid w-full transition-[grid-template-rows] duration-500',
+        'grid w-full shrink-0 transition-[grid-template-rows] duration-500',
         SUBMIT_REVEAL_EASE,
-        visible ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+        visible ? 'grid-rows-[1fr] min-h-12' : 'grid-rows-[0fr]',
         className,
       )}
     >
@@ -810,12 +850,22 @@ export function ConfirmPanel({
 
 const ACTIVITY_EASE = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
 
+function activityIdFromAnswer(answer?: string | null) {
+  if (!answer) return null;
+  return ACTIVITIES.find((activity) => activity.label === answer)?.id ?? null;
+}
+
 export function ActivityTool({
+  selected: savedAnswer,
   onCommit,
 }: {
+  selected?: string | null;
   onCommit: (id: ActivityId) => void;
 }) {
-  const [selected, setSelected] = useState<ActivityId | null>(null);
+  const rewind = useRewindDraft<ActivityId>(activityIdFromAnswer(savedAnswer), {
+    commitOnFirstSelect: false,
+  });
+  const selected = rewind.value;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -826,7 +876,10 @@ export function ActivityTool({
             <GlassChip
               key={activity.id}
               selected={isSelected}
-              onClick={() => setSelected(activity.id)}
+              rewindSelected={
+                rewind.isRewind && !rewind.isDirty && isSelected
+              }
+              onClick={() => rewind.choose(activity.id, onCommit)}
               className={cn(
                 'grid justify-items-center overflow-hidden text-center',
                 'transition-[grid-template-rows,padding,gap,transform,background-color,box-shadow] duration-500',
@@ -856,11 +909,9 @@ export function ActivityTool({
         })}
       </div>
       <SubmitReveal
-        visible={Boolean(selected)}
+        visible={rewind.isRewind ? rewind.isDirty : Boolean(selected)}
         className="mt-auto pb-2"
-        onClick={() => {
-          if (selected) onCommit(selected);
-        }}
+        onClick={() => rewind.confirm(onCommit)}
       >
         Continue
       </SubmitReveal>
@@ -871,26 +922,57 @@ export function ActivityTool({
 export function DualActionTool({
   primary,
   secondary,
+  selected,
   onPrimary,
   onSecondary,
 }: {
   primary: string;
   secondary: string;
+  selected?: string | null;
   onPrimary: () => void;
   onSecondary: () => void;
 }) {
+  const rewind = useRewindDraft(selected ?? null);
+
+  function commit(label: string) {
+    if (label === primary) onPrimary();
+    else onSecondary();
+  }
+
   return (
     <div className="mt-auto flex flex-col items-center gap-2 pb-2">
-      <PrimaryAction onClick={onPrimary}>{primary}</PrimaryAction>
-      <SecondaryAction onClick={onSecondary}>{secondary}</SecondaryAction>
+      <div
+        className={cn(
+          'w-full rounded-2xl',
+          rewind.isRewind &&
+            !rewind.isDirty &&
+            rewind.value === primary &&
+            'phoenix-rewind-selected',
+        )}
+      >
+        <PrimaryAction onClick={() => rewind.choose(primary, commit)}>
+          {primary}
+        </PrimaryAction>
+      </div>
+      <SecondaryAction onClick={() => rewind.choose(secondary, commit)}>
+        {secondary}
+      </SecondaryAction>
+      <SubmitReveal
+        visible={rewind.isDirty}
+        onClick={() => rewind.confirm(commit)}
+      >
+        Continue
+      </SubmitReveal>
     </div>
   );
 }
 
 export function CallActions({
+  selected,
   onYes,
   onNo,
 }: {
+  selected?: string | null;
   onYes: () => void;
   onNo: () => void;
 }) {
@@ -898,6 +980,7 @@ export function CallActions({
     <DualActionTool
       primary={CALL_YES_LABEL}
       secondary={CALL_NO_LABEL}
+      selected={selected}
       onPrimary={onYes}
       onSecondary={onNo}
     />
@@ -905,9 +988,11 @@ export function CallActions({
 }
 
 export function RemindActions({
+  selected,
   onYes,
   onNo,
 }: {
+  selected?: string | null;
   onYes: () => void;
   onNo: () => void;
 }) {
@@ -915,6 +1000,7 @@ export function RemindActions({
     <DualActionTool
       primary={REMIND_YES_LABEL}
       secondary={REMIND_NO_LABEL}
+      selected={selected}
       onPrimary={onYes}
       onSecondary={onNo}
     />

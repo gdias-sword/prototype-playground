@@ -6,6 +6,10 @@ export function showsProgress(step: PhoenixStep) {
   return step.kind !== 'guide' && step.kind !== 'ready';
 }
 
+export function canRewindFrom(previous?: PhoenixStep) {
+  return previous != null && showsProgress(previous);
+}
+
 export function progressForStep(step: PhoenixStep) {
   if (step.kind === 'guide' || step.kind === 'ready') return 0;
   if (step.kind === 'know' && step.index === 0) return 0.18;

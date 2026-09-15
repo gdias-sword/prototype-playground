@@ -5,12 +5,14 @@ export function PhotoTile({
   label,
   image,
   selected,
+  rewindSelected,
   checkbox,
   onClick,
 }: {
   label: string;
   image: string;
   selected?: boolean;
+  rewindSelected?: boolean;
   checkbox?: boolean;
   onClick: () => void;
 }) {
@@ -19,7 +21,14 @@ export function PhotoTile({
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className="relative h-[120px] w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-white shadow-[0_3px_6px_rgba(31,34,44,0.05)]"
+      className={cn(
+        'relative h-[120px] w-full cursor-pointer overflow-hidden rounded-2xl border-2 shadow-[0_3px_6px_rgba(31,34,44,0.05)]',
+        rewindSelected
+          ? 'phoenix-rewind-selected border-background-brand-default/80'
+          : selected
+            ? 'border-background-brand-default'
+            : 'border-white',
+      )}
     >
       <img
         alt=""
@@ -30,7 +39,7 @@ export function PhotoTile({
       <span className="text-title-small-strong absolute inset-x-4 bottom-3 text-left text-white">
         {label}
       </span>
-      {checkbox ? (
+      {(checkbox || selected) ? (
         <span
           aria-hidden
           className={cn(

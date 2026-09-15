@@ -44,7 +44,7 @@ import {
   type PhoenixStep,
   useDelayedTool,
 } from './phoenix-scene';
-import { progressForStep, showsProgress } from './rewind-chrome';
+import { canRewindFrom, progressForStep } from './rewind-chrome';
 import {
   type ActivityId,
   type Answers,
@@ -478,11 +478,9 @@ export function Experience({
       return;
     }
     const index = checkpointIndexRef.current;
-    if (index < 0) return;
-    const rewindToReady =
-      index === 0 && showsProgress(stepRef.current);
-    if (index <= 0 && !rewindToReady) return;
-    const target = rewindToReady ? 0 : index - 1;
+    const previous = checkpointsRef.current[index - 1];
+    if (!previous || !canRewindFrom(previous.step)) return;
+    const target = index - 1;
     if (!fastDemoRef.current) {
       rewindLockRef.current = true;
       clearTimers();
@@ -490,15 +488,11 @@ export function Experience({
       setMood('think');
       later(() => {
         rewindLockRef.current = false;
-        restoreCheckpoint(target, {
-          force: rewindToReady,
-        });
+        restoreCheckpoint(target);
       }, TOOL_MOTION_MS);
       return;
     }
-    restoreCheckpoint(target, {
-      force: rewindToReady,
-    });
+    restoreCheckpoint(target);
   }
 
   function jumpTo(destinationId: JumpDestinationId) {
@@ -546,7 +540,9 @@ export function Experience({
 
   useEffect(() => {
     onControlsChange?.({
-      canPrev: checkpointIndex > 0 || phase === 'exiting',
+      canPrev:
+        phase === 'exiting' ||
+        canRewindFrom(checkpoints[checkpointIndex - 1]?.step),
       canNext: checkpointIndex >= 0 && checkpointIndex < checkpoints.length - 1,
     });
   }, [checkpoints.length, checkpointIndex, onControlsChange, phase]);
@@ -936,7 +932,8 @@ export function Experience({
     selectedImpacts,
     progress: progressForStep(step),
     canRewind:
-      checkpointIndex > 0 || (checkpointIndex === 0 && showsProgress(step)),
+      phase === 'exiting' ||
+      canRewindFrom(checkpoints[checkpointIndex - 1]?.step),
     isAtFrontier,
     mood,
     hasStreamedTurn,
@@ -1156,9 +1153,13 @@ export function Experience({
         <div
           className={cn(
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-            conversationChrome && 'h-0',
-            !conversationChrome && layout === 'hero' && 'h-[232px]',
+            (conversationChrome || bottomRest) && 'h-0',
             !conversationChrome &&
+              !bottomRest &&
+              layout === 'hero' &&
+              'h-[232px]',
+            !conversationChrome &&
+              !bottomRest &&
               layout === 'compact' &&
               !compactToolsReady &&
               'h-[108px]',
@@ -1169,6 +1170,7 @@ export function Experience({
                 compactToolsReady) &&
               'h-0',
             !conversationChrome &&
+              !bottomRest &&
               layout !== 'hero' &&
               layout !== 'compact' &&
               layout !== 'panel' &&
