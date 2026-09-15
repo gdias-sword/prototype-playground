@@ -175,14 +175,32 @@ export function PrimaryAction({
   disabled?: boolean;
   onClick: () => void;
 }) {
+  const prevLabelRef = useRef<string | null>(null);
+  const shouldAnimate =
+    prevLabelRef.current !== null && prevLabelRef.current !== children;
+
+  useEffect(() => {
+    prevLabelRef.current = children;
+  }, [children]);
+
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="text-body-large-strong bg-background-neutral-inverse text-foreground-neutral-inverse h-12 w-full cursor-pointer rounded-2xl disabled:cursor-not-allowed disabled:opacity-40"
+      className="text-body-large-strong bg-background-neutral-inverse text-foreground-neutral-inverse flex h-12 w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl disabled:cursor-not-allowed disabled:opacity-40"
     >
-      {children}
+      <span className="grid overflow-hidden">
+        <span
+          key={children}
+          className={cn(
+            'col-start-1 row-start-1',
+            shouldAnimate && 'phoenix-cta-label-wipe',
+          )}
+        >
+          {children}
+        </span>
+      </span>
     </button>
   );
 }
@@ -214,43 +232,6 @@ export function FooterActions({ children }: { children: ReactNode }) {
 }
 
 const SUBMIT_REVEAL_EASE = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
-
-function WipeLabelAction({
-  hasFlags,
-  onClick,
-}: {
-  hasFlags: boolean;
-  onClick: () => void;
-}) {
-  const label = hasFlags ? 'Continue' : SAFETY_NONE_LABEL;
-  const prevLabelRef = useRef<string | null>(null);
-  const shouldAnimate =
-    prevLabelRef.current !== null && prevLabelRef.current !== label;
-
-  useEffect(() => {
-    prevLabelRef.current = label;
-  }, [label]);
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="text-body-large-strong bg-background-neutral-inverse text-foreground-neutral-inverse flex h-12 w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl"
-    >
-      <span className="grid overflow-hidden">
-        <span
-          key={label}
-          className={cn(
-            'col-start-1 row-start-1',
-            shouldAnimate && 'phoenix-cta-label-wipe',
-          )}
-        >
-          {label}
-        </span>
-      </span>
-    </button>
-  );
-}
 
 function SubmitReveal({
   visible,
@@ -575,10 +556,9 @@ export function SafetyPanel({
         ready={headlineReady}
         className="mt-auto w-full pb-2"
       >
-        <WipeLabelAction
-          hasFlags={selected.length > 0}
-          onClick={() => onContinue(selected)}
-        />
+        <PrimaryAction onClick={() => onContinue(selected)}>
+          {selected.length > 0 ? 'Continue' : SAFETY_NONE_LABEL}
+        </PrimaryAction>
       </OfferPiece>
     </div>
   );

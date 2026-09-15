@@ -24,12 +24,14 @@ import {
 import { AREA_PHOTOS, REGION_PHOTOS } from './area-photos';
 import { GlassCheckRow, GlassChip } from './glass';
 import { PhotoTile } from './photo-tile';
+import type { PhoenixMood } from './phoenix-orb';
 import {
   BODY_AREAS,
   DISCLAIMER,
   DURATIONS,
   IMPACT_MAX,
   IMPACT_NONE_LABEL,
+  impactHint,
   MORE_NO_LABEL,
   MORE_YES_LABEL,
   READY_LABEL,
@@ -164,9 +166,9 @@ function phraseStartIndex(characters: string[], phrase: string) {
   return -1;
 }
 
-const TOOL_MOTION_MS = 800;
+export const TOOL_MOTION_MS = 800;
 
-function toolShellFills(step: PhoenixStep) {
+export function toolShellFills(step: PhoenixStep) {
   return (
     step.kind === 'ready' ||
     (step.kind === 'know' && (step.index === 0 || step.index === 2)) ||
@@ -278,13 +280,19 @@ function AreaTool({
 
 function RegionTool({
   area,
+  initialSelected,
   onCommit,
 }: {
   area: string | null;
+  initialSelected?: string[];
   onCommit: (regions: string[]) => void;
 }) {
   const options = regionsFor(area);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(() => initialSelected ?? []);
+
+  useEffect(() => {
+    setSelected(initialSelected ?? []);
+  }, [initialSelected]);
   const usePhotos =
     options.length > 0 && options.every((option) => REGION_PHOTOS[option]);
 
@@ -338,13 +346,19 @@ function RegionTool({
 
 function ImpactTool({
   area,
+  initialSelected,
   onCommit,
 }: {
   area: string | null;
+  initialSelected?: string[];
   onCommit: (impacts: string[]) => void;
 }) {
   const options = impactsFor(area);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(() => initialSelected ?? []);
+
+  useEffect(() => {
+    setSelected(initialSelected ?? []);
+  }, [initialSelected]);
 
   function toggle(option: string) {
     setSelected((current) => {
@@ -360,6 +374,9 @@ function ImpactTool({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <p className="text-body-large-default text-foreground-neutral-default mb-4 shrink-0">
+        {impactHint()}
+      </p>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-2">
         {options.map((option) => (
           <GlassCheckRow
@@ -613,6 +630,8 @@ export function PhoenixTools({
   show,
   excludedAreas,
   selectedAnswer,
+  selectedRegions,
+  selectedImpacts,
   area,
   onReady,
   onArea,
@@ -632,6 +651,8 @@ export function PhoenixTools({
   show: boolean;
   excludedAreas: string[];
   selectedAnswer?: string | null;
+  selectedRegions?: string[];
+  selectedImpacts?: string[];
   area?: string | null;
   onReady: () => void;
   onArea: (area: string) => void;
@@ -660,7 +681,12 @@ export function PhoenixTools({
         />
       ) : null}
       {step.kind === 'region' && onRegions ? (
-        <RegionTool key={area ?? 'region'} area={area ?? null} onCommit={onRegions} />
+        <RegionTool
+          key={area ?? 'region'}
+          area={area ?? null}
+          initialSelected={selectedRegions}
+          onCommit={onRegions}
+        />
       ) : null}
       {step.kind === 'know' && step.index === 1 ? (
         <DurationTool
@@ -685,7 +711,12 @@ export function PhoenixTools({
         />
       ) : null}
       {step.kind === 'impact' && onImpact ? (
-        <ImpactTool key={area ?? 'impact'} area={area ?? null} onCommit={onImpact} />
+        <ImpactTool
+          key={area ?? 'impact'}
+          area={area ?? null}
+          initialSelected={selectedImpacts}
+          onCommit={onImpact}
+        />
       ) : null}
       {step.kind === 'more' ? (
         <MoreTool
@@ -944,8 +975,16 @@ export interface ConversationProps {
   reserveOrbSlot?: boolean;
   excludedAreas: string[];
   area?: string | null;
+  selectedAnswer?: string | null;
+  selectedRegions?: string[];
+  selectedImpacts?: string[];
+  progress?: number;
+  canRewind?: boolean;
+  isAtFrontier?: boolean;
+  mood?: PhoenixMood;
   hasStreamedTurn?: (turnId: string) => boolean;
   instantStream?: boolean;
+  onRewind?: () => void;
   onGuideAdvance: () => void;
   onSessionAdvance: () => void;
   onReady: () => void;

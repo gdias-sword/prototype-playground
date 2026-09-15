@@ -2,20 +2,20 @@
 
 import { cn } from '@/design/utils';
 import { useMemo, type RefObject } from 'react';
-import { PanelHeaderStack } from './panel-header';
 import {
   PhoenixLineText,
   PhoenixTools,
   STACK_COMPACT_MS,
   STACK_WINDOW_MAX_PX,
   shouldCompactStack,
+  toolShellFills,
   stackBlur,
   stackOpacity,
   useStackWindow,
   windowedTurns,
   type ConversationProps,
 } from './phoenix-scene';
-import { impactHint } from './script';
+import { BackButton, ProgressRail, showsProgress } from './rewind-chrome';
 
 const LIST_CLASS = 'flex w-full shrink-0 flex-col items-stretch gap-2.5';
 const STACK_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
@@ -23,12 +23,14 @@ const LINE_TRANSITION = `color ${STACK_COMPACT_MS}ms ${STACK_EASE}, opacity ${ST
 
 function useConversationStack(props: ConversationProps) {
   const visibleTurns = useMemo(() => windowedTurns(props.turns), [props.turns]);
-  const { listRef, frameRef, promptHeight } = useStackWindow(visibleTurns);
+  const { listRef, frameRef, isFilled, promptHeight } =
+    useStackWindow(visibleTurns);
 
   return {
     visibleTurns,
     listRef,
     frameRef,
+    isFilled,
     promptHeight,
     currentId: visibleTurns.at(-1)?.id,
     isCompact:
@@ -112,6 +114,9 @@ function Tools(props: ConversationProps) {
       step={props.step}
       show={props.toolReady}
       excludedAreas={props.excludedAreas}
+      selectedAnswer={props.selectedAnswer}
+      selectedRegions={props.selectedRegions}
+      selectedImpacts={props.selectedImpacts}
       area={props.area}
       onReady={props.onReady}
       onArea={props.onArea}
@@ -130,7 +135,7 @@ function Tools(props: ConversationProps) {
   );
 }
 
-export function PhoenixTurn({
+function PhoenixTurn({
   turn,
   isCurrent,
   fromEnd,
@@ -165,18 +170,21 @@ export function PhoenixTurn({
   );
 }
 
-export function PhoenixCopy(props: ConversationProps) {
-  const {
-    step,
-    reserveOrbSlot,
-    onGuideAdvance,
-    onSessionAdvance,
-    onTurnStreamComplete,
-  } = props;
+function advanceHandler(props: ConversationProps) {
+  if (props.step.kind === 'guide') return props.onGuideAdvance;
+  if (props.step.kind === 'session' || props.step.kind === 'placement-intro') {
+    return props.onSessionAdvance;
+  }
+  return undefined;
+}
+
+export function ConversationShell(props: ConversationProps) {
+  const { step, onTurnStreamComplete } = props;
   const {
     visibleTurns,
     listRef,
     frameRef,
+    isFilled,
     promptHeight,
     currentId,
     isCompact,
@@ -184,81 +192,69 @@ export function PhoenixCopy(props: ConversationProps) {
 
   const maxHeight =
     isCompact && promptHeight > 0 ? promptHeight : STACK_WINDOW_MAX_PX;
-
-  // Panel-header orb alignment matches ContinuityPanel: slot + gap-6 apply only
-  // to the current prompt, not the full scrollback (which caused huge gaps).
-  const stackTurns = reserveOrbSlot
-    ? visibleTurns.filter((turn) => turn.id === currentId)
-    : visibleTurns;
-
-  const stack = (
-    <StackFrame maxHeight={maxHeight} frameRef={frameRef} fadeTop={!isCompact}>
-      <div ref={listRef} className={LIST_CLASS}>
-        {stackTurns.map((turn, index) => {
-          const fromEnd = stackTurns.length - 1 - index;
-          const isCurrent = turn.id === currentId;
-          const isLeavingWindow = isCompact && !isCurrent;
-
-          if (isLeavingWindow) return null;
-
-          if (turn.role === 'member') {
-            return (
-              <p
-                key={turn.id}
-                className="text-foreground-brand-default pr-1 text-right font-sans text-[26px] leading-8 font-medium"
-                style={lineMotion(fromEnd, 'member', isLeavingWindow)}
-              >
-                {turn.text}
-              </p>
-            );
-          }
-
-          return (
-            <PhoenixTurn
-              key={turn.id}
-              turn={turn}
-              isCurrent={isCurrent}
-              fromEnd={fromEnd}
-              isLeavingWindow={isLeavingWindow}
-              hasStreamedTurn={props.hasStreamedTurn}
-              instantStream={props.instantStream}
-              onTurnStreamComplete={onTurnStreamComplete}
-            />
-          );
-        })}
-      </div>
-    </StackFrame>
-  );
+  const showRewindChrome = showsProgress(step);
 
   return (
     <div
       className={cn(
-        'flex min-h-0 flex-1 flex-col px-5',
-        reserveOrbSlot ? 'pt-4' : 'pt-1',
+        'flex min-h-0 flex-1 flex-col px-4 pt-2',
+        !toolShellFills(step) && 'pb-24',
       )}
-      onClick={
-        step.kind === 'guide'
-          ? onGuideAdvance
-          : step.kind === 'session' || step.kind === 'placement-intro'
-            ? onSessionAdvance
-            : undefined
-      }
+      onClick={advanceHandler(props)}
     >
-      {reserveOrbSlot ? (
-        <PanelHeaderStack>
-          <div className="flex flex-col gap-4">
-            {stack}
-            {step.kind === 'impact' ? (
-              <p className="text-body-large-default text-foreground-neutral-default">
-                {impactHint()}
-              </p>
-            ) : null}
+      <div className="flex shrink-0 items-center gap-4 px-1 py-1">
+        {showRewindChrome ? (
+          <>
+            <BackButton
+              disabled={!props.canRewind}
+              onClick={() => props.onRewind?.()}
+            />
+            <ProgressRail value={props.progress ?? 0} />
+          </>
+        ) : null}
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col pt-6">
+        <StackFrame
+          maxHeight={maxHeight}
+          frameRef={frameRef}
+          fadeTop={!isCompact && isFilled}
+        >
+          <div ref={listRef} className={LIST_CLASS}>
+            {visibleTurns.map((turn, index) => {
+              const fromEnd = visibleTurns.length - 1 - index;
+              const isCurrent = turn.id === currentId;
+              const isLeavingWindow = isCompact && !isCurrent;
+              if (isLeavingWindow) return null;
+
+              if (turn.role === 'member') {
+                return (
+                  <p
+                    key={turn.id}
+                    className="text-foreground-brand-default pr-1 text-right font-sans text-[26px] leading-8 font-medium"
+                    style={lineMotion(fromEnd, 'member', isLeavingWindow)}
+                  >
+                    {turn.text}
+                  </p>
+                );
+              }
+
+              return (
+                <PhoenixTurn
+                  key={turn.id}
+                  turn={turn}
+                  isCurrent={isCurrent}
+                  fromEnd={fromEnd}
+                  isLeavingWindow={isLeavingWindow}
+                  hasStreamedTurn={props.hasStreamedTurn}
+                  instantStream={props.instantStream}
+                  onTurnStreamComplete={onTurnStreamComplete}
+                />
+              );
+            })}
           </div>
-        </PanelHeaderStack>
-      ) : (
-        stack
-      )}
-      <Tools {...props} />
+        </StackFrame>
+        <Tools {...props} />
+      </div>
     </div>
   );
 }

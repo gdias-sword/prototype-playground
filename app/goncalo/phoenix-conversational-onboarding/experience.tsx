@@ -15,7 +15,7 @@ import { RewardConfirmationScene } from './reward-confirmation-scene';
 import { RewardRevealScene } from './reward-reveal-scene';
 import { RewardShippingScene } from './reward-shipping-scene';
 import { ChatScene } from './chat-scene';
-import { PhoenixCopy } from './conversation-variants';
+import { ConversationShell } from './conversation-variants';
 import { HomeIndicatorSpace, StatusBar } from './device-frame';
 import {
   CAMERA_HEADING_TURN,
@@ -38,10 +38,13 @@ import {
   isPanelStep,
   isRewardStep,
   streamDurationMs,
+  toolShellFills,
+  TOOL_MOTION_MS,
   type ConversationProps,
   type PhoenixStep,
   useDelayedTool,
 } from './phoenix-scene';
+import { progressForStep, showsProgress } from './rewind-chrome';
 import {
   type ActivityId,
   type Answers,
@@ -151,6 +154,7 @@ interface Checkpoint {
   door: DoorId | null;
   chatCount: number;
   sessionAfterReward: boolean;
+  answerTurnId?: string;
 }
 
 const EMPTY_ANSWERS: Answers = {
@@ -166,6 +170,8 @@ const EMPTY_ANSWERS: Answers = {
   appointmentDay: null,
   appointmentTime: null,
 };
+
+const EMPTY_SELECTION: string[] = [];
 
 function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'guide') return GUIDE_LINES[step.index];
@@ -289,6 +295,7 @@ export function Experience({
   const stepRef = useRef<PhoenixStep>({ kind: 'guide', index: 0 });
   const turnsRef = useRef<StackTurn[]>([]);
   const pendingRevealRef = useRef<(() => void) | null>(null);
+  const rewindLockRef = useRef(false);
   const fastDemoRef = useRef(fastDemo);
   fastDemoRef.current = fastDemo;
   const [phase, setPhase] = useState<Phase>('entering');
@@ -308,6 +315,7 @@ export function Experience({
   const [safetyContentReady, setSafetyContentReady] = useState(false);
   const [confirmContentReady, setConfirmContentReady] = useState(false);
   const [sessionAfterReward, setSessionAfterReward] = useState(false);
+  const answersRef = useRef(EMPTY_ANSWERS);
   const rushExperience = skipToolDelay || fastDemo;
   const toolReady = useDelayedTool(
     phase === 'phoenix' && hasConversationTools(step) && mood === 'listen',
@@ -325,6 +333,7 @@ export function Experience({
   phaseRef.current = phase;
   stepRef.current = step;
   turnsRef.current = turns;
+  answersRef.current = answers;
 
   function nextTurnId() {
     turnIdRef.current += 1;
@@ -423,20 +432,32 @@ export function Experience({
     setCheckpoints(next);
   }
 
-  function restoreCheckpoint(index: number) {
+  function restoreCheckpoint(
+    index: number,
+    options: { keepTurns?: boolean; force?: boolean } = {},
+  ) {
     const snapshot = checkpointsRef.current[index];
     if (!snapshot) return;
+    if (!options.force && checkpointIndexRef.current === index) return;
+
+    const answered = checkpointsRef.current[index + 1];
+    const answersForHighlight = answered
+      ? answered.answers
+      : snapshot.answers;
 
     clearTimers();
     cancelPendingReveal();
     restoringRef.current = true;
+    rewindLockRef.current = false;
     checkpointIndexRef.current = index;
     setCheckpointIndex(index);
     setSkipToolDelay(true);
     setPhase(snapshot.phase);
     setStep(cloneStep(snapshot.step));
-    setAnswers(cloneAnswers(snapshot.answers));
-    setTurns([...snapshot.turns]);
+    setAnswers(cloneAnswers(answersForHighlight));
+    if (!options.keepTurns) {
+      setTurns([...snapshot.turns]);
+    }
     setMood(snapshot.mood);
     setDoor(snapshot.door);
     setChatCount(snapshot.chatCount);
@@ -450,10 +471,41 @@ export function Experience({
     setConfirmContentReady(snapshot.step.kind === 'confirm');
   }
 
+  function rewindPrev() {
+    if (rewindLockRef.current) return;
+    if (phaseRef.current === 'exiting') {
+      restoreCheckpoint(checkpointIndexRef.current);
+      return;
+    }
+    const index = checkpointIndexRef.current;
+    if (index < 0) return;
+    const rewindToReady =
+      index === 0 && showsProgress(stepRef.current);
+    if (index <= 0 && !rewindToReady) return;
+    const target = rewindToReady ? 0 : index - 1;
+    if (!fastDemoRef.current) {
+      rewindLockRef.current = true;
+      clearTimers();
+      cancelPendingReveal();
+      setMood('think');
+      later(() => {
+        rewindLockRef.current = false;
+        restoreCheckpoint(target, {
+          force: rewindToReady,
+        });
+      }, TOOL_MOTION_MS);
+      return;
+    }
+    restoreCheckpoint(target, {
+      force: rewindToReady,
+    });
+  }
+
   function jumpTo(destinationId: JumpDestinationId) {
     clearTimers();
     cancelPendingReveal();
     restoringRef.current = true;
+    rewindLockRef.current = false;
     setSkipToolDelay(true);
 
     const jump = buildJumpState(destinationId, nextTurnId);
@@ -482,14 +534,7 @@ export function Experience({
 
   useImperativeHandle(navigatorRef, () => ({
     prevQuestion() {
-      if (phaseRef.current === 'exiting') {
-        restoreCheckpoint(checkpointIndexRef.current);
-        return;
-      }
-
-      const index = checkpointIndexRef.current;
-      if (index <= 0) return;
-      restoreCheckpoint(index - 1);
+      rewindPrev();
     },
     nextQuestion() {
       const index = checkpointIndexRef.current;
@@ -518,17 +563,19 @@ export function Experience({
   }, []);
 
   useEffect(() => {
-    const id = window.setTimeout(() => setIsHero(true), delay(40));
+    const wait = 80;
+    const id = window.setTimeout(() => setIsHero(true), delay(wait));
     return () => window.clearTimeout(id);
   }, [fastDemo]);
 
   useEffect(() => {
     if (restoringRef.current) return;
     if (phase !== 'entering') return;
+    const wait = 480;
     const id = window.setTimeout(() => {
       setPhase('phoenix');
       setMood('speak');
-    }, delay(1200));
+    }, delay(wait));
     return () => window.clearTimeout(id);
   }, [phase, fastDemo]);
 
@@ -698,9 +745,35 @@ export function Experience({
     nextAnswers: Answers,
     care?: string,
   ) {
+    const currentIndex = checkpointIndexRef.current;
+    const rewound =
+      currentIndex >= 0 && currentIndex < checkpointsRef.current.length - 1;
+    const baseTurns = rewound
+      ? [...(checkpointsRef.current[currentIndex]?.turns ?? turnsRef.current)]
+      : turnsRef.current;
+    const memberId = nextTurnId();
+    const memberTurn: StackTurn = {
+      id: memberId,
+      role: 'member',
+      text,
+      kind: 'answer',
+    };
+
+    if (currentIndex >= 0 && checkpointsRef.current[currentIndex]) {
+      const marked = checkpointsRef.current.map((checkpoint, index) =>
+        index === currentIndex
+          ? { ...checkpoint, answerTurnId: memberId }
+          : checkpoint,
+      );
+      checkpointsRef.current = marked;
+      setCheckpoints(marked);
+    }
+
     discardFutureCheckpoints();
     setSkipToolDelay(false);
-    pushTurns({ role: 'member', text, kind: 'answer' });
+    const nextTurns = [...baseTurns, memberTurn];
+    turnsRef.current = nextTurns;
+    setTurns(nextTurns);
     setMood('think');
 
     const revealNext = () => {
@@ -803,10 +876,15 @@ export function Experience({
     SCHEDULE_DAYS.find(
       (day) => appointmentDayLabel(day) === answers.appointmentDay,
     ) ?? SCHEDULE_DAYS[0];
+  const conversationChrome = showConversation;
+  const bottomRest =
+    phase === 'entering' || (showConversation && phase === 'phoenix');
+  const bottomOrb = bottomRest;
   const isPaired =
     layout === 'hero' &&
     phase === 'phoenix' &&
-    (step.kind === 'ready' || (step.kind === 'guide' && step.index >= 1));
+    step.kind === 'ready' &&
+    !bottomRest;
   // Only the first question (area chips) needs the small left orb — later steps keep centered.
   const compactToolsReady =
     layout === 'compact' &&
@@ -814,17 +892,56 @@ export function Experience({
     ((step.kind === 'know' && step.index === 0) || step.kind === 'impact');
   const hideFloatingOrb =
     phase === 'phoenix' && (isImmersiveStep(step) || isCommitmentStep(step));
-  const orbLayout: Layout = compactToolsReady ? 'panel-header' : layout;
+  const concealBottomOrb =
+    (bottomOrb && toolReady && toolShellFills(step)) ||
+    (bottomRest && phase === 'entering' && !isHero);
+  const hideExperienceOrb = hideFloatingOrb;
+  const orbLayout: Layout = compactToolsReady && !conversationChrome
+    ? 'panel-header'
+    : layout;
+
+  const isAtFrontier =
+    checkpointIndex < 0 || checkpointIndex >= checkpoints.length - 1;
+  const selectedAnswer = (() => {
+    if (isAtFrontier) return null;
+    const current = checkpoints[checkpointIndex];
+    const next = checkpoints[checkpointIndex + 1];
+    if (!current) return null;
+    if (current.answerTurnId) {
+      const turn =
+        next?.turns.find((item) => item.id === current.answerTurnId) ??
+        turns.find((item) => item.id === current.answerTurnId);
+      if (turn) return turn.text;
+    }
+    if (!next) return null;
+    const answer = next.turns.find(
+      (turn, index) => index >= current.turns.length && turn.role === 'member',
+    );
+    return answer?.text ?? null;
+  })();
+  const selectedRegions =
+    !isAtFrontier && step.kind === 'region' ? answers.regions : EMPTY_SELECTION;
+  const selectedImpacts =
+    !isAtFrontier && step.kind === 'impact' ? answers.impacts : EMPTY_SELECTION;
 
   const conversation: ConversationProps = {
     turns,
     step,
     toolReady,
-    reserveOrbSlot: compactToolsReady,
+    reserveOrbSlot: compactToolsReady && !conversationChrome,
     excludedAreas: selectedAreas(answers),
     area: answers.area,
+    selectedAnswer,
+    selectedRegions,
+    selectedImpacts,
+    progress: progressForStep(step),
+    canRewind:
+      checkpointIndex > 0 || (checkpointIndex === 0 && showsProgress(step)),
+    isAtFrontier,
+    mood,
     hasStreamedTurn,
     instantStream: fastDemo,
+    onRewind: rewindPrev,
     onTurnStreamComplete: (turnId: string) => {
       streamedTurnIdsRef.current.add(turnId);
       const currentTurn = turnsRef.current.at(-1);
@@ -1039,14 +1156,20 @@ export function Experience({
         <div
           className={cn(
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-            layout === 'hero' && 'h-[232px]',
-            layout === 'compact' && !compactToolsReady && 'h-[108px]',
-            (layout === 'panel' ||
-              layout === 'panel-header' ||
-              layout === 'immersive' ||
-              compactToolsReady) &&
+            conversationChrome && 'h-0',
+            !conversationChrome && layout === 'hero' && 'h-[232px]',
+            !conversationChrome &&
+              layout === 'compact' &&
+              !compactToolsReady &&
+              'h-[108px]',
+            !conversationChrome &&
+              (layout === 'panel' ||
+                layout === 'panel-header' ||
+                layout === 'immersive' ||
+                compactToolsReady) &&
               'h-0',
-            layout !== 'hero' &&
+            !conversationChrome &&
+              layout !== 'hero' &&
               layout !== 'compact' &&
               layout !== 'panel' &&
               layout !== 'panel-header' &&
@@ -1054,7 +1177,9 @@ export function Experience({
               'h-[232px]',
           )}
         />
-        {showConversation ? <PhoenixCopy {...conversation} /> : null}
+        {showConversation ? (
+          <ConversationShell {...conversation} />
+        ) : null}
         {phase === 'phoenix' &&
         (step.kind === 'placement' || step.kind === 'exercise') ? (
           <AssessmentScene
@@ -1273,35 +1398,53 @@ export function Experience({
         className={cn(
           'pointer-events-none absolute z-30 flex -translate-x-1/2 items-center justify-center',
           orbLayout !== 'panel' &&
-            'transition-[top,left,width,height,translate,opacity] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-          orbLayout === 'seed' && 'top-[42%] left-1/2 size-[60px]',
+            'transition-[top,bottom,left,width,height,translate,opacity] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+          orbLayout === 'seed' &&
+            !bottomOrb &&
+            'top-[42%] left-1/2 size-[60px]',
           orbLayout === 'hero' &&
             !isPaired &&
+            !bottomOrb &&
             'top-[64px] left-1/2 size-[148px]',
           orbLayout === 'hero' &&
             isPaired &&
+            !bottomOrb &&
             'top-[76px] left-1/2 h-[120px] w-[220px]',
-          orbLayout === 'compact' && 'top-[48px] left-1/2 size-[80px]',
+          orbLayout === 'compact' &&
+            !bottomOrb &&
+            'top-[48px] left-1/2 size-[80px]',
+          bottomOrb &&
+            !concealBottomOrb &&
+            'top-auto bottom-[56px] left-1/2 size-[80px]',
+          bottomOrb &&
+            concealBottomOrb &&
+            'top-auto bottom-[-96px] left-1/2 size-[80px] opacity-0',
           orbLayout === 'panel' &&
             'pointer-events-none invisible size-0 opacity-0',
-          (orbLayout === 'immersive' || hideFloatingOrb) &&
+          (orbLayout === 'immersive' || hideExperienceOrb) &&
+            !bottomOrb &&
             'pointer-events-none invisible size-0 opacity-0',
           // `left` is the visual center (`-translate-x-1/2` is always on).
           // left-9 = left-4 + half of size-10; 60px = 44px + half of 32px.
-          orbLayout === 'panel-header' && 'top-[64px] left-9 size-10',
+          orbLayout === 'panel-header' &&
+            !bottomOrb &&
+            'top-[64px] left-9 size-10',
           orbLayout === 'avatar' && 'top-[62px] left-[60px] size-[32px]',
         )}
       >
         <div
           className={cn(
             'relative aspect-square shrink-0 transition-[width,height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-            orbLayout === 'seed' && 'size-[60px]',
+            orbLayout === 'seed' && !bottomOrb && 'size-[60px]',
             orbLayout === 'hero' &&
+              !bottomOrb &&
               (isPaired ? 'size-[120px]' : 'size-[148px]'),
-            orbLayout === 'compact' && 'size-[80px]',
+            (orbLayout === 'compact' || bottomOrb) && 'size-[80px]',
             orbLayout === 'panel' && 'size-0',
-            (orbLayout === 'immersive' || hideFloatingOrb) && 'size-0',
-            orbLayout === 'panel-header' && 'size-10',
+            (orbLayout === 'immersive' || hideExperienceOrb) &&
+              !bottomOrb &&
+              'size-0',
+            orbLayout === 'panel-header' && !bottomOrb && 'size-10',
             orbLayout === 'avatar' && 'size-[32px]',
           )}
         >

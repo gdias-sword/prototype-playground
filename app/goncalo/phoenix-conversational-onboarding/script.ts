@@ -183,7 +183,7 @@ export const SCHEDULE_ZONE = 'Eastern Standard Time (EST)';
 
 export const GUIDE_LINES = [
   `Hi ${MEMBER}, I’m Phoenix.`,
-  `I’ll be guiding your care, alongside ${PT}, your physical therapist.`,
+  'I’ll be guiding your care, alongside a dedicated physical therapist.',
   'Let’s start with a few questions to understand what you’re feeling.',
   'It takes about 2 minutes. Ready?',
 ] as const;
@@ -192,7 +192,7 @@ export const DISCLAIMER = 'Your answers are confidential and won’t be shared';
 
 export const READY_LABEL = 'I’m ready';
 
-export const THERAPIST_PHRASE = PT;
+export const THERAPIST_PHRASE = 'physical therapist';
 
 export const MAX_BODY_AREAS = 3;
 
