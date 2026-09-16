@@ -220,6 +220,17 @@ function cloneStep(step: PhoenixStep): PhoenixStep {
   return { ...step };
 }
 
+function stepsEqual(left: PhoenixStep, right: PhoenixStep) {
+  if (left.kind !== right.kind) return false;
+  if (left.kind === 'know' && right.kind === 'know') {
+    return left.index === right.index;
+  }
+  if (left.kind === 'guide' && right.kind === 'guide') {
+    return left.index === right.index;
+  }
+  return true;
+}
+
 function checkpointKey(phase: Phase, step: PhoenixStep, turnCount: number) {
   if (phase === 'chat' || phase === 'exiting') return `chat:${turnCount}`;
   if (step.kind === 'know') return `know:${step.index}:${turnCount}`;
@@ -409,6 +420,7 @@ export function Experience({
   }
 
   function recordCheckpoint(snapshot: Checkpoint) {
+    if (rewindLockRef.current) return;
     if (checkpointIndexRef.current < checkpointsRef.current.length - 1) {
       return;
     }
@@ -416,7 +428,16 @@ export function Experience({
     const last = checkpointsRef.current.at(-1);
     if (last?.key === snapshot.key) return;
 
-    const next = [...checkpointsRef.current, snapshot];
+    const shouldReplace =
+      last != null &&
+      last.phase === snapshot.phase &&
+      stepsEqual(last.step, snapshot.step);
+    const recorded = shouldReplace
+      ? { ...snapshot, answerTurnId: last.answerTurnId }
+      : snapshot;
+    const next = shouldReplace
+      ? [...checkpointsRef.current.slice(0, -1), recorded]
+      : [...checkpointsRef.current, recorded];
     checkpointsRef.current = next;
     checkpointIndexRef.current = next.length - 1;
     setCheckpoints(next);
@@ -474,7 +495,7 @@ export function Experience({
   function rewindPrev() {
     if (rewindLockRef.current) return;
     if (phaseRef.current === 'exiting') {
-      restoreCheckpoint(checkpointIndexRef.current);
+      restoreCheckpoint(checkpointIndexRef.current, { force: true });
       return;
     }
     const index = checkpointIndexRef.current;
@@ -487,7 +508,6 @@ export function Experience({
       cancelPendingReveal();
       setMood('think');
       later(() => {
-        rewindLockRef.current = false;
         restoreCheckpoint(target);
       }, TOOL_MOTION_MS);
       return;
@@ -771,6 +791,18 @@ export function Experience({
     turnsRef.current = nextTurns;
     setTurns(nextTurns);
     setMood('think');
+    recordCheckpoint(
+      makeCheckpoint(
+        phaseRef.current,
+        next,
+        nextAnswers,
+        nextTurns,
+        'listen',
+        door,
+        chatCount,
+        sessionAfterReward,
+      ),
+    );
 
     const revealNext = () => {
       pushTurns({
@@ -943,6 +975,8 @@ export function Experience({
       streamedTurnIdsRef.current.add(turnId);
       const currentTurn = turnsRef.current.at(-1);
       if (
+        rewindLockRef.current ||
+        restoringRef.current ||
         phaseRef.current !== 'phoenix' ||
         currentTurn?.id !== turnId ||
         currentTurn.role !== 'phoenix'
@@ -961,7 +995,7 @@ export function Experience({
         makeCheckpoint(
           phaseRef.current,
           stepRef.current,
-          answers,
+          answersRef.current,
           turnsRef.current,
           'listen',
           door,
