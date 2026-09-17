@@ -171,16 +171,7 @@ function phraseStartIndex(characters: string[], phrase: string) {
 export const TOOL_MOTION_MS = 800;
 
 export function toolShellFills(step: PhoenixStep) {
-  return (
-    step.kind === 'ready' ||
-    (step.kind === 'know' && (step.index === 0 || step.index === 2)) ||
-    step.kind === 'region' ||
-    step.kind === 'impact' ||
-    step.kind === 'more' ||
-    step.kind === 'activity' ||
-    step.kind === 'call' ||
-    step.kind === 'remind'
-  );
+  return hasConversationTools(step);
 }
 
 function ToolShell({
@@ -438,7 +429,7 @@ function DurationTool({
       </div>
       <SubmitReveal
         visible={rewind.isDirty}
-        className={rewind.isDirty ? 'mt-2 mb-16' : undefined}
+        className={rewind.isDirty ? 'mt-2' : undefined}
         onClick={() => rewind.confirm(onCommit)}
       >
         Continue
@@ -610,7 +601,7 @@ function YesNoTool({
       </div>
       <SubmitReveal
         visible={rewind.isDirty}
-        className={rewind.isDirty ? 'mt-2 mb-16' : undefined}
+        className={rewind.isDirty ? 'mt-2' : undefined}
         onClick={() => rewind.confirm(commit)}
       >
         Continue
