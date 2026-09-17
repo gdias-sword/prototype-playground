@@ -318,6 +318,7 @@ export function Experience({
   const [door, setDoor] = useState<DoorId | null>(null);
   const [chatCount, setChatCount] = useState(0);
   const [skipToolDelay, setSkipToolDelay] = useState(false);
+  const [skipStream, setSkipStream] = useState(false);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [checkpointIndex, setCheckpointIndex] = useState(-1);
   const [panelLayoutReady, setPanelLayoutReady] = useState(false);
@@ -473,6 +474,7 @@ export function Experience({
     checkpointIndexRef.current = index;
     setCheckpointIndex(index);
     setSkipToolDelay(true);
+    setSkipStream(false);
     setPhase(snapshot.phase);
     setStep(cloneStep(snapshot.step));
     setAnswers(cloneAnswers(answersForHighlight));
@@ -521,6 +523,7 @@ export function Experience({
     restoringRef.current = true;
     rewindLockRef.current = false;
     setSkipToolDelay(true);
+    setSkipStream(false);
 
     const jump = buildJumpState(destinationId, nextTurnId);
     streamedTurnIdsRef.current = new Set(jump.streamedTurnIds);
@@ -969,9 +972,10 @@ export function Experience({
     isAtFrontier,
     mood,
     hasStreamedTurn,
-    instantStream: fastDemo,
+    instantStream: fastDemo || skipStream,
     onRewind: rewindPrev,
     onTurnStreamComplete: (turnId: string) => {
+      setSkipStream(false);
       streamedTurnIdsRef.current.add(turnId);
       const currentTurn = turnsRef.current.at(-1);
       if (
@@ -1165,6 +1169,42 @@ export function Experience({
       enterChat('later');
     },
   };
+
+  const currentTurn = turns.at(-1);
+  const canSkipStream = Boolean(
+    bottomOrb &&
+      !concealBottomOrb &&
+      phase === 'phoenix' &&
+      mood === 'speak' &&
+      currentTurn?.role === 'phoenix',
+  );
+  const canContinueWithPhoenix = Boolean(
+    bottomOrb &&
+      !concealBottomOrb &&
+      phase === 'phoenix' &&
+      ((step.kind === 'guide' && mood === 'breath') ||
+        ((step.kind === 'session' || step.kind === 'placement-intro') &&
+          mood === 'listen')),
+  );
+  const phoenixTapLabel = canSkipStream
+    ? 'Skip to end of message'
+    : canContinueWithPhoenix
+      ? 'Continue'
+      : undefined;
+
+  function handlePhoenixTap() {
+    if (canSkipStream) {
+      setSkipStream(true);
+      return;
+    }
+    if (step.kind === 'guide' && mood === 'breath') {
+      conversation.onGuideAdvance();
+      return;
+    }
+    if (step.kind === 'session' || step.kind === 'placement-intro') {
+      conversation.onSessionAdvance();
+    }
+  }
 
   return (
     <div className="relative h-full overflow-hidden bg-[#f2f2f2] select-none">
@@ -1468,9 +1508,19 @@ export function Experience({
           orbLayout === 'avatar' && 'top-[62px] left-[60px] size-[32px]',
         )}
       >
-        <div
+        <button
+          type="button"
+          aria-hidden={phoenixTapLabel ? undefined : true}
+          aria-label={phoenixTapLabel}
+          tabIndex={phoenixTapLabel ? 0 : -1}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (!phoenixTapLabel) return;
+            handlePhoenixTap();
+          }}
           className={cn(
-            'relative aspect-square shrink-0 transition-[width,height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+            'relative aspect-square shrink-0 appearance-none border-0 bg-transparent p-0 transition-[width,height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+            phoenixTapLabel && 'pointer-events-auto cursor-pointer',
             orbLayout === 'seed' && !bottomOrb && 'size-[60px]',
             orbLayout === 'hero' &&
               !bottomOrb &&
@@ -1493,7 +1543,7 @@ export function Experience({
           >
             <PhoenixOrb mood={mood} className="relative h-full w-full" />
           </div>
-        </div>
+        </button>
         <div
           className={cn(
             'relative z-10 min-h-0 min-w-0 shrink-0 overflow-hidden rounded-full bg-gradient-to-b from-[#eaf2fe] to-[#a6c9f8] transition-[width,height,margin,opacity,transform] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',

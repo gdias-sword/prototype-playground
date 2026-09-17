@@ -974,7 +974,7 @@ export function PhoenixLineText({
     completeStream();
   }
 
-  if (isComplete || !hasStartedRef.current) {
+  if (isComplete || instantStream || !hasStartedRef.current) {
     if (emphasis && text.includes(emphasis.phrase)) {
       return (
         <EmphasizedLine
