@@ -173,18 +173,108 @@
 }
 
 .phoenix-stack-window {
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 56px,
-    #000 100%
-  );
+  mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 100%);
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0,
     #000 56px,
     #000 100%
   );
+}
+
+.phoenix-recall-scroller {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior: contain;
+}
+
+.phoenix-recall-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.phoenix-answer-history-scroller {
+  scroll-snap-type: y proximity;
+  scroll-padding-block: 50%;
+  touch-action: pan-y;
+}
+
+.phoenix-answer-history-scroller [data-recall-answer] {
+  scroll-snap-align: center;
+}
+
+.phoenix-answer-history-scroller [data-recall-edit-hint] {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition:
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    max-height 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.phoenix-answer-history-scroller
+  [data-recall-answer][data-active]
+  [data-recall-edit-hint] {
+  opacity: 1;
+  max-height: 24px;
+}
+
+.phoenix-answer-snap-wheel {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior: contain;
+  scroll-padding-block: calc(50% - 24px);
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 22%,
+    #000 78%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 22%,
+    #000 78%,
+    transparent 100%
+  );
+}
+
+.phoenix-answer-snap-wheel::-webkit-scrollbar {
+  display: none;
+}
+
+.phoenix-stack-snap-scroller {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: y mandatory;
+  scroll-padding-block: 50%;
+  touch-action: pan-y;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 14%,
+    #000 86%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 14%,
+    #000 86%,
+    transparent 100%
+  );
+}
+
+.phoenix-stack-snap-scroller [data-snap-turn] {
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+
+.phoenix-stack-snap-scroller::-webkit-scrollbar {
+  display: none;
 }
 
 .phoenix-chip-scroller {

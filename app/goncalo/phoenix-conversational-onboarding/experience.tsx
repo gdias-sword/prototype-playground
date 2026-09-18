@@ -4,6 +4,7 @@ import { cn } from '@/design/utils';
 import {
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
   type Ref,
@@ -44,7 +45,11 @@ import {
   type PhoenixStep,
   useDelayedTool,
 } from './phoenix-scene';
-import { canRewindFrom, progressForStep } from './rewind-chrome';
+import { isRewindableStep } from './recall';
+import {
+  DEFAULT_REWIND_VARIANT,
+  type RewindVariantKey,
+} from './rewind-variants';
 import {
   type ActivityId,
   type Answers,
@@ -291,10 +296,12 @@ export function Experience({
   navigatorRef,
   onControlsChange,
   fastDemo = false,
+  variant = DEFAULT_REWIND_VARIANT,
 }: {
   navigatorRef?: Ref<ExperienceHandle | null>;
   onControlsChange?: (state: ExperienceControls) => void;
   fastDemo?: boolean;
+  variant?: RewindVariantKey;
 } = {}) {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
@@ -463,9 +470,7 @@ export function Experience({
     if (!options.force && checkpointIndexRef.current === index) return;
 
     const answered = checkpointsRef.current[index + 1];
-    const answersForHighlight = answered
-      ? answered.answers
-      : snapshot.answers;
+    const answersForHighlight = answered ? answered.answers : snapshot.answers;
 
     clearTimers();
     cancelPendingReveal();
@@ -502,19 +507,24 @@ export function Experience({
     }
     const index = checkpointIndexRef.current;
     const previous = checkpointsRef.current[index - 1];
-    if (!previous || !canRewindFrom(previous.step)) return;
-    const target = index - 1;
+    if (!previous || !isRewindableStep(previous.step)) return;
+    rewindTo(index - 1);
+  }
+
+  function rewindTo(index: number) {
+    if (rewindLockRef.current) return;
+    if (!isRewindableStep(checkpointsRef.current[index]?.step)) return;
     if (!fastDemoRef.current) {
       rewindLockRef.current = true;
       clearTimers();
       cancelPendingReveal();
       setMood('think');
       later(() => {
-        restoreCheckpoint(target);
+        restoreCheckpoint(index);
       }, TOOL_MOTION_MS);
       return;
     }
-    restoreCheckpoint(target);
+    restoreCheckpoint(index);
   }
 
   function jumpTo(destinationId: JumpDestinationId) {
@@ -565,7 +575,7 @@ export function Experience({
     onControlsChange?.({
       canPrev:
         phase === 'exiting' ||
-        canRewindFrom(checkpoints[checkpointIndex - 1]?.step),
+        isRewindableStep(checkpoints[checkpointIndex - 1]?.step),
       canNext: checkpointIndex >= 0 && checkpointIndex < checkpoints.length - 1,
     });
   }, [checkpoints.length, checkpointIndex, onControlsChange, phase]);
@@ -927,12 +937,20 @@ export function Experience({
     (bottomOrb && toolReady && toolShellFills(step)) ||
     (bottomRest && phase === 'entering' && !isHero);
   const hideExperienceOrb = hideFloatingOrb;
-  const orbLayout: Layout = compactToolsReady && !conversationChrome
-    ? 'panel-header'
-    : layout;
+  const orbLayout: Layout =
+    compactToolsReady && !conversationChrome ? 'panel-header' : layout;
 
   const isAtFrontier =
     checkpointIndex < 0 || checkpointIndex >= checkpoints.length - 1;
+  const rewindTargets = useMemo(() => {
+    const targets = new Map<string, number>();
+    checkpoints.forEach((checkpoint, index) => {
+      if (!checkpoint.answerTurnId) return;
+      if (!isRewindableStep(checkpoint.step)) return;
+      targets.set(checkpoint.answerTurnId, index);
+    });
+    return targets;
+  }, [checkpoints]);
   const selectedAnswer = (() => {
     if (isAtFrontier) return null;
     const current = checkpoints[checkpointIndex];
@@ -965,15 +983,13 @@ export function Experience({
     selectedAnswer,
     selectedRegions,
     selectedImpacts,
-    progress: progressForStep(step),
-    canRewind:
-      phase === 'exiting' ||
-      canRewindFrom(checkpoints[checkpointIndex - 1]?.step),
     isAtFrontier,
     mood,
     hasStreamedTurn,
     instantStream: fastDemo || skipStream,
-    onRewind: rewindPrev,
+    variant,
+    rewindTargets,
+    onRewindTo: rewindTo,
     onTurnStreamComplete: (turnId: string) => {
       setSkipStream(false);
       streamedTurnIdsRef.current.add(turnId);
@@ -1095,7 +1111,10 @@ export function Experience({
         label,
         atMax ? { kind: 'activity' } : { kind: 'more' },
         nextAnswers,
-        care ?? (atMax ? activityIntroLine() : conditionWrapLine(currentArea(nextAnswers))),
+        care ??
+          (atMax
+            ? activityIntroLine()
+            : conditionWrapLine(currentArea(nextAnswers))),
       );
     },
     onTingling: (tingling: boolean) => {
@@ -1173,18 +1192,18 @@ export function Experience({
   const currentTurn = turns.at(-1);
   const canSkipStream = Boolean(
     bottomOrb &&
-      !concealBottomOrb &&
-      phase === 'phoenix' &&
-      mood === 'speak' &&
-      currentTurn?.role === 'phoenix',
+    !concealBottomOrb &&
+    phase === 'phoenix' &&
+    mood === 'speak' &&
+    currentTurn?.role === 'phoenix',
   );
   const canContinueWithPhoenix = Boolean(
     bottomOrb &&
-      !concealBottomOrb &&
-      phase === 'phoenix' &&
-      ((step.kind === 'guide' && mood === 'breath') ||
-        ((step.kind === 'session' || step.kind === 'placement-intro') &&
-          mood === 'listen')),
+    !concealBottomOrb &&
+    phase === 'phoenix' &&
+    ((step.kind === 'guide' && mood === 'breath') ||
+      ((step.kind === 'session' || step.kind === 'placement-intro') &&
+        mood === 'listen')),
   );
   const phoenixTapLabel = canSkipStream
     ? 'Skip to end of message'
@@ -1253,9 +1272,7 @@ export function Experience({
               'h-[232px]',
           )}
         />
-        {showConversation ? (
-          <ConversationShell {...conversation} />
-        ) : null}
+        {showConversation ? <ConversationShell {...conversation} /> : null}
         {phase === 'phoenix' &&
         (step.kind === 'placement' || step.kind === 'exercise') ? (
           <AssessmentScene

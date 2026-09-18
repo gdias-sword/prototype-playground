@@ -27,6 +27,7 @@ import { AREA_PHOTOS, REGION_PHOTOS } from './area-photos';
 import { GlassCheckRow, GlassChip } from './glass';
 import { PhotoTile } from './photo-tile';
 import type { PhoenixMood } from './phoenix-orb';
+import type { RewindVariantKey } from './rewind-variants';
 import {
   BODY_AREAS,
   DISCLAIMER,
@@ -295,7 +296,9 @@ function RegionTool({
   onCommit: (regions: string[]) => void;
 }) {
   const options = regionsFor(area);
-  const [selected, setSelected] = useState<string[]>(() => initialSelected ?? []);
+  const [selected, setSelected] = useState<string[]>(
+    () => initialSelected ?? [],
+  );
 
   useEffect(() => {
     setSelected(initialSelected ?? []);
@@ -361,7 +364,9 @@ function ImpactTool({
   onCommit: (impacts: string[]) => void;
 }) {
   const options = impactsFor(area);
-  const [selected, setSelected] = useState<string[]>(() => initialSelected ?? []);
+  const [selected, setSelected] = useState<string[]>(
+    () => initialSelected ?? [],
+  );
 
   useEffect(() => {
     setSelected(initialSelected ?? []);
@@ -396,7 +401,9 @@ function ImpactTool({
         ))}
       </div>
       <FooterActions>
-        <PrimaryAction onClick={() => onCommit(selected)}>{label}</PrimaryAction>
+        <PrimaryAction onClick={() => onCommit(selected)}>
+          {label}
+        </PrimaryAction>
       </FooterActions>
     </div>
   );
@@ -1026,13 +1033,14 @@ export interface ConversationProps {
   selectedAnswer?: string | null;
   selectedRegions?: string[];
   selectedImpacts?: string[];
-  progress?: number;
-  canRewind?: boolean;
   isAtFrontier?: boolean;
   mood?: PhoenixMood;
   hasStreamedTurn?: (turnId: string) => boolean;
   instantStream?: boolean;
-  onRewind?: () => void;
+  variant?: RewindVariantKey;
+  /** Member turn id -> checkpoint index that re-asks the question it answered. */
+  rewindTargets?: Map<string, number>;
+  onRewindTo?: (checkpointIndex: number) => void;
   onGuideAdvance: () => void;
   onSessionAdvance: () => void;
   onReady: () => void;
