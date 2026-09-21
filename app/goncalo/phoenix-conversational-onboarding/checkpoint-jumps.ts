@@ -79,7 +79,6 @@ export interface JumpCheckpoint {
   door: DoorId | null;
   chatCount: number;
   sessionAfterReward: boolean;
-  answerTurnId?: string;
 }
 
 export interface JumpState {
@@ -253,7 +252,6 @@ function demoFlagAnswers(): Answers {
 
 class TurnBuilder {
   turns: StackTurn[] = [];
-  checkpoints: JumpCheckpoint[] = [];
 
   constructor(private nextTurnId: () => string) {}
 
@@ -268,18 +266,12 @@ class TurnBuilder {
   }
 
   member(text: string) {
-    const id = this.nextTurnId();
-    const asked = this.checkpoints.at(-1);
-    if (asked && !asked.answerTurnId) asked.answerTurnId = id;
-    this.turns.push({ id, role: 'member', text, kind: 'answer' });
-    return this;
-  }
-
-  /** Snapshot the state a question was asked in, so the member can return to it. */
-  mark(step: PhoenixStep, answers: Answers, mood: PhoenixMood = 'listen') {
-    this.checkpoints.push(
-      makeCheckpoint('phoenix', step, answers, this.turns, mood, null, 0),
-    );
+    this.turns.push({
+      id: this.nextTurnId(),
+      role: 'member',
+      text,
+      kind: 'answer',
+    });
     return this;
   }
 
@@ -297,63 +289,71 @@ function buildGuideTurns(nextTurnId: () => string) {
   }));
 }
 
-function intakeAnswerStages() {
-  const area = { ...EMPTY_ANSWERS, area: DEMO_AREA };
-  const regions = { ...area, regions: [...DEMO_REGIONS] };
-  const duration = { ...regions, duration: DEMO_DURATION };
-  const intensity = { ...duration, intensity: DEMO_INTENSITY };
-  const impacts = { ...intensity, impacts: [...DEMO_IMPACTS] };
-  return { area, regions, duration, intensity, impacts };
-}
-
-function buildIntakeTimeline(builder: TurnBuilder) {
-  const stage = intakeAnswerStages();
-
-  GUIDE_LINES.forEach((text, index) => {
-    builder.phoenix(text, index < 3 ? 'guide' : 'question');
-    if (index === 0) {
-      builder.mark({ kind: 'guide', index: 0 }, EMPTY_ANSWERS, 'speak');
-    }
+function buildIntakeTurns(nextTurnId: () => string) {
+  const builder = new TurnBuilder(nextTurnId);
+  buildGuideTurns(nextTurnId).forEach((turn) => {
+    builder.turns.push(turn);
   });
-  builder.mark({ kind: 'ready' }, EMPTY_ANSWERS);
-
-  builder.member(READY_LABEL).phoenix(areaQuestion(0));
-  builder.mark({ kind: 'know', index: 0 }, EMPTY_ANSWERS);
-
-  builder.member(DEMO_AREA).phoenix(regionQuestion(DEMO_AREA));
-  builder.mark({ kind: 'region' }, stage.area);
-
   builder
+    .member(READY_LABEL)
+    .phoenix(areaQuestion(0))
+    .member(DEMO_AREA)
+    .phoenix(regionQuestion(DEMO_AREA))
     .member(regionAnswer(DEMO_REGIONS))
-    .phoenix(durationQuestion(DEMO_AREA));
-  builder.mark({ kind: 'know', index: 1 }, stage.regions);
-
-  builder
+    .phoenix(durationQuestion(DEMO_AREA))
     .member(DEMO_DURATION)
     .phoenix(durationCareLine(DEMO_DURATION), 'care')
-    .phoenix(intensityQuestion());
-  builder.mark({ kind: 'know', index: 2 }, stage.duration);
-
-  builder
+    .phoenix(intensityQuestion())
     .member(intensityAnswer(DEMO_INTENSITY))
     .phoenix(intensityCareLine(DEMO_INTENSITY), 'care')
-    .phoenix(impactQuestion());
-  builder.mark({ kind: 'impact' }, stage.intensity);
-
-  builder
+    .phoenix(impactQuestion())
     .member(regionAnswer(DEMO_IMPACTS))
     .phoenix(impactCareLine(), 'care')
     .phoenix(conditionWrapLine(DEMO_AREA), 'care')
-    .phoenix(moreQuestion());
-  builder.mark({ kind: 'more' }, stage.impacts);
-
-  builder
+    .phoenix(moreQuestion())
     .member(MORE_NO_LABEL)
     .phoenix(activityIntroLine(), 'care')
     .phoenix(activityQuestion());
-  builder.mark({ kind: 'activity' }, demoIntakeAnswers());
+  return builder.snapshot();
+}
 
-  return builder;
+function buildActivityTurns(nextTurnId: () => string) {
+  const builder = new TurnBuilder(nextTurnId);
+  buildIntakeTurns(nextTurnId).forEach((turn) => {
+    builder.turns.push(turn);
+  });
+  builder
+    .member(activityLabel(DEMO_ACTIVITY))
+    .phoenix(activityCareLine(DEMO_ACTIVITY), 'care')
+    .phoenix(sessionIntroLine(currentArea(demoIntakeAnswers())));
+  return builder.snapshot();
+}
+
+function buildSafetyTurns(nextTurnId: () => string) {
+  const builder = new TurnBuilder(nextTurnId);
+  buildActivityTurns(nextTurnId).forEach((turn) => {
+    builder.turns.push(turn);
+  });
+  builder.member(START_SESSION_LABEL).phoenix(safetyLine());
+  return builder.snapshot();
+}
+
+function buildClearanceTurns(nextTurnId: () => string) {
+  const builder = new TurnBuilder(nextTurnId);
+  buildSafetyTurns(nextTurnId).forEach((turn) => {
+    builder.turns.push(turn);
+  });
+  builder.member(SAFETY_NONE_LABEL).phoenix(placementIntroLine());
+  return builder.snapshot();
+}
+
+function buildFlagTurns(nextTurnId: () => string) {
+  const builder = new TurnBuilder(nextTurnId);
+  buildSafetyTurns(nextTurnId).forEach((turn) => {
+    builder.turns.push(turn);
+  });
+  builder.phoenix(flagsCareLine(), 'care').phoenix(flagsQuestion());
+  return builder.snapshot();
 }
 
 function streamedIdsForTurns(
@@ -583,96 +583,331 @@ export function buildJumpState(
     );
   }
 
-  const builder = new TurnBuilder(nextTurnId);
-  buildIntakeTimeline(builder);
   const intakeAnswers = demoIntakeAnswers();
-  const baseFlags = {
-    isHero: true,
-    panelLayoutReady: false,
-    cameraContentReady: false,
-    offerContentReady: false,
-    safetyContentReady: false,
-    confirmContentReady: false,
-  };
-
-  function finishAt(
-    step: PhoenixStep,
-    answers: Answers,
-    mood: PhoenixMood,
-    flags: Partial<typeof baseFlags> = {},
-  ) {
-    return finishJump(
-      destinationId,
-      builder.checkpoints,
-      builder.checkpoints.length - 1,
-      builder.snapshot(),
-      answers,
+  const intakeTurns = buildIntakeTurns(nextTurnId);
+  const activityStep: PhoenixStep = { kind: 'activity' };
+  checkpoints.push(
+    makeCheckpoint(
       'phoenix',
-      step,
-      mood,
+      { kind: 'guide', index: 0 },
+      EMPTY_ANSWERS,
+      [intakeTurns[0]],
+      'speak',
       null,
       0,
-      { ...baseFlags, ...flags },
+    ),
+  );
+  checkpoints.push(
+    makeCheckpoint(
+      'phoenix',
+      { kind: 'ready' },
+      EMPTY_ANSWERS,
+      intakeTurns.slice(0, 4),
+      'listen',
+      null,
+      0,
+    ),
+  );
+  checkpoints.push(
+    makeCheckpoint(
+      'phoenix',
+      { kind: 'know', index: 0 },
+      EMPTY_ANSWERS,
+      intakeTurns.slice(0, 6),
+      'listen',
+      null,
+      0,
+    ),
+  );
+  checkpoints.push(
+    makeCheckpoint(
+      'phoenix',
+      activityStep,
+      intakeAnswers,
+      intakeTurns,
+      'listen',
+      null,
+      0,
+    ),
+  );
+
+  if (destinationId === 'activity') {
+    return finishJump(
+      destinationId,
+      checkpoints,
+      3,
+      intakeTurns,
+      intakeAnswers,
+      'phoenix',
+      activityStep,
+      'listen',
+      null,
+      0,
+      {
+        isHero: true,
+        panelLayoutReady: false,
+        cameraContentReady: false,
+        offerContentReady: false,
+        safetyContentReady: false,
+        confirmContentReady: false,
+      },
     );
   }
 
-  if (destinationId === 'activity') {
-    return finishAt({ kind: 'activity' }, intakeAnswers, 'listen');
-  }
-
   const activityAnswers = demoActivityAnswers();
-  builder
-    .member(activityLabel(DEMO_ACTIVITY))
-    .phoenix(activityCareLine(DEMO_ACTIVITY), 'care')
-    .phoenix(sessionIntroLine(currentArea(intakeAnswers)));
-  builder.mark({ kind: 'offer' }, activityAnswers);
+  const activityTurns = buildActivityTurns(nextTurnId);
+  checkpoints.push(
+    makeCheckpoint(
+      'phoenix',
+      { kind: 'offer' },
+      activityAnswers,
+      activityTurns,
+      'listen',
+      null,
+      0,
+    ),
+  );
 
   if (destinationId === 'session') {
-    return finishAt({ kind: 'offer' }, activityAnswers, 'listen', {
-      offerContentReady: true,
-    });
+    return finishJump(
+      destinationId,
+      checkpoints,
+      checkpoints.length - 1,
+      activityTurns,
+      activityAnswers,
+      'phoenix',
+      { kind: 'offer' },
+      'listen',
+      null,
+      0,
+      {
+        isHero: true,
+        panelLayoutReady: false,
+        cameraContentReady: false,
+        offerContentReady: true,
+        safetyContentReady: false,
+        confirmContentReady: false,
+      },
+    );
   }
-
-  builder.member(START_SESSION_LABEL).phoenix(safetyLine());
-  builder.mark({ kind: 'safety' }, activityAnswers);
-
-  if (destinationId === 'flags') {
-    const flagAnswers = demoFlagAnswers();
-    builder.phoenix(flagsCareLine(), 'care').phoenix(flagsQuestion());
-    builder.mark({ kind: 'call' }, flagAnswers);
-    return finishAt({ kind: 'call' }, flagAnswers, 'listen', {
-      offerContentReady: true,
-      safetyContentReady: true,
-    });
-  }
-
-  builder.member(SAFETY_NONE_LABEL).phoenix(placementIntroLine());
-
-  if (destinationId === 'assess') {
-    builder.mark({ kind: 'placement-intro' }, activityAnswers);
-    builder.mark({ kind: 'camera' }, activityAnswers);
-    builder.mark({ kind: 'placement' }, activityAnswers);
-    return finishAt({ kind: 'placement' }, activityAnswers, 'listen', {
-      offerContentReady: true,
-      safetyContentReady: true,
-    });
-  }
-
-  builder.mark({ kind: 'exercise' }, activityAnswers);
-  builder.mark({ kind: 'reward-reveal' }, activityAnswers);
 
   if (destinationId === 'reward') {
-    return finishAt({ kind: 'reward-reveal' }, activityAnswers, 'listen', {
-      offerContentReady: true,
-      safetyContentReady: true,
-    });
+    const activityAnswers = demoActivityAnswers();
+    const clearanceTurns = buildClearanceTurns(nextTurnId);
+    const exerciseStep: PhoenixStep = { kind: 'exercise' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        exerciseStep,
+        activityAnswers,
+        clearanceTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    const rewardStep: PhoenixStep = { kind: 'reward-reveal' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        rewardStep,
+        activityAnswers,
+        clearanceTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    return finishJump(
+      destinationId,
+      checkpoints,
+      checkpoints.length - 1,
+      clearanceTurns,
+      activityAnswers,
+      'phoenix',
+      rewardStep,
+      'listen',
+      null,
+      0,
+      {
+        isHero: true,
+        panelLayoutReady: false,
+        cameraContentReady: false,
+        offerContentReady: true,
+        safetyContentReady: true,
+        confirmContentReady: false,
+      },
+    );
   }
 
-  builder.mark({ kind: 'reward-commitment' }, activityAnswers, 'breath');
-  return finishAt({ kind: 'reward-commitment' }, activityAnswers, 'breath', {
-    offerContentReady: true,
-    safetyContentReady: true,
-  });
+  if (destinationId === 'commitment') {
+    const activityAnswers = demoActivityAnswers();
+    const clearanceTurns = buildClearanceTurns(nextTurnId);
+    const exerciseStep: PhoenixStep = { kind: 'exercise' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        exerciseStep,
+        activityAnswers,
+        clearanceTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    const rewardStep: PhoenixStep = { kind: 'reward-reveal' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        rewardStep,
+        activityAnswers,
+        clearanceTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    const commitmentStep: PhoenixStep = { kind: 'reward-commitment' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        commitmentStep,
+        activityAnswers,
+        clearanceTurns,
+        'breath',
+        null,
+        0,
+      ),
+    );
+    return finishJump(
+      destinationId,
+      checkpoints,
+      checkpoints.length - 1,
+      clearanceTurns,
+      activityAnswers,
+      'phoenix',
+      commitmentStep,
+      'breath',
+      null,
+      0,
+      {
+        isHero: true,
+        panelLayoutReady: false,
+        cameraContentReady: false,
+        offerContentReady: true,
+        safetyContentReady: true,
+        confirmContentReady: false,
+      },
+    );
+  }
+
+  if (destinationId === 'assess') {
+    const safetyTurns = buildSafetyTurns(nextTurnId);
+    const safetyStep: PhoenixStep = { kind: 'safety' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        safetyStep,
+        activityAnswers,
+        safetyTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    const clearanceTurns = buildClearanceTurns(nextTurnId);
+    const placementIntroStep: PhoenixStep = { kind: 'placement-intro' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        placementIntroStep,
+        activityAnswers,
+        clearanceTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    const cameraStep: PhoenixStep = { kind: 'camera' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        cameraStep,
+        activityAnswers,
+        clearanceTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    const placementStep: PhoenixStep = { kind: 'placement' };
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        placementStep,
+        activityAnswers,
+        clearanceTurns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    return finishJump(
+      destinationId,
+      checkpoints,
+      checkpoints.length - 1,
+      clearanceTurns,
+      activityAnswers,
+      'phoenix',
+      placementStep,
+      'listen',
+      null,
+      0,
+      {
+        isHero: true,
+        panelLayoutReady: false,
+        cameraContentReady: false,
+        offerContentReady: true,
+        safetyContentReady: true,
+        confirmContentReady: false,
+      },
+    );
+  }
+
+  const flagAnswers = demoFlagAnswers();
+  const flagTurns = buildFlagTurns(nextTurnId);
+  const callStep: PhoenixStep = { kind: 'call' };
+  checkpoints.push(
+    makeCheckpoint(
+      'phoenix',
+      callStep,
+      flagAnswers,
+      flagTurns,
+      'listen',
+      null,
+      0,
+    ),
+  );
+  return finishJump(
+    destinationId,
+    checkpoints,
+    checkpoints.length - 1,
+    flagTurns,
+    flagAnswers,
+    'phoenix',
+    callStep,
+    'listen',
+    null,
+    0,
+    {
+      isHero: true,
+      panelLayoutReady: false,
+      cameraContentReady: false,
+      offerContentReady: true,
+      safetyContentReady: true,
+      confirmContentReady: false,
+    },
+  );
 }
 
 export function jumpDestinationForShortcut(key: string) {

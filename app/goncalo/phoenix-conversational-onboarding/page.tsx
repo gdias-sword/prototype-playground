@@ -8,8 +8,7 @@ import {
   Settings2,
   Zap,
 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   JUMP_DESTINATIONS,
   jumpDestinationForShortcut,
@@ -21,8 +20,6 @@ import {
   type ExperienceControls,
   type ExperienceHandle,
 } from './experience';
-import { normalizeVariant, type RewindVariantKey } from './rewind-variants';
-import { VariantSwitcher } from './variant-switcher';
 import './commitment-motion.css';
 import './motion.css';
 import './reward-motion.css';
@@ -33,29 +30,10 @@ const EMPTY_CONTROLS: ExperienceControls = {
 };
 
 export default function PhoenixConversationalOnboarding() {
-  return (
-    <Suspense>
-      <RewindExploration />
-    </Suspense>
-  );
-}
-
-function RewindExploration() {
-  const searchParams = useSearchParams();
   const navigatorRef = useRef<ExperienceHandle | null>(null);
   const [replayKey, setReplayKey] = useState(0);
   const [fastDemo, setFastDemo] = useState(false);
   const [controls, setControls] = useState(EMPTY_CONTROLS);
-  const [variant, setVariant] = useState<RewindVariantKey>(() =>
-    normalizeVariant(searchParams.get('variant')),
-  );
-
-  function handleVariantChange(next: RewindVariantKey) {
-    setVariant(next);
-    const params = new URLSearchParams(window.location.search);
-    params.set('variant', next);
-    window.history.replaceState(null, '', `?${params}`);
-  }
 
   function handleReplay() {
     setReplayKey((value) => value + 1);
@@ -132,14 +110,11 @@ function RewindExploration() {
           <Experience
             key={replayKey}
             fastDemo={fastDemo}
-            variant={variant}
             navigatorRef={navigatorRef}
             onControlsChange={setControls}
           />
         </DeviceFrame>
       </div>
-
-      <VariantSwitcher current={variant} onChange={handleVariantChange} />
 
       <Popover.Root>
         <Popover.Trigger
