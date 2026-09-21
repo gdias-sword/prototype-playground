@@ -15,7 +15,6 @@ import {
   windowedTurns,
   type ConversationProps,
 } from './phoenix-scene';
-import { BackButton, ProgressRail } from './rewind-chrome';
 
 const LIST_CLASS = 'flex w-full shrink-0 flex-col items-stretch gap-2.5';
 const STACK_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
@@ -201,12 +200,6 @@ export function ConversationShell(props: ConversationProps) {
       )}
       onClick={advanceHandler(props)}
     >
-      <div className="flex h-[50px] shrink-0 items-center gap-4 px-1 py-1">
-        {props.canRewind ? (
-          <BackButton onClick={() => props.onRewind?.()} />
-        ) : null}
-        <ProgressRail value={props.progress ?? 0} />
-      </div>
       <div className="flex min-h-0 flex-1 flex-col pt-6">
         <StackFrame
           maxHeight={maxHeight}

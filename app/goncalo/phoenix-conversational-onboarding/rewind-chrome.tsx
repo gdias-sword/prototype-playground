@@ -58,18 +58,11 @@ export function ProgressRail({
   );
 }
 
-export function BackButton({
-  disabled,
-  onClick,
-}: {
-  disabled?: boolean;
-  onClick: () => void;
-}) {
+export function BackButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
       aria-label="Previous question"
-      disabled={disabled}
       onClick={(event) => {
         event.stopPropagation();
         onClick();
@@ -78,7 +71,6 @@ export function BackButton({
         'flex size-[42px] shrink-0 items-center justify-center rounded-full border border-white',
         'bg-white/80 shadow-[0_8px_24px_rgba(31,34,44,0.06)] backdrop-blur-xl',
         'cursor-pointer transition-[opacity,transform] duration-200',
-        disabled && 'pointer-events-none opacity-40',
       )}
     >
       <ChevronLeft className="text-foreground-neutral-default size-6" />

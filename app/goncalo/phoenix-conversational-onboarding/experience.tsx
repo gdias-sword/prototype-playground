@@ -29,7 +29,6 @@ import {
   SchedulePanel,
   panelHeadingTurn,
 } from './extended-scenes';
-import { LaurenPortrait, laurenPortraitSrc } from './lauren-portrait';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
 import {
   hasConversationTools,
@@ -38,13 +37,12 @@ import {
   isPanelStep,
   isRewardStep,
   streamDurationMs,
-  toolShellFills,
   TOOL_MOTION_MS,
   type ConversationProps,
   type PhoenixStep,
   useDelayedTool,
 } from './phoenix-scene';
-import { canRewindFrom, progressForStep } from './rewind-chrome';
+import { BackButton, canRewindFrom } from './rewind-chrome';
 import {
   type ActivityId,
   type Answers,
@@ -106,17 +104,12 @@ type Layout =
   | 'seed'
   | 'hero'
   | 'compact'
+  | 'raised'
   | 'avatar'
   | 'panel'
   | 'panel-header'
   | 'immersive';
 
-const PAIR_SIZE_PX = 120;
-const PAIR_OVERLAP_PX = 20;
-const PAIR_GAP_PX = 4;
-const PAIR_CUTOUT_RADIUS_PX = PAIR_SIZE_PX / 2 + PAIR_GAP_PX;
-const PAIR_CUTOUT_X = `calc(100% + ${PAIR_SIZE_PX / 2 - PAIR_OVERLAP_PX}px)`;
-const PAIR_CUTOUT_MASK = `radial-gradient(circle ${PAIR_CUTOUT_RADIUS_PX}px at ${PAIR_CUTOUT_X} 50%, transparent ${PAIR_CUTOUT_RADIUS_PX}px, #000 ${PAIR_CUTOUT_RADIUS_PX + 1}px)`;
 const CARE_LEAD_MS = 700;
 const CARE_HOLD_MS = 400;
 const LATER_CARE_LEAD_MS = 500;
@@ -124,13 +117,6 @@ const STREAM_FALLBACK_MS = 800;
 const SCHEDULE_MORPH_HOLD_MS = 500;
 const PLACEMENT_HOLD_MS = 2500;
 const EXERCISE_HOLD_MS = 3000;
-
-const pairCutoutStyle = {
-  WebkitMaskImage: PAIR_CUTOUT_MASK,
-  maskImage: PAIR_CUTOUT_MASK,
-  WebkitMaskRepeat: 'no-repeat',
-  maskRepeat: 'no-repeat',
-} as const;
 
 export interface ExperienceHandle {
   prevQuestion: () => void;
@@ -577,11 +563,6 @@ export function Experience({
   }, []);
 
   useEffect(() => {
-    const image = new window.Image();
-    image.src = laurenPortraitSrc;
-  }, []);
-
-  useEffect(() => {
     const wait = 80;
     const id = window.setTimeout(() => setIsHero(true), delay(wait));
     return () => window.clearTimeout(id);
@@ -907,29 +888,16 @@ export function Experience({
     SCHEDULE_DAYS.find(
       (day) => appointmentDayLabel(day) === answers.appointmentDay,
     ) ?? SCHEDULE_DAYS[0];
-  const conversationChrome = showConversation;
-  const bottomRest =
-    phase === 'entering' || (showConversation && phase === 'phoenix');
-  const bottomOrb = bottomRest;
-  const isPaired =
-    layout === 'hero' &&
-    phase === 'phoenix' &&
-    step.kind === 'ready' &&
-    !bottomRest;
-  // Only the first question (area chips) needs the small left orb — later steps keep centered.
+  // Only the first question (area chips) and the impact question fill the
+  // screen with options — Phoenix rises above the fold and grows there
+  // instead of shrinking into the header.
   const compactToolsReady =
     layout === 'compact' &&
     toolReady &&
     ((step.kind === 'know' && step.index === 0) || step.kind === 'impact');
   const hideFloatingOrb =
     phase === 'phoenix' && (isImmersiveStep(step) || isCommitmentStep(step));
-  const concealBottomOrb =
-    (bottomOrb && toolReady && toolShellFills(step)) ||
-    (bottomRest && phase === 'entering' && !isHero);
-  const hideExperienceOrb = hideFloatingOrb;
-  const orbLayout: Layout = compactToolsReady && !conversationChrome
-    ? 'panel-header'
-    : layout;
+  const orbLayout: Layout = compactToolsReady ? 'raised' : layout;
 
   const isAtFrontier =
     checkpointIndex < 0 || checkpointIndex >= checkpoints.length - 1;
@@ -959,13 +927,11 @@ export function Experience({
     turns,
     step,
     toolReady,
-    reserveOrbSlot: compactToolsReady && !conversationChrome,
     excludedAreas: selectedAreas(answers),
     area: answers.area,
     selectedAnswer,
     selectedRegions,
     selectedImpacts,
-    progress: progressForStep(step),
     canRewind:
       phase === 'exiting' ||
       canRewindFrom(checkpoints[checkpointIndex - 1]?.step),
@@ -1172,15 +1138,13 @@ export function Experience({
 
   const currentTurn = turns.at(-1);
   const canSkipStream = Boolean(
-    bottomOrb &&
-      !concealBottomOrb &&
+    showConversation &&
       phase === 'phoenix' &&
       mood === 'speak' &&
       currentTurn?.role === 'phoenix',
   );
   const canContinueWithPhoenix = Boolean(
-    bottomOrb &&
-      !concealBottomOrb &&
+    showConversation &&
       phase === 'phoenix' &&
       ((step.kind === 'guide' && mood === 'breath') ||
         ((step.kind === 'session' || step.kind === 'placement-intro') &&
@@ -1227,25 +1191,14 @@ export function Experience({
         <div
           className={cn(
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-            (conversationChrome || bottomRest) && 'h-0',
-            !conversationChrome &&
-              !bottomRest &&
-              layout === 'hero' &&
-              'h-[232px]',
-            !conversationChrome &&
-              !bottomRest &&
-              layout === 'compact' &&
-              !compactToolsReady &&
-              'h-[108px]',
-            !conversationChrome &&
-              (layout === 'panel' ||
-                layout === 'panel-header' ||
-                layout === 'immersive' ||
-                compactToolsReady) &&
+            layout === 'hero' && 'h-[232px]',
+            layout === 'compact' && !compactToolsReady && 'h-[108px]',
+            (layout === 'panel' ||
+              layout === 'panel-header' ||
+              layout === 'immersive' ||
+              compactToolsReady) &&
               'h-0',
-            !conversationChrome &&
-              !bottomRest &&
-              layout !== 'hero' &&
+            layout !== 'hero' &&
               layout !== 'compact' &&
               layout !== 'panel' &&
               layout !== 'panel-header' &&
@@ -1470,41 +1423,30 @@ export function Experience({
         ) : null}
       </div>
 
+      {showConversation && phase === 'phoenix' && conversation.canRewind ? (
+        <div className="absolute top-[52px] left-4 z-30">
+          <BackButton onClick={() => conversation.onRewind?.()} />
+        </div>
+      ) : null}
+
       <div
         className={cn(
           'pointer-events-none absolute z-30 flex -translate-x-1/2 items-center justify-center',
           orbLayout !== 'panel' &&
-            'transition-[top,bottom,left,width,height,translate,opacity] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-          orbLayout === 'seed' &&
-            !bottomOrb &&
-            'top-[42%] left-1/2 size-[60px]',
-          orbLayout === 'hero' &&
-            !isPaired &&
-            !bottomOrb &&
-            'top-[64px] left-1/2 size-[148px]',
-          orbLayout === 'hero' &&
-            isPaired &&
-            !bottomOrb &&
-            'top-[76px] left-1/2 h-[120px] w-[220px]',
-          orbLayout === 'compact' &&
-            !bottomOrb &&
-            'top-[48px] left-1/2 size-[80px]',
-          bottomOrb &&
-            !concealBottomOrb &&
-            'top-auto bottom-[56px] left-1/2 size-[80px]',
-          bottomOrb &&
-            concealBottomOrb &&
-            'top-auto bottom-[-96px] left-1/2 size-[80px] opacity-0',
+            'transition-[top,left,width,height,translate,opacity] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+          orbLayout === 'seed' && 'top-[42%] left-1/2 size-[60px]',
+          orbLayout === 'hero' && 'top-[64px] left-1/2 size-[148px]',
+          orbLayout === 'compact' && 'top-[48px] left-1/2 size-[80px]',
+          // Full-screen questions lift Phoenix above the fold and grow it,
+          // instead of shrinking it into the header.
+          orbLayout === 'raised' && 'top-[-26px] left-1/2 size-[108px]',
           orbLayout === 'panel' &&
             'pointer-events-none invisible size-0 opacity-0',
-          (orbLayout === 'immersive' || hideExperienceOrb) &&
-            !bottomOrb &&
+          (orbLayout === 'immersive' || hideFloatingOrb) &&
             'pointer-events-none invisible size-0 opacity-0',
           // `left` is the visual center (`-translate-x-1/2` is always on).
           // left-9 = left-4 + half of size-10; 60px = 44px + half of 32px.
-          orbLayout === 'panel-header' &&
-            !bottomOrb &&
-            'top-[64px] left-9 size-10',
+          orbLayout === 'panel-header' && 'top-[64px] left-9 size-10',
           orbLayout === 'avatar' && 'top-[62px] left-[60px] size-[32px]',
         )}
       >
@@ -1521,39 +1463,20 @@ export function Experience({
           className={cn(
             'relative aspect-square shrink-0 appearance-none border-0 bg-transparent p-0 transition-[width,height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
             phoenixTapLabel && 'pointer-events-auto cursor-pointer',
-            orbLayout === 'seed' && !bottomOrb && 'size-[60px]',
-            orbLayout === 'hero' &&
-              !bottomOrb &&
-              (isPaired ? 'size-[120px]' : 'size-[148px]'),
-            (orbLayout === 'compact' || bottomOrb) && 'size-[80px]',
+            orbLayout === 'seed' && 'size-[60px]',
+            orbLayout === 'hero' && 'size-[148px]',
+            orbLayout === 'compact' && 'size-[80px]',
+            orbLayout === 'raised' && 'size-[108px]',
             orbLayout === 'panel' && 'size-0',
-            (orbLayout === 'immersive' || hideExperienceOrb) &&
-              !bottomOrb &&
-              'size-0',
-            orbLayout === 'panel-header' && !bottomOrb && 'size-10',
+            (orbLayout === 'immersive' || hideFloatingOrb) && 'size-0',
+            orbLayout === 'panel-header' && 'size-10',
             orbLayout === 'avatar' && 'size-[32px]',
           )}
         >
-          <div
-            className={cn(
-              'relative h-full w-full',
-              isPaired && 'overflow-hidden rounded-full',
-            )}
-            style={isPaired ? pairCutoutStyle : undefined}
-          >
+          <div className="relative h-full w-full">
             <PhoenixOrb mood={mood} className="relative h-full w-full" />
           </div>
         </button>
-        <div
-          className={cn(
-            'relative z-10 min-h-0 min-w-0 shrink-0 overflow-hidden rounded-full bg-gradient-to-b from-[#eaf2fe] to-[#a6c9f8] transition-[width,height,margin,opacity,transform] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-            isPaired
-              ? '-ml-5 size-[120px] translate-x-0 scale-100 opacity-100 shadow-[0_8px_8px_rgba(0,0,0,0.08)]'
-              : 'ml-0 size-0 translate-x-2 scale-90 opacity-0',
-          )}
-        >
-          <LaurenPortrait decorative />
-        </div>
       </div>
     </div>
   );

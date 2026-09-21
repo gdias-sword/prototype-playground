@@ -1020,13 +1020,11 @@ export interface ConversationProps {
   turns: StackTurn[];
   step: PhoenixStep;
   toolReady: boolean;
-  reserveOrbSlot?: boolean;
   excludedAreas: string[];
   area?: string | null;
   selectedAnswer?: string | null;
   selectedRegions?: string[];
   selectedImpacts?: string[];
-  progress?: number;
   canRewind?: boolean;
   isAtFrontier?: boolean;
   mood?: PhoenixMood;
