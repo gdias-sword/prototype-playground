@@ -1,14 +1,21 @@
+'use client';
+
 import { SwordLogo } from '@/design/assets/logos/sword';
 import { Accessibility, ChevronDown, Globe } from 'lucide-react';
-import type { CSSProperties, ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { DiffuseGradient } from './diffuse-gradient';
+import { gradientThemes, type GradientTheme } from './gradient-themes';
 
-const GRADIENT_TOKENS = {
-  '--gradient-primary-stop-1': '#ff7e7e',
-  '--gradient-primary-stop-2': '#be95e5',
-  '--gradient-primary-stop-3': '#4a89e8',
-} as CSSProperties;
+function accentForeground(hex: string) {
+  const value = Number.parseInt(hex.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+
+  return luminance > 0.62 ? '#0d0d0d' : '#ffffff';
+}
 
 const fields = [
   { label: 'First name', placeholder: 'Your first name', type: 'text' },
@@ -32,7 +39,7 @@ function Field({
       <input
         type={type}
         placeholder={placeholder}
-        className="h-16 w-full rounded-2xl border border-[#c2c2c2] bg-white px-4 text-[14px] leading-5 font-medium tracking-[0.2px] text-[#2e2e2e] transition-[border-color,box-shadow] outline-none placeholder:text-[#5e5e5e] focus:border-[#4a89e8] focus:ring-3 focus:ring-[#4a89e8]/20"
+        className="h-16 w-full rounded-2xl border border-[#c2c2c2] bg-white px-4 text-[14px] leading-5 font-medium tracking-[0.2px] text-[#2e2e2e] transition-[border-color,box-shadow] outline-none placeholder:text-[#5e5e5e] focus:border-[var(--accent)] focus:ring-3 focus:ring-[var(--accent)]/20"
       />
     </label>
   );
@@ -43,7 +50,7 @@ function Agreement({ children }: { children: ReactNode }) {
     <label className="flex cursor-pointer items-start gap-4 text-[14px] leading-5 font-medium tracking-[0.2px] text-[#0d0d0d]">
       <input
         type="checkbox"
-        className="mt-0 size-8 shrink-0 appearance-none rounded border border-[#c2c2c2] bg-white checked:border-[#4a89e8] checked:bg-[#4a89e8]"
+        className="mt-0 size-8 shrink-0 appearance-none rounded border border-[#c2c2c2] bg-white checked:border-[var(--accent)] checked:bg-[var(--accent)]"
       />
       <span className="pt-1.5">{children}</span>
     </label>
@@ -51,15 +58,21 @@ function Agreement({ children }: { children: ReactNode }) {
 }
 
 const linkClass =
-  'text-[#4a89e8] underline decoration-1 underline-offset-2 transition-colors hover:text-[#316fcf]';
+  'text-[var(--accent)] underline decoration-1 underline-offset-2 transition-colors hover:text-[var(--accent-hover)]';
 
 export default function Eligibility() {
+  const [theme, setTheme] = useState<GradientTheme>('sword-health');
+  const stops = gradientThemes[theme];
+
   return (
     <div
       className="relative isolate flex min-h-dvh w-full min-w-0 flex-col overflow-hidden bg-white"
-      style={GRADIENT_TOKENS}
+      style={{
+        ['--accent' as string]: stops.stop3,
+        ['--accent-hover' as string]: `color-mix(in srgb, ${stops.stop3} 78%, black)`,
+      }}
     >
-      <DiffuseGradient />
+      <DiffuseGradient theme={theme} onThemeChange={setTheme} />
 
       <header className="relative z-10 flex h-[84px] w-full shrink-0 items-center justify-between bg-white px-4 py-5 sm:px-8 lg:px-16">
         <SwordLogo className="h-6 w-auto" />
@@ -105,7 +118,7 @@ export default function Eligibility() {
             <span className="relative">
               <select
                 defaultValue=""
-                className="h-16 w-full appearance-none rounded-2xl border border-[#c2c2c2] bg-white px-4 text-[14px] leading-5 font-medium tracking-[0.2px] text-[#5e5e5e] transition-[border-color,box-shadow] outline-none focus:border-[#4a89e8] focus:ring-3 focus:ring-[#4a89e8]/20"
+                className="h-16 w-full appearance-none rounded-2xl border border-[#c2c2c2] bg-white px-4 text-[14px] leading-5 font-medium tracking-[0.2px] text-[#5e5e5e] transition-[border-color,box-shadow] outline-none focus:border-[var(--accent)] focus:ring-3 focus:ring-[var(--accent)]/20"
               >
                 <option value="" disabled>
                   Choose
@@ -150,7 +163,8 @@ export default function Eligibility() {
           <div className="flex justify-center pb-0">
             <button
               type="submit"
-              className="h-12 min-w-[180px] cursor-pointer rounded-2xl bg-[#4a89e8] px-8 text-[14px] leading-5 font-semibold tracking-[0.2px] text-white transition-colors hover:bg-[#3d7ad4] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#4a89e8]"
+              className="h-12 min-w-[180px] cursor-pointer rounded-2xl bg-[var(--accent)] px-8 text-[14px] leading-5 font-semibold tracking-[0.2px] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              style={{ color: accentForeground(stops.stop3) }}
             >
               Continue
             </button>
