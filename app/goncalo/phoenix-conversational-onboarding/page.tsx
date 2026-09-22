@@ -33,6 +33,11 @@ export default function PhoenixConversationalOnboarding() {
   const [replayKey, setReplayKey] = useState(0);
   const [fastDemo, setFastDemo] = useState(false);
   const [controls, setControls] = useState(EMPTY_CONTROLS);
+  const [controlsReady, setControlsReady] = useState(false);
+
+  useEffect(() => {
+    setControlsReady(true);
+  }, []);
 
   function handleReplay() {
     setReplayKey((value) => value + 1);
@@ -115,6 +120,7 @@ export default function PhoenixConversationalOnboarding() {
         </DeviceFrame>
       </div>
 
+      {controlsReady ? (
       <Popover.Root>
         <Popover.Trigger
           aria-label="Prototype controls"
@@ -194,6 +200,15 @@ export default function PhoenixConversationalOnboarding() {
           </Popover.Positioner>
         </Popover.Portal>
       </Popover.Root>
+      ) : (
+        <button
+          type="button"
+          aria-label="Prototype controls"
+          className="bg-background-neutral-inverse/90 text-foreground-neutral-inverse fixed right-6 bottom-6 z-50 flex size-11 items-center justify-center rounded-2xl border border-white/12 shadow-[0_8px_28px_rgba(0,0,0,0.22)] backdrop-blur-xl"
+        >
+          <Settings2 className="size-4" />
+        </button>
+      )}
     </div>
   );
 }

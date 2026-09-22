@@ -81,7 +81,7 @@ export function StatusBar({ light = true }: { light?: boolean }) {
       )}
     >
       <span className="text-[15px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
-        9:41
+        8:34
       </span>
       <div className="flex items-center gap-[6px] pb-[1px]">
         <CellularSignal />

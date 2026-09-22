@@ -84,9 +84,11 @@ void main() {
 
   vec2 gradientUv = rotate(-0.72 + sin(time * 0.16) * 0.06) * uv;
   float gradientMix = smoothstep(-0.68, 0.68, gradientUv.x + gradientUv.y * 0.42);
-  vec3 coral = vec3(1.0, 0.51, 0.514);
+  vec3 coral = vec3(1.0, 0.494, 0.494);
   vec3 blue = vec3(0.29, 0.537, 0.91);
   vec3 color = mix(coral, blue, gradientMix);
+  float luma = dot(color, vec3(0.299, 0.587, 0.114));
+  color = mix(vec3(luma), color, 0.62);
 
   vec2 cloudUv = rotate(-0.38 + sin(time * 0.22) * 0.15) * uv;
   float broadFlow = fbm(cloudUv * 1.55 + vec2(time * 0.105, -time * 0.072));
@@ -108,22 +110,22 @@ void main() {
   );
 
   float cloud =
-    ellipse(cloudUv, cloudOne, vec2(0.39, 0.28)) * 0.88 +
-    ellipse(cloudUv, cloudTwo, vec2(0.36, 0.42)) * 0.78 +
-    ellipse(cloudUv, cloudThree, vec2(0.30, 0.25)) * 0.56;
-  cloud *= 0.78 + broadFlow * 0.38;
-  cloud = smoothstep(0.12, 1.0, cloud);
-  color = mix(color, vec3(1.0, 0.985, 0.975), cloud * 0.96);
+    ellipse(cloudUv, cloudOne, vec2(0.52, 0.38)) * 1.05 +
+    ellipse(cloudUv, cloudTwo, vec2(0.48, 0.54)) * 0.96 +
+    ellipse(cloudUv, cloudThree, vec2(0.40, 0.34)) * 0.72;
+  cloud *= 0.9 + broadFlow * 0.28;
+  cloud = smoothstep(0.02, 0.72, cloud);
+  color = mix(color, vec3(1.0, 0.985, 0.975), clamp(cloud, 0.0, 0.94));
 
   float innerLight = 1.0 - smoothstep(0.0, radius, distanceToCenter);
   color += innerLight * 0.035;
   color *= 1.0 - uListen * 0.025;
 
-  vec2 shadowUv = uv + vec2(0.0, 0.19);
-  float shadowDistance = length(shadowUv / vec2(1.05, 0.74));
-  float shadow = (1.0 - smoothstep(radius * 0.62, radius * 1.22, shadowDistance)) * 0.22;
+  vec2 shadowUv = uv + vec2(0.02, 0.32);
+  float shadowDistance = length(shadowUv / vec2(1.12, 0.62));
+  float shadow = (1.0 - smoothstep(radius * 0.55, radius * 1.45, shadowDistance)) * 0.28;
   shadow *= 1.0 - bodyAlpha;
-  vec3 shadowColor = mix(vec3(0.19, 0.35, 0.64), vec3(0.74, 0.31, 0.31), 0.42);
+  vec3 shadowColor = vec3(0.42, 0.62, 0.95);
 
   float alpha = bodyAlpha + shadow * (1.0 - bodyAlpha);
   vec3 premultipliedColor =

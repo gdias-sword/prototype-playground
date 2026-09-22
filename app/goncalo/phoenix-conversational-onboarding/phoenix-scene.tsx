@@ -264,7 +264,7 @@ function AreaTool({
         data-fade-bottom={fadeBottom || undefined}
         onScroll={onScroll}
       >
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 [&>*]:h-[120px]">
           {areas.map((area) => (
             <div key={area} data-value={area}>
               <PhotoTile
@@ -330,7 +330,7 @@ function RegionTool({
         onScroll={onScroll}
       >
         {usePhotos ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 [&>*]:h-[120px]">
             {options.map((option) => (
               <PhotoTile
                 key={option}
