@@ -122,7 +122,6 @@ function Tools(props: ConversationProps) {
       onRegions={props.onRegions}
       onDuration={props.onDuration}
       onIntensity={props.onIntensity}
-      onTingling={props.onTingling}
       onImpact={props.onImpact}
       onMore={props.onMore}
       onActivity={props.onActivity}
@@ -195,7 +194,11 @@ export function ConversationShell(props: ConversationProps) {
   return (
     <div
       className={cn(
-        'flex min-h-0 flex-1 flex-col px-4 pt-2',
+        'flex min-h-0 flex-1 flex-col px-4',
+        // Back control is fixed at top 52px (42px tall). With the status bar
+        // in flow, pt-10 + the stack's pt-6 lands the headline at 112px —
+        // the same clearance as the enrollment question screen.
+        props.canRewind ? 'pt-10' : 'pt-2',
         !toolShellFills(step) && 'pb-24',
       )}
       onClick={advanceHandler(props)}

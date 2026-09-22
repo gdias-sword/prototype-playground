@@ -78,7 +78,7 @@ import {
   flagsQuestion,
   areaQuestion,
   conditionWrapLine,
-  followUpQuestion,
+  impactAnswer,
   impactCareLine,
   impactQuestion,
   intensityAnswer,
@@ -94,7 +94,6 @@ import {
   sessionIntroLine,
   safetyLine,
   startNextCondition,
-  tinglingCareLine,
   appointmentDayLabel,
 } from './script';
 import { WorldBackdrop } from './world-scene';
@@ -166,9 +165,7 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'activity') return activityQuestion();
   if (step.kind === 'session') return sessionIntroLine(currentArea(answers));
   if (step.kind === 'placement-intro') return placementIntroLine();
-  if (step.kind === 'call') {
-    return answers.safetyFlags.length > 0 ? flagsQuestion() : callQuestion();
-  }
+  if (step.kind === 'call') return callQuestion();
   if (step.kind === 'remind') return remindQuestion();
   if (step.kind === 'know' && step.index === 0) {
     return areaQuestion(answers.completed.length);
@@ -179,7 +176,6 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   }
   if (step.kind === 'know' && step.index === 2) return intensityQuestion();
   if (step.kind === 'impact') return impactQuestion();
-  if (step.kind === 'know') return followUpQuestion(answers.area ?? 'Neck');
   return '';
 }
 
@@ -1055,24 +1051,13 @@ export function Experience({
       setAnswers(nextAnswers);
       const atMax = nextAnswers.completed.length >= MAX_BODY_AREAS;
       const label =
-        impacts.length > 0 ? regionAnswer(impacts) : IMPACT_NONE_LABEL;
+        impacts.length > 0 ? impactAnswer(impacts) : IMPACT_NONE_LABEL;
       const care = impacts.length > 0 ? impactCareLine() : undefined;
       commitMember(
         label,
         atMax ? { kind: 'activity' } : { kind: 'more' },
         nextAnswers,
         care ?? (atMax ? activityIntroLine() : conditionWrapLine(currentArea(nextAnswers))),
-      );
-    },
-    onTingling: (tingling: boolean) => {
-      const nextAnswers = completeCondition({ ...answers, tingling });
-      setAnswers(nextAnswers);
-      const atMax = nextAnswers.completed.length >= MAX_BODY_AREAS;
-      commitMember(
-        tingling ? 'Yes' : 'No',
-        atMax ? { kind: 'activity' } : { kind: 'more' },
-        nextAnswers,
-        tingling ? tinglingCareLine() : atMax ? activityIntroLine() : undefined,
       );
     },
     onMore: (wantsMore: boolean) => {
@@ -1330,38 +1315,40 @@ export function Experience({
               onContinue={(flags) => {
                 const nextAnswers = { ...answers, safetyFlags: flags };
                 setAnswers(nextAnswers);
-                if (flags.length > 0) {
-                  discardFutureCheckpoints();
-                  setSkipToolDelay(false);
-                  setStep({ kind: 'call' });
-                  setMood('think');
-                  speakCareThen(flagsCareLine(), () => {
-                    pushTurns({
-                      role: 'phoenix',
-                      text: flagsQuestion(),
-                      kind: 'question',
-                    });
-                  });
-                  return;
-                }
                 discardFutureCheckpoints();
                 setSkipToolDelay(false);
                 setPanelLayoutReady(false);
                 setSafetyContentReady(false);
                 pushTurns({
                   role: 'member',
-                  text: SAFETY_NONE_LABEL,
+                  text: flags.length > 0 ? flags.join(', ') : SAFETY_NONE_LABEL,
                   kind: 'answer',
                 });
                 setMood('think');
-                later(() => {
-                  pushTurns({
-                    role: 'phoenix',
-                    text: placementIntroLine(),
-                    kind: 'question',
+
+                function advanceToPlacement() {
+                  later(() => {
+                    pushTurns({
+                      role: 'phoenix',
+                      text: placementIntroLine(),
+                      kind: 'question',
+                    });
+                    setStep({ kind: 'placement-intro' });
+                  }, delay(620));
+                }
+
+                if (flags.length > 0) {
+                  speakCareThen(flagsCareLine(), () => {
+                    pushTurns({
+                      role: 'phoenix',
+                      text: flagsQuestion(),
+                      kind: 'care',
+                    });
+                    advanceToPlacement();
                   });
-                  setStep({ kind: 'placement-intro' });
-                }, delay(620));
+                  return;
+                }
+                advanceToPlacement();
               }}
             />
           </ContinuityPanel>
@@ -1437,9 +1424,9 @@ export function Experience({
           orbLayout === 'seed' && 'top-[42%] left-1/2 size-[60px]',
           orbLayout === 'hero' && 'top-[64px] left-1/2 size-[148px]',
           orbLayout === 'compact' && 'top-[48px] left-1/2 size-[80px]',
-          // Full-screen questions lift Phoenix above the fold and grow it,
-          // instead of shrinking it into the header.
-          orbLayout === 'raised' && 'top-[-26px] left-1/2 size-[108px]',
+          // Full-screen questions tuck Phoenix so it only peeks at the
+          // top of the device — 120px, mostly clipped above the bezel.
+          orbLayout === 'raised' && 'top-[-72px] left-1/2 size-[120px]',
           orbLayout === 'panel' &&
             'pointer-events-none invisible size-0 opacity-0',
           (orbLayout === 'immersive' || hideFloatingOrb) &&
@@ -1466,7 +1453,7 @@ export function Experience({
             orbLayout === 'seed' && 'size-[60px]',
             orbLayout === 'hero' && 'size-[148px]',
             orbLayout === 'compact' && 'size-[80px]',
-            orbLayout === 'raised' && 'size-[108px]',
+            orbLayout === 'raised' && 'size-[120px]',
             orbLayout === 'panel' && 'size-0',
             (orbLayout === 'immersive' || hideFloatingOrb) && 'size-0',
             orbLayout === 'panel-header' && 'size-10',

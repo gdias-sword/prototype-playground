@@ -1,4 +1,4 @@
-export const MEMBER = 'Alex';
+export const MEMBER = 'Ashley';
 export const PT = 'Lauren';
 
 export const BODY_AREAS = [
@@ -127,7 +127,6 @@ export const SAFETY_FLAGS = [
   'Dizziness or balance issues',
   'Surgery in the last 3 months',
   'Chest pain or shortness of breath',
-  'Numbness or tingling',
   'Fever or feeling unwell',
   'Pregnancy',
 ];
@@ -135,8 +134,8 @@ export const SAFETY_FLAGS = [
 export const SAFETY_NONE_LABEL = 'None of the above';
 
 export const START_SESSION_LABEL = "I'm ready";
-export const ENABLE_CAMERA_LABEL = 'Enable camera access';
-export const LATER_LABEL = 'I’ll do it later';
+export const ENABLE_CAMERA_LABEL = 'Continue';
+export const LATER_LABEL = 'I can’t right now';
 export const CALL_YES_LABEL = 'Yes, let’s talk';
 export const CALL_NO_LABEL = 'Not right now';
 export const REMIND_YES_LABEL = 'Yes, remind me';
@@ -231,7 +230,7 @@ export type StackTurn = {
 };
 
 export function areaQuestion(completedCount = 0) {
-  if (completedCount > 0) return 'Where else is bothering you?';
+  if (completedCount > 0) return 'Where else do you feel pain?';
   return 'Where do you feel pain?';
 }
 
@@ -248,6 +247,10 @@ export function regionAnswer(regions: string[]) {
   });
   if (rest.length === 1) return `${regions[0]} and ${rest[0]}`;
   return `${regions[0]}, ${rest.slice(0, -1).join(', ')}, and ${rest.at(-1)}`;
+}
+
+export function impactAnswer(impacts: string[]) {
+  return impacts.join(', ');
 }
 
 export function regionsFor(area: string | null) {
@@ -281,7 +284,7 @@ export function impactCareLine() {
 }
 
 export function activityIntroLine() {
-  return 'Great! Before we start, I want to make sure your session fits your activity level.';
+  return 'Perfect, I have just a couple more questions for you.';
 }
 
 export function activityQuestion() {
@@ -299,18 +302,26 @@ export function activityCareLine(activity: ActivityId) {
 }
 
 export function sessionIntroLine(area: string) {
-  return `Now let’s get into your first session. We’ll start with a quick ${area.toLowerCase()} check-up.`;
+  return `Now, let’s check how your ${area.toLowerCase()} is moving with a few quick exercises.`;
 }
 
 export function cameraLine() {
-  return 'We’ll use your camera to follow your movements and give you feedback in real time.';
+  return 'We’ll use your camera to guide each movement and give you real-time feedback.';
 }
 
 export const CAMERA_PRIVACY =
-  'Vision AI ensures you perform every exercise safely and effectively. We never record, save, or store video. Your data remains private.';
+  'We never record, save, or store video. Your data remains private.';
 
 export function offerLine() {
-  return 'Takes just a few minutes. Ready to start?';
+  return 'Let’s start your first session.';
+}
+
+export function kitTeaserLine() {
+  return 'Once you’re done, you’ll receive your welcome kit.';
+}
+
+export function kitTeaserHint() {
+  return 'It includes all the equipment you need to help you progress through your program.';
 }
 
 export function checkupTitle(area: string) {
@@ -352,11 +363,11 @@ export function callQuestion() {
 }
 
 export function flagsCareLine() {
-  return 'Thanks for letting me know.';
+  return 'Thanks for letting us know.';
 }
 
 export function flagsQuestion() {
-  return 'A couple of things came up, so we think it’s best to start with a quick call.';
+  return 'Your program will be adapted to make sure you can perform it safely.';
 }
 
 export function scheduleLine() {
@@ -378,16 +389,6 @@ export function durationQuestion(area?: string) {
 
 export function intensityQuestion() {
   return 'How intense has your pain been lately?';
-}
-
-export function followUpQuestion(area: string) {
-  if (area === 'Neck' || area === 'Shoulder') {
-    return 'Do you feel tingling or numbness down your arm?';
-  }
-  if (area === 'Lower back' || area === 'Hip') {
-    return 'Does it travel down your leg?';
-  }
-  return 'Does it change when you move?';
 }
 
 export function completeCondition(answers: Answers): Answers {
@@ -470,12 +471,8 @@ export function intensityCareLine(value: number) {
   return 'That’s a lot — we’ll stay well within what feels safe.';
 }
 
-export function tinglingCareLine() {
-  return 'I’ll flag that for your therapist.';
-}
-
 export function intensityAnswer(value: number) {
-  return `${value} / 10`;
+  return `${value}/10`;
 }
 
 export function chatIntro(

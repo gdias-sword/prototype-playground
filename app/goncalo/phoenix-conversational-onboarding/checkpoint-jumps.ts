@@ -15,6 +15,7 @@ import {
   flagsCareLine,
   flagsQuestion,
   GUIDE_LINES,
+  impactAnswer,
   impactCareLine,
   impactQuestion,
   intensityAnswer,
@@ -307,7 +308,7 @@ function buildIntakeTurns(nextTurnId: () => string) {
     .member(intensityAnswer(DEMO_INTENSITY))
     .phoenix(intensityCareLine(DEMO_INTENSITY), 'care')
     .phoenix(impactQuestion())
-    .member(regionAnswer(DEMO_IMPACTS))
+    .member(impactAnswer(DEMO_IMPACTS))
     .phoenix(impactCareLine(), 'care')
     .phoenix(conditionWrapLine(DEMO_AREA), 'care')
     .phoenix(moreQuestion())
@@ -352,7 +353,11 @@ function buildFlagTurns(nextTurnId: () => string) {
   buildSafetyTurns(nextTurnId).forEach((turn) => {
     builder.turns.push(turn);
   });
-  builder.phoenix(flagsCareLine(), 'care').phoenix(flagsQuestion());
+  builder
+    .member(SAFETY_FLAGS[0])
+    .phoenix(flagsCareLine(), 'care')
+    .phoenix(flagsQuestion(), 'care')
+    .phoenix(placementIntroLine());
   return builder.snapshot();
 }
 
@@ -876,11 +881,11 @@ export function buildJumpState(
 
   const flagAnswers = demoFlagAnswers();
   const flagTurns = buildFlagTurns(nextTurnId);
-  const callStep: PhoenixStep = { kind: 'call' };
+  const placementIntroStep: PhoenixStep = { kind: 'placement-intro' };
   checkpoints.push(
     makeCheckpoint(
       'phoenix',
-      callStep,
+      placementIntroStep,
       flagAnswers,
       flagTurns,
       'listen',
@@ -895,7 +900,7 @@ export function buildJumpState(
     flagTurns,
     flagAnswers,
     'phoenix',
-    callStep,
+    placementIntroStep,
     'listen',
     null,
     0,

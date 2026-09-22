@@ -16,9 +16,7 @@ export function progressForStep(step: PhoenixStep) {
   if (step.kind === 'region') return 0.28;
   if (step.kind === 'know' && step.index === 1) return 0.38;
   if (step.kind === 'know' && step.index === 2) return 0.48;
-  if (step.kind === 'impact' || (step.kind === 'know' && step.index === 3)) {
-    return 0.58;
-  }
+  if (step.kind === 'impact') return 0.58;
   if (step.kind === 'more') return 0.66;
   if (step.kind === 'activity') return 0.74;
   if (step.kind === 'session' || step.kind === 'offer') return 0.82;

@@ -48,7 +48,7 @@ import { useScrollFade } from './use-scroll-fade';
 export type PhoenixStep =
   | { kind: 'guide'; index: 0 | 1 | 2 }
   | { kind: 'ready' }
-  | { kind: 'know'; index: 0 | 1 | 2 | 3 }
+  | { kind: 'know'; index: 0 | 1 | 2 }
   | { kind: 'more' }
   | { kind: 'activity' }
   | { kind: 'session' }
@@ -302,6 +302,9 @@ function RegionTool({
   }, [initialSelected]);
   const usePhotos =
     options.length > 0 && options.every((option) => REGION_PHOTOS[option]);
+  const { scrollerRef, fadeTop, fadeBottom, onScroll } = useScrollFade([
+    options,
+  ]);
 
   function toggle(option: string) {
     setSelected((current) =>
@@ -312,41 +315,51 @@ function RegionTool({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {usePhotos ? (
-        <div className="grid grid-cols-2 gap-2">
-          {options.map((option) => (
-            <PhotoTile
-              key={option}
-              label={option}
-              image={REGION_PHOTOS[option]}
-              checkbox
-              selected={selected.includes(option)}
-              onClick={() => toggle(option)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {options.map((option) => (
-            <GlassCheckRow
-              key={option}
-              selected={selected.includes(option)}
-              onClick={() => toggle(option)}
-            >
-              {option}
-            </GlassCheckRow>
-          ))}
-        </div>
-      )}
-      <FooterActions>
-        <PrimaryAction
-          disabled={selected.length === 0}
-          onClick={() => onCommit(selected)}
-        >
-          Continue
-        </PrimaryAction>
-      </FooterActions>
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div
+        ref={scrollerRef}
+        className="phoenix-chip-scroller -mx-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-5"
+        data-fade-top={fadeTop || undefined}
+        data-fade-bottom={fadeBottom || undefined}
+        onScroll={onScroll}
+      >
+        {usePhotos ? (
+          <div className="grid grid-cols-2 gap-2">
+            {options.map((option) => (
+              <PhotoTile
+                key={option}
+                label={option}
+                image={REGION_PHOTOS[option]}
+                checkbox
+                selected={selected.includes(option)}
+                onClick={() => toggle(option)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {options.map((option) => (
+              <GlassCheckRow
+                key={option}
+                selected={selected.includes(option)}
+                onClick={() => toggle(option)}
+              >
+                {option}
+              </GlassCheckRow>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="relative z-10 shrink-0">
+        <FooterActions>
+          <PrimaryAction
+            disabled={selected.length === 0}
+            onClick={() => onCommit(selected)}
+          >
+            Continue
+          </PrimaryAction>
+        </FooterActions>
+      </div>
     </div>
   );
 }
@@ -564,52 +577,6 @@ function IntensityTool({
   );
 }
 
-function YesNoTool({
-  selected,
-  onCommit,
-}: {
-  selected?: string | null;
-  onCommit: (value: boolean) => void;
-}) {
-  const rewind = useRewindDraft(selected ?? null);
-
-  function commit(label: string) {
-    onCommit(label === 'Yes');
-  }
-
-  return (
-    <div className="flex flex-col">
-      <div className="flex flex-col gap-2">
-        <GlassChip
-          selected={rewind.value === 'Yes' || undefined}
-          rewindSelected={
-            rewind.isRewind && !rewind.isDirty && selected === 'Yes'
-          }
-          onClick={() => rewind.choose('Yes', commit)}
-        >
-          Yes
-        </GlassChip>
-        <GlassChip
-          selected={rewind.value === 'No' || undefined}
-          rewindSelected={
-            rewind.isRewind && !rewind.isDirty && selected === 'No'
-          }
-          onClick={() => rewind.choose('No', commit)}
-        >
-          No
-        </GlassChip>
-      </div>
-      <SubmitReveal
-        visible={rewind.isDirty}
-        className={rewind.isDirty ? 'mt-2' : undefined}
-        onClick={() => rewind.confirm(commit)}
-      >
-        Continue
-      </SubmitReveal>
-    </div>
-  );
-}
-
 function MoreTool({
   selected,
   onCommit,
@@ -693,7 +660,6 @@ export function PhoenixTools({
   onRegions,
   onDuration,
   onIntensity,
-  onTingling,
   onImpact,
   onMore,
   onActivity,
@@ -714,7 +680,6 @@ export function PhoenixTools({
   onRegions?: (regions: string[]) => void;
   onDuration: (value: string) => void;
   onIntensity: (value: number) => void;
-  onTingling: (value: boolean) => void;
   onImpact?: (impacts: string[]) => void;
   onMore: (wantsMore: boolean) => void;
   onActivity: (id: ActivityId) => void;
@@ -753,9 +718,6 @@ export function PhoenixTools({
           rewindHighlight={rewindHighlight}
           onCommit={onIntensity}
         />
-      ) : null}
-      {step.kind === 'know' && step.index === 3 ? (
-        <YesNoTool selected={selectedAnswer} onCommit={onTingling} />
       ) : null}
       {step.kind === 'impact' && onImpact ? (
         <ImpactTool
@@ -838,7 +800,6 @@ export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
   }
   if (step.kind === 'know' && step.index === 1) return DURATIONS.length;
   if (step.kind === 'know' && step.index === 2) return 0;
-  if (step.kind === 'know' && step.index === 3) return 2;
   if (step.kind === 'region') return 3;
   if (step.kind === 'impact') return 5;
   if (step.kind === 'more') return 2;
@@ -1038,7 +999,6 @@ export interface ConversationProps {
   onRegions?: (regions: string[]) => void;
   onDuration: (value: string) => void;
   onIntensity: (value: number) => void;
-  onTingling: (value: boolean) => void;
   onImpact?: (impacts: string[]) => void;
   onMore: (wantsMore: boolean) => void;
   onActivity: (id: ActivityId) => void;

@@ -507,7 +507,7 @@ export function OfferPanel({
             </span>
           </span>
           <p className="text-body-medium-subtle text-foreground-neutral-default">
-            Do your first session in 48 hours to unlock a reward
+            Complete the session to unlock your welcome kit
           </p>
         </OfferPiece>
       </div>

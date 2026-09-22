@@ -42,7 +42,8 @@ export function AssessmentScene({
           )}
         >
           <p className="text-display-small-strong text-foreground-neutral-inverse text-center font-serif font-medium tracking-[-0.02em]">
-            Take a step back so we can see your entire body within the circle.
+            Now take a step back so we can see your entire body within the
+            circle.
           </p>
         </div>
       )}
