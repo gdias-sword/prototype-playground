@@ -101,8 +101,6 @@ const CARE_LEAD_MS = 700;
 const CARE_HOLD_MS = 400;
 const LATER_CARE_LEAD_MS = 500;
 const STREAM_FALLBACK_MS = 800;
-const PLACEMENT_HOLD_MS = 2500;
-const EXERCISE_HOLD_MS = 3000;
 
 export interface ExperienceHandle {
   prevQuestion: () => void;
@@ -634,24 +632,6 @@ export function Experience({
     }, delay(1600));
     return () => window.clearTimeout(id);
   }, [phase, step, mood, fastDemo]);
-
-  useEffect(() => {
-    if (restoringRef.current) return;
-    if (phase !== 'phoenix' || step.kind !== 'placement') return;
-    const id = window.setTimeout(() => {
-      setStep({ kind: 'exercise' });
-    }, delay(PLACEMENT_HOLD_MS));
-    return () => window.clearTimeout(id);
-  }, [phase, step, fastDemo]);
-
-  useEffect(() => {
-    if (restoringRef.current) return;
-    if (phase !== 'phoenix' || step.kind !== 'exercise') return;
-    const id = window.setTimeout(() => {
-      beginRewardFlow();
-    }, delay(EXERCISE_HOLD_MS));
-    return () => window.clearTimeout(id);
-  }, [phase, step, fastDemo]);
 
   useEffect(() => {
     if (restoringRef.current) return;
@@ -1254,6 +1234,7 @@ export function Experience({
         (step.kind === 'placement' || step.kind === 'exercise') ? (
           <AssessmentScene
             beat={step.kind === 'exercise' ? 'exercise' : 'placement'}
+            fastDemo={fastDemo}
             onAdvance={() => {
               if (step.kind === 'placement') {
                 goToPanel({ kind: 'exercise' });
