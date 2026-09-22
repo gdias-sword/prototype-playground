@@ -18,24 +18,19 @@ import { ChatScene } from './chat-scene';
 import { ConversationShell } from './conversation-variants';
 import { HomeIndicatorSpace, StatusBar } from './device-frame';
 import {
-  CAMERA_HEADING_TURN,
-  CONFIRM_HEADING_TURN,
   CameraPanel,
   ConfirmPanel,
-  ContinuityPanel,
-  OFFER_HEADING_TURN,
   OfferPanel,
   SafetyPanel,
   SchedulePanel,
-  panelHeadingTurn,
 } from './extended-scenes';
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
 import {
   hasConversationTools,
   isCommitmentStep,
   isImmersiveStep,
-  isPanelStep,
   isRewardStep,
+  shouldCompactStack,
   streamDurationMs,
   TOOL_MOTION_MS,
   type ConversationProps,
@@ -69,7 +64,9 @@ import {
   activityQuestion,
   callCareLine,
   callQuestion,
+  cameraLine,
   completeCondition,
+  confirmLine,
   currentArea,
   durationCareLine,
   durationQuestion,
@@ -85,6 +82,7 @@ import {
   intensityCareLine,
   intensityQuestion,
   moreQuestion,
+  offerLine,
   placementIntroLine,
   regionAnswer,
   regionQuestion,
@@ -99,21 +97,12 @@ import {
 import { WorldBackdrop } from './world-scene';
 
 type Phase = 'entering' | 'phoenix' | 'exiting' | 'chat';
-type Layout =
-  | 'seed'
-  | 'hero'
-  | 'compact'
-  | 'raised'
-  | 'avatar'
-  | 'panel'
-  | 'panel-header'
-  | 'immersive';
+type Layout = 'seed' | 'hero' | 'raised' | 'avatar' | 'immersive';
 
 const CARE_LEAD_MS = 700;
 const CARE_HOLD_MS = 400;
 const LATER_CARE_LEAD_MS = 500;
 const STREAM_FALLBACK_MS = 800;
-const SCHEDULE_MORPH_HOLD_MS = 500;
 const PLACEMENT_HOLD_MS = 2500;
 const EXERCISE_HOLD_MS = 3000;
 
@@ -164,8 +153,13 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'more') return moreQuestion(answers.area ?? 'that');
   if (step.kind === 'activity') return activityQuestion();
   if (step.kind === 'session') return sessionIntroLine(currentArea(answers));
+  if (step.kind === 'offer') return offerLine();
+  if (step.kind === 'safety') return safetyLine();
   if (step.kind === 'placement-intro') return placementIntroLine();
+  if (step.kind === 'camera') return cameraLine();
   if (step.kind === 'call') return callQuestion();
+  if (step.kind === 'schedule') return scheduleLine();
+  if (step.kind === 'confirm') return confirmLine();
   if (step.kind === 'remind') return remindQuestion();
   if (step.kind === 'know' && step.index === 0) {
     return areaQuestion(answers.completed.length);
@@ -303,11 +297,6 @@ export function Experience({
   const [skipStream, setSkipStream] = useState(false);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [checkpointIndex, setCheckpointIndex] = useState(-1);
-  const [panelLayoutReady, setPanelLayoutReady] = useState(false);
-  const [cameraContentReady, setCameraContentReady] = useState(false);
-  const [offerContentReady, setOfferContentReady] = useState(false);
-  const [safetyContentReady, setSafetyContentReady] = useState(false);
-  const [confirmContentReady, setConfirmContentReady] = useState(false);
   const [sessionAfterReward, setSessionAfterReward] = useState(false);
   const answersRef = useRef(EMPTY_ANSWERS);
   const rushExperience = skipToolDelay || fastDemo;
@@ -467,13 +456,6 @@ export function Experience({
     setDoor(snapshot.door);
     setChatCount(snapshot.chatCount);
     setSessionAfterReward(snapshot.sessionAfterReward);
-    setPanelLayoutReady(
-      snapshot.step.kind === 'schedule' || snapshot.step.kind === 'safety',
-    );
-    setCameraContentReady(snapshot.step.kind === 'camera');
-    setOfferContentReady(snapshot.step.kind === 'offer');
-    setSafetyContentReady(snapshot.step.kind === 'safety');
-    setConfirmContentReady(snapshot.step.kind === 'confirm');
   }
 
   function rewindPrev() {
@@ -524,11 +506,6 @@ export function Experience({
     setSessionAfterReward(
       jump.checkpoints[jump.targetIndex]?.sessionAfterReward ?? false,
     );
-    setPanelLayoutReady(jump.panelLayoutReady);
-    setCameraContentReady(jump.cameraContentReady);
-    setOfferContentReady(jump.offerContentReady);
-    setSafetyContentReady(jump.safetyContentReady);
-    setConfirmContentReady(jump.confirmContentReady);
   }
 
   useImperativeHandle(navigatorRef, () => ({
@@ -599,7 +576,11 @@ export function Experience({
   useEffect(() => {
     if (restoringRef.current) return;
     if (phase !== 'phoenix' || step.kind === 'guide') return;
-    if (isPanelStep(step)) {
+    if (
+      isImmersiveStep(step) ||
+      isRewardStep(step) ||
+      isCommitmentStep(step)
+    ) {
       setMood('listen');
       return;
     }
@@ -608,7 +589,7 @@ export function Experience({
 
   useEffect(() => {
     if (restoringRef.current) return;
-    if (phase !== 'phoenix' || (!isPanelStep(step) && !isImmersiveStep(step))) {
+    if (phase !== 'phoenix' || !isImmersiveStep(step)) {
       return;
     }
     recordCheckpoint(
@@ -631,7 +612,7 @@ export function Experience({
       return;
     }
     const id = window.setTimeout(() => {
-      setStep({ kind: 'offer' });
+      goToQuestion({ kind: 'offer' }, offerLine());
     }, delay(1600));
     return () => window.clearTimeout(id);
   }, [phase, step, mood, fastDemo]);
@@ -646,7 +627,7 @@ export function Experience({
       return;
     }
     const id = window.setTimeout(() => {
-      setStep({ kind: 'camera' });
+      goToQuestion({ kind: 'camera' }, cameraLine());
     }, delay(1600));
     return () => window.clearTimeout(id);
   }, [phase, step, mood, fastDemo]);
@@ -668,20 +649,6 @@ export function Experience({
     }, delay(EXERCISE_HOLD_MS));
     return () => window.clearTimeout(id);
   }, [phase, step, fastDemo]);
-
-  useEffect(() => {
-    if (restoringRef.current) return;
-    if (step.kind !== 'schedule' && step.kind !== 'safety') {
-      setPanelLayoutReady(false);
-    }
-    if (step.kind !== 'camera') setCameraContentReady(false);
-    else if (streamedTurnIdsRef.current.has(CAMERA_HEADING_TURN.id)) {
-      setCameraContentReady(true);
-    }
-    if (step.kind !== 'offer') setOfferContentReady(false);
-    if (step.kind !== 'safety') setSafetyContentReady(false);
-    if (step.kind !== 'confirm') setConfirmContentReady(false);
-  }, [step.kind]);
 
   useEffect(() => {
     if (restoringRef.current) return;
@@ -850,6 +817,18 @@ export function Experience({
     setMood('listen');
   }
 
+  function goToQuestion(next: PhoenixStep, line: string) {
+    discardFutureCheckpoints();
+    setSkipToolDelay(false);
+    pushTurns({
+      role: 'phoenix',
+      text: line,
+      kind: 'question',
+    });
+    setStep(next);
+    setMood('speak');
+  }
+
   const layout: Layout =
     phase === 'chat' || phase === 'exiting'
       ? 'avatar'
@@ -858,42 +837,24 @@ export function Experience({
         : phase === 'phoenix' && isImmersiveStep(step)
           ? 'immersive'
           : phase === 'phoenix' &&
-              (step.kind === 'camera' ||
-                step.kind === 'offer' ||
-                ((step.kind === 'schedule' || step.kind === 'safety') &&
-                  panelLayoutReady))
-            ? 'panel-header'
-            : phase === 'phoenix' && isPanelStep(step)
-              ? 'panel'
-              : phase === 'phoenix' &&
-                  step.kind !== 'guide' &&
-                  step.kind !== 'ready'
-                ? 'compact'
-                : 'hero';
+              toolReady &&
+              shouldCompactStack(step, selectedAreas(answers))
+            ? 'raised'
+            : 'hero';
 
   const showChat = phase === 'exiting' || phase === 'chat';
   const showConversation =
     (phase === 'phoenix' || phase === 'exiting') &&
-    !isPanelStep(step) &&
     !isImmersiveStep(step) &&
     !isRewardStep(step) &&
-    !isCommitmentStep(step) &&
-    !(step.kind === 'schedule' && panelLayoutReady) &&
-    !(step.kind === 'safety' && panelLayoutReady);
+    !isCommitmentStep(step);
   const confirmDay =
     SCHEDULE_DAYS.find(
       (day) => appointmentDayLabel(day) === answers.appointmentDay,
     ) ?? SCHEDULE_DAYS[0];
-  // Only the first question (area chips) and the impact question fill the
-  // screen with options — Phoenix rises above the fold and grows there
-  // instead of shrinking into the header.
-  const compactToolsReady =
-    layout === 'compact' &&
-    toolReady &&
-    ((step.kind === 'know' && step.index === 0) || step.kind === 'impact');
   const hideFloatingOrb =
     phase === 'phoenix' && (isImmersiveStep(step) || isCommitmentStep(step));
-  const orbLayout: Layout = compactToolsReady ? 'raised' : layout;
+  const orbLayout: Layout = layout;
 
   const isAtFrontier =
     checkpointIndex < 0 || checkpointIndex >= checkpoints.length - 1;
@@ -969,17 +930,6 @@ export function Experience({
           sessionAfterReward,
         ),
       );
-      if (
-        stepRef.current.kind === 'schedule' ||
-        stepRef.current.kind === 'safety'
-      ) {
-        later(() => {
-          setPanelLayoutReady(true);
-          if (stepRef.current.kind === 'safety') {
-            setSafetyContentReady(true);
-          }
-        }, delay(SCHEDULE_MORPH_HOLD_MS));
-      }
     },
     onGuideAdvance: () => {
       if (step.kind !== 'guide' || mood !== 'breath') return;
@@ -1002,11 +952,11 @@ export function Experience({
     },
     onSessionAdvance: () => {
       if (step.kind === 'session' && mood === 'listen') {
-        goToPanel({ kind: 'offer' });
+        goToQuestion({ kind: 'offer' }, offerLine());
         return;
       }
       if (step.kind === 'placement-intro' && mood === 'listen') {
-        goToPanel({ kind: 'camera' });
+        goToQuestion({ kind: 'camera' }, cameraLine());
       }
     },
     onReady: () => {
@@ -1100,7 +1050,6 @@ export function Experience({
           text: scheduleLine(),
           kind: 'question',
         });
-        setPanelLayoutReady(false);
         setStep({ kind: 'schedule' });
       }, delay(620));
     },
@@ -1119,6 +1068,117 @@ export function Experience({
       pushTurns({ role: 'member', text: REMIND_NO_LABEL, kind: 'answer' });
       enterChat('later');
     },
+    panelContent: (
+      <>
+        {step.kind === 'camera' ? (
+          <CameraPanel onEnable={() => goToPanel({ kind: 'placement' })} />
+        ) : null}
+        {step.kind === 'offer' ? (
+          <OfferPanel
+            area={currentArea(answers)}
+            onStart={() => {
+              discardFutureCheckpoints();
+              setSkipToolDelay(false);
+              pushTurns({
+                role: 'member',
+                text: START_SESSION_LABEL,
+                kind: 'answer',
+              });
+              setMood('think');
+              later(() => {
+                pushTurns({
+                  role: 'phoenix',
+                  text: safetyLine(),
+                  kind: 'question',
+                });
+                setStep({ kind: 'safety' });
+              }, delay(620));
+            }}
+            onLater={() => {
+              discardFutureCheckpoints();
+              setSkipToolDelay(false);
+              pushTurns({
+                role: 'member',
+                text: LATER_LABEL,
+                kind: 'answer',
+              });
+              setStep({ kind: 'call' });
+              setMood('think');
+              speakCareThen(
+                callCareLine(),
+                () => {
+                  pushTurns({
+                    role: 'phoenix',
+                    text: callQuestion(),
+                    kind: 'question',
+                  });
+                },
+                LATER_CARE_LEAD_MS,
+              );
+            }}
+          />
+        ) : null}
+        {step.kind === 'safety' ? (
+          <SafetyPanel
+            onContinue={(flags) => {
+              const nextAnswers = { ...answers, safetyFlags: flags };
+              setAnswers(nextAnswers);
+              discardFutureCheckpoints();
+              setSkipToolDelay(false);
+              pushTurns({
+                role: 'member',
+                text: flags.length > 0 ? flags.join(', ') : SAFETY_NONE_LABEL,
+                kind: 'answer',
+              });
+              setMood('think');
+
+              function advanceToPlacement() {
+                later(() => {
+                  pushTurns({
+                    role: 'phoenix',
+                    text: placementIntroLine(),
+                    kind: 'question',
+                  });
+                  setStep({ kind: 'placement-intro' });
+                }, delay(620));
+              }
+
+              if (flags.length > 0) {
+                speakCareThen(flagsCareLine(), () => {
+                  pushTurns({
+                    role: 'phoenix',
+                    text: flagsQuestion(),
+                    kind: 'care',
+                  });
+                  advanceToPlacement();
+                });
+                return;
+              }
+              advanceToPlacement();
+            }}
+          />
+        ) : null}
+        {step.kind === 'schedule' ? (
+          <SchedulePanel
+            onContinue={(day: ScheduleDay, time: string) => {
+              setAnswers((current) => ({
+                ...current,
+                appointmentDay: appointmentDayLabel(day),
+                appointmentTime: time,
+              }));
+              goToQuestion({ kind: 'confirm' }, confirmLine());
+            }}
+          />
+        ) : null}
+        {step.kind === 'confirm' ? (
+          <ConfirmPanel
+            day={confirmDay}
+            time={answers.appointmentTime ?? '9:00 AM'}
+            onConfirm={() => enterChat('scheduled')}
+          />
+        ) : null}
+      </>
+    ),
   };
 
   const currentTurn = turns.at(-1);
@@ -1176,19 +1236,12 @@ export function Experience({
         <div
           className={cn(
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-            layout === 'hero' && 'h-[232px]',
-            layout === 'compact' && !compactToolsReady && 'h-[108px]',
-            (layout === 'panel' ||
-              layout === 'panel-header' ||
-              layout === 'immersive' ||
-              compactToolsReady) &&
-              'h-0',
+            layout === 'hero' && 'h-[108px]',
+            (layout === 'raised' || layout === 'immersive') && 'h-0',
             layout !== 'hero' &&
-              layout !== 'compact' &&
-              layout !== 'panel' &&
-              layout !== 'panel-header' &&
+              layout !== 'raised' &&
               layout !== 'immersive' &&
-              'h-[232px]',
+              'h-[108px]',
           )}
         />
         {showConversation ? (
@@ -1222,172 +1275,6 @@ export function Experience({
         {phase === 'phoenix' && step.kind === 'reward-commitment' ? (
           <RewardCommitmentScene onComplete={enterChatAfterReward} />
         ) : null}
-        {phase === 'phoenix' &&
-        (step.kind === 'camera' || step.kind === 'offer') ? (
-          <ContinuityPanel
-            key={step.kind}
-            heading={
-              step.kind === 'camera' ? CAMERA_HEADING_TURN : OFFER_HEADING_TURN
-            }
-            hasStreamedTurn={conversation.hasStreamedTurn}
-            instantStream={fastDemo}
-            onTurnStreamComplete={(turnId) => {
-              conversation.onTurnStreamComplete(turnId);
-              if (turnId === OFFER_HEADING_TURN.id) {
-                setOfferContentReady(true);
-                return;
-              }
-              if (turnId === CAMERA_HEADING_TURN.id) {
-                setCameraContentReady(true);
-              }
-            }}
-          >
-            {step.kind === 'camera' ? (
-              <CameraPanel
-                contentReady={cameraContentReady || rushExperience}
-                onEnable={() => goToPanel({ kind: 'placement' })}
-              />
-            ) : (
-              <OfferPanel
-                area={currentArea(answers)}
-                contentReady={offerContentReady || rushExperience}
-                onStart={() => {
-                  discardFutureCheckpoints();
-                  setSkipToolDelay(false);
-                  pushTurns({
-                    role: 'member',
-                    text: START_SESSION_LABEL,
-                    kind: 'answer',
-                  });
-                  setMood('think');
-                  setPanelLayoutReady(false);
-                  setSafetyContentReady(false);
-                  later(() => {
-                    pushTurns({
-                      role: 'phoenix',
-                      text: safetyLine(),
-                      kind: 'question',
-                    });
-                    setStep({ kind: 'safety' });
-                  }, delay(620));
-                }}
-                onLater={() => {
-                  discardFutureCheckpoints();
-                  setSkipToolDelay(false);
-                  pushTurns({
-                    role: 'member',
-                    text: LATER_LABEL,
-                    kind: 'answer',
-                  });
-                  setStep({ kind: 'call' });
-                  setMood('think');
-                  speakCareThen(
-                    callCareLine(),
-                    () => {
-                      pushTurns({
-                        role: 'phoenix',
-                        text: callQuestion(),
-                        kind: 'question',
-                      });
-                    },
-                    LATER_CARE_LEAD_MS,
-                  );
-                }}
-              />
-            )}
-          </ContinuityPanel>
-        ) : null}
-        {phase === 'phoenix' && step.kind === 'safety' && panelLayoutReady ? (
-          <ContinuityPanel
-            heading={panelHeadingTurn('safety', turns)}
-            hasStreamedTurn={conversation.hasStreamedTurn}
-            instantStream={fastDemo}
-            onTurnStreamComplete={(turnId) => {
-              conversation.onTurnStreamComplete(turnId);
-              const heading = panelHeadingTurn('safety', turns);
-              if (turnId === heading.id) {
-                setSafetyContentReady(true);
-              }
-            }}
-          >
-            <SafetyPanel
-              contentReady={safetyContentReady || rushExperience}
-              onContinue={(flags) => {
-                const nextAnswers = { ...answers, safetyFlags: flags };
-                setAnswers(nextAnswers);
-                discardFutureCheckpoints();
-                setSkipToolDelay(false);
-                setPanelLayoutReady(false);
-                setSafetyContentReady(false);
-                pushTurns({
-                  role: 'member',
-                  text: flags.length > 0 ? flags.join(', ') : SAFETY_NONE_LABEL,
-                  kind: 'answer',
-                });
-                setMood('think');
-
-                function advanceToPlacement() {
-                  later(() => {
-                    pushTurns({
-                      role: 'phoenix',
-                      text: placementIntroLine(),
-                      kind: 'question',
-                    });
-                    setStep({ kind: 'placement-intro' });
-                  }, delay(620));
-                }
-
-                if (flags.length > 0) {
-                  speakCareThen(flagsCareLine(), () => {
-                    pushTurns({
-                      role: 'phoenix',
-                      text: flagsQuestion(),
-                      kind: 'care',
-                    });
-                    advanceToPlacement();
-                  });
-                  return;
-                }
-                advanceToPlacement();
-              }}
-            />
-          </ContinuityPanel>
-        ) : null}
-        {phase === 'phoenix' && step.kind === 'schedule' && panelLayoutReady ? (
-          <ContinuityPanel
-            heading={panelHeadingTurn('schedule', turns)}
-            hasStreamedTurn={conversation.hasStreamedTurn}
-            instantStream={fastDemo}
-            onTurnStreamComplete={conversation.onTurnStreamComplete}
-          >
-            <SchedulePanel
-              onContinue={(day: ScheduleDay, time: string) => {
-                setAnswers((current) => ({
-                  ...current,
-                  appointmentDay: appointmentDayLabel(day),
-                  appointmentTime: time,
-                }));
-                goToPanel({ kind: 'confirm' });
-              }}
-            />
-          </ContinuityPanel>
-        ) : null}
-        {phase === 'phoenix' && step.kind === 'confirm' ? (
-          <ConfirmPanel
-            day={confirmDay}
-            time={answers.appointmentTime ?? '9:00 AM'}
-            hasStreamedTurn={conversation.hasStreamedTurn}
-            instantStream={fastDemo}
-            onTurnStreamComplete={(turnId) => {
-              conversation.onTurnStreamComplete(turnId);
-              if (turnId === CONFIRM_HEADING_TURN.id) {
-                setConfirmContentReady(true);
-              }
-            }}
-            contentReady={confirmContentReady || rushExperience}
-            onConfirm={() => enterChat('scheduled')}
-          />
-        ) : null}
         {layout !== 'immersive' ? <HomeIndicatorSpace /> : null}
       </div>
 
@@ -1419,21 +1306,12 @@ export function Experience({
       <div
         className={cn(
           'pointer-events-none absolute z-30 flex -translate-x-1/2 items-center justify-center',
-          orbLayout !== 'panel' &&
-            'transition-[top,left,width,height,translate,opacity] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+          'transition-[top,left,width,height,translate,opacity] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
           orbLayout === 'seed' && 'top-[42%] left-1/2 size-[60px]',
-          orbLayout === 'hero' && 'top-[64px] left-1/2 size-[148px]',
-          orbLayout === 'compact' && 'top-[48px] left-1/2 size-[80px]',
-          // Full-screen questions tuck Phoenix so it only peeks at the
-          // top of the device — 120px, mostly clipped above the bezel.
-          orbLayout === 'raised' && 'top-[-72px] left-1/2 size-[120px]',
-          orbLayout === 'panel' &&
-            'pointer-events-none invisible size-0 opacity-0',
+          orbLayout === 'hero' && 'top-[64px] left-1/2 size-[80px]',
+          orbLayout === 'raised' && 'top-[-32px] left-1/2 size-[112px]',
           (orbLayout === 'immersive' || hideFloatingOrb) &&
             'pointer-events-none invisible size-0 opacity-0',
-          // `left` is the visual center (`-translate-x-1/2` is always on).
-          // left-9 = left-4 + half of size-10; 60px = 44px + half of 32px.
-          orbLayout === 'panel-header' && 'top-[64px] left-9 size-10',
           orbLayout === 'avatar' && 'top-[62px] left-[60px] size-[32px]',
         )}
       >
@@ -1451,12 +1329,9 @@ export function Experience({
             'relative aspect-square shrink-0 appearance-none border-0 bg-transparent p-0 transition-[width,height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
             phoenixTapLabel && 'pointer-events-auto cursor-pointer',
             orbLayout === 'seed' && 'size-[60px]',
-            orbLayout === 'hero' && 'size-[148px]',
-            orbLayout === 'compact' && 'size-[80px]',
-            orbLayout === 'raised' && 'size-[120px]',
-            orbLayout === 'panel' && 'size-0',
+            orbLayout === 'hero' && 'size-[80px]',
+            orbLayout === 'raised' && 'size-[112px]',
             (orbLayout === 'immersive' || hideFloatingOrb) && 'size-0',
-            orbLayout === 'panel-header' && 'size-10',
             orbLayout === 'avatar' && 'size-[32px]',
           )}
         >

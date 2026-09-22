@@ -129,6 +129,7 @@ function Tools(props: ConversationProps) {
       onCallNo={props.onCallNo}
       onRemindYes={props.onRemindYes}
       onRemindNo={props.onRemindNo}
+      panelContent={props.panelContent}
     />
   );
 }

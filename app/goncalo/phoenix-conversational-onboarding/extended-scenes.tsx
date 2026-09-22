@@ -14,10 +14,7 @@ import icGift from './assets/ic-gift.svg';
 import icSecurity from './assets/ic-security.svg';
 import icTagClock from './assets/ic-tag-clock.svg';
 import icWorld from './assets/ic-world.svg';
-import jessicaPortrait from './assets/jessica-portrait.png';
 import sessionCard from './assets/session-card.png';
-import { PhoenixOrb } from './phoenix-orb';
-import { PhoenixLineText, streamDurationMs } from './phoenix-scene';
 import {
   ACTIVITIES,
   CALL_NO_LABEL,
@@ -32,23 +29,15 @@ import {
   SCHEDULE_DAYS,
   SCHEDULE_MONTH,
   SCHEDULE_ZONE,
-  SPECIALIST,
   START_SESSION_LABEL,
   appointmentDayLabel,
-  cameraLine,
   checkupTitle,
-  confirmLine,
-  offerLine,
   safetyHint,
-  safetyLine,
-  scheduleLine,
   scheduleTimesForDay,
   type ActivityId,
   type ScheduleDay,
-  type StackTurn,
 } from './script';
 import { GlassCheckRow, GlassChip, glassSurfaceClasses } from './glass';
-import { PanelHeaderStack } from './panel-header';
 import { useScrollFade } from './use-scroll-fade';
 
 function assetSrc(asset: string | { src: string }) {
@@ -62,109 +51,6 @@ const SESSION_PREVIEW_SRC = new URL(
 
 const PANEL_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const PANEL_CONTENT_MS = 800;
-
-export const CAMERA_HEADING_TURN: StackTurn = {
-  id: 'camera-heading',
-  role: 'phoenix',
-  text: cameraLine(),
-  kind: 'question',
-};
-
-export const OFFER_HEADING_TURN: StackTurn = {
-  id: 'offer-heading',
-  role: 'phoenix',
-  text: offerLine(),
-  kind: 'question',
-};
-
-export const SCHEDULE_HEADING_TURN: StackTurn = {
-  id: 'schedule-heading',
-  role: 'phoenix',
-  text: scheduleLine(),
-  kind: 'question',
-};
-
-export const CONFIRM_HEADING_TURN: StackTurn = {
-  id: 'confirm-heading',
-  role: 'phoenix',
-  text: confirmLine(),
-  kind: 'question',
-};
-
-export const SAFETY_HEADING_TURN: StackTurn = {
-  id: 'safety-heading',
-  role: 'phoenix',
-  text: safetyLine(),
-  kind: 'question',
-};
-
-const SPECIALIST_NAME_CLASS =
-  'bg-gradient-to-r from-[#5f97f0] to-[#3a70c7] bg-clip-text text-transparent';
-
-export function panelHeadingTurn(
-  kind: 'camera' | 'offer' | 'schedule' | 'safety',
-  turns: StackTurn[],
-): StackTurn {
-  if (kind === 'camera') return CAMERA_HEADING_TURN;
-  if (kind === 'offer') return OFFER_HEADING_TURN;
-  if (kind === 'safety') {
-    for (let index = turns.length - 1; index >= 0; index -= 1) {
-      const turn = turns[index];
-      if (turn.role === 'phoenix' && turn.text === safetyLine()) {
-        return turn;
-      }
-    }
-    return SAFETY_HEADING_TURN;
-  }
-  for (let index = turns.length - 1; index >= 0; index -= 1) {
-    const turn = turns[index];
-    if (turn.role === 'phoenix' && turn.text === scheduleLine()) {
-      return turn;
-    }
-  }
-  return SCHEDULE_HEADING_TURN;
-}
-
-export function ContinuityPanel({
-  heading,
-  hasStreamedTurn,
-  instantStream,
-  onTurnStreamComplete,
-  children,
-}: {
-  heading: StackTurn;
-  hasStreamedTurn?: (turnId: string) => boolean;
-  instantStream?: boolean;
-  onTurnStreamComplete: (turnId: string) => void;
-  children: ReactNode;
-}) {
-  const [playLineIn] = useState(() => !hasStreamedTurn?.(heading.id));
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
-      <PanelHeaderStack>
-        <p
-          className="text-title-large-strong text-foreground-neutral-default text-left font-serif font-medium tracking-[-0.04em]"
-          style={
-            playLineIn && !instantStream
-              ? { animation: `line-in 1300ms ${PANEL_EASE} backwards` }
-              : undefined
-          }
-        >
-          <PhoenixLineText
-            key={heading.id}
-            text={heading.text}
-            kind={heading.kind}
-            shouldStream={playLineIn}
-            instantStream={instantStream}
-            onStreamComplete={() => onTurnStreamComplete(heading.id)}
-          />
-        </p>
-      </PanelHeaderStack>
-      {children}
-    </div>
-  );
-}
 
 export function PrimaryAction({
   children,
@@ -300,46 +186,12 @@ export function SubmitReveal({
   );
 }
 
-const CAMERA_CTA_HOLD_MS = 900;
-
-export function CameraPanel({
-  onEnable,
-  contentReady,
-}: {
-  onEnable: () => void;
-  contentReady?: boolean;
-}) {
+export function CameraPanel({ onEnable }: { onEnable: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [headlineReady, setHeadlineReady] = useState(Boolean(contentReady));
-  const [ctaReady, setCtaReady] = useState(Boolean(contentReady));
-
-  useEffect(() => {
-    if (contentReady) {
-      setHeadlineReady(true);
-      return;
-    }
-    const id = window.setTimeout(
-      () => setHeadlineReady(true),
-      streamDurationMs(cameraLine()),
-    );
-    return () => window.clearTimeout(id);
-  }, [contentReady]);
-
-  useEffect(() => {
-    if (!headlineReady || ctaReady) return;
-    const id = window.setTimeout(() => setCtaReady(true), CAMERA_CTA_HOLD_MS);
-    return () => window.clearTimeout(id);
-  }, [headlineReady, ctaReady]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-
-    if (!headlineReady) {
-      video.pause();
-      if (video.readyState > 0) video.currentTime = 0;
-      return;
-    }
 
     const playFromStart = () => {
       video.currentTime = 0;
@@ -353,13 +205,13 @@ export function CameraPanel({
 
     video.addEventListener('loadeddata', playFromStart, { once: true });
     return () => video.removeEventListener('loadeddata', playFromStart);
-  }, [headlineReady]);
+  }, []);
 
   return (
     <div className="mt-8 flex min-h-0 flex-1 flex-col">
       <OfferPiece
         index={0}
-        ready={headlineReady}
+        ready
         className="relative h-[300px] overflow-hidden rounded-3xl bg-white"
       >
         <video
@@ -373,11 +225,8 @@ export function CameraPanel({
           className="absolute inset-0 size-full object-cover"
         />
       </OfferPiece>
-      <div
-        className="mt-auto flex w-full shrink-0 flex-col gap-4 pb-2"
-        inert={!ctaReady || undefined}
-      >
-        <OfferPiece index={0} ready={ctaReady} className="w-full">
+      <div className="mt-auto flex w-full shrink-0 flex-col gap-4 pb-2">
+        <OfferPiece index={0} ready className="w-full">
           <div className="flex items-center gap-1.5">
             <span className="relative size-4 shrink-0 overflow-clip">
               <img
@@ -392,7 +241,7 @@ export function CameraPanel({
             </p>
           </div>
         </OfferPiece>
-        <OfferPiece index={1} ready={ctaReady} className="w-full">
+        <OfferPiece index={1} ready className="w-full">
           <PrimaryAction onClick={onEnable}>
             {ENABLE_CAMERA_LABEL}
           </PrimaryAction>
@@ -432,27 +281,12 @@ export function OfferPanel({
   area,
   onStart,
   onLater,
-  contentReady,
 }: {
   area: string;
   onStart: () => void;
   onLater: () => void;
-  contentReady?: boolean;
 }) {
-  const [headlineReady, setHeadlineReady] = useState(Boolean(contentReady));
-
-  useEffect(() => {
-    if (contentReady) {
-      setHeadlineReady(true);
-      return;
-    }
-    // Fallback if the last stream character's animationend never fires.
-    // Timing matches streamDurationMs in phoenix-scene.tsx (40ms/char + 400ms).
-    const count = Array.from(offerLine()).length;
-    const durationMs = count === 0 ? 0 : (count - 1) * 40 + 400;
-    const id = window.setTimeout(() => setHeadlineReady(true), durationMs);
-    return () => window.clearTimeout(id);
-  }, [contentReady]);
+  const [headlineReady] = useState(true);
 
   return (
     <div
@@ -525,28 +359,14 @@ export function OfferPanel({
 
 export function SafetyPanel({
   onContinue,
-  contentReady,
 }: {
   onContinue: (flags: string[]) => void;
-  contentReady?: boolean;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
-  const [headlineReady, setHeadlineReady] = useState(Boolean(contentReady));
+  const [headlineReady] = useState(true);
   const { scrollerRef, fadeTop, fadeBottom, onScroll } = useScrollFade([
     headlineReady,
   ]);
-
-  useEffect(() => {
-    if (contentReady) {
-      setHeadlineReady(true);
-      return;
-    }
-    const id = window.setTimeout(
-      () => setHeadlineReady(true),
-      streamDurationMs(safetyLine()),
-    );
-    return () => window.clearTimeout(id);
-  }, [contentReady]);
 
   function toggle(flag: string) {
     setSelected((current) =>
@@ -758,91 +578,35 @@ export function ConfirmPanel({
   day,
   time,
   onConfirm,
-  contentReady,
-  hasStreamedTurn,
-  instantStream,
-  onTurnStreamComplete,
 }: {
   day: ScheduleDay;
   time: string;
   onConfirm: () => void;
-  contentReady?: boolean;
-  hasStreamedTurn?: (turnId: string) => boolean;
-  instantStream?: boolean;
-  onTurnStreamComplete: (turnId: string) => void;
 }) {
-  const heading = CONFIRM_HEADING_TURN;
-  const [headlineReady, setHeadlineReady] = useState(Boolean(contentReady));
-
-  useEffect(() => {
-    if (contentReady) {
-      setHeadlineReady(true);
-      return;
-    }
-    const id = window.setTimeout(
-      () => setHeadlineReady(true),
-      streamDurationMs(heading.text),
-    );
-    return () => window.clearTimeout(id);
-  }, [contentReady, heading.text]);
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col px-4 pt-10">
-      <div className="flex flex-col items-center gap-8">
-        <div className="flex items-center">
-          <div className="relative z-10 size-20">
-            <PhoenixOrb mood="listen" className="h-full w-full" />
-          </div>
-          <div className="relative z-20 -ml-5 size-20 overflow-hidden rounded-full border-4 border-white bg-gradient-to-b from-[#eaf2fe] to-[#a6c9f8] shadow-[0_5px_5px_rgba(0,0,0,0.08)]">
-            <img
-              alt={SPECIALIST}
-              src={assetSrc(jessicaPortrait)}
-              className="size-full object-cover object-top"
-            />
-          </div>
-        </div>
-        <p className="text-title-large-strong text-foreground-neutral-default text-center font-serif font-medium tracking-[-0.04em] whitespace-pre-wrap">
-          <PhoenixLineText
-            key={heading.id}
-            text={heading.text}
-            kind={heading.kind}
-            shouldStream={!hasStreamedTurn?.(heading.id)}
-            instantStream={instantStream}
-            onStreamComplete={() => onTurnStreamComplete(heading.id)}
-            emphasis={{
-              phrase: SPECIALIST,
-              className: SPECIALIST_NAME_CLASS,
-            }}
-          />
-        </p>
-        <div
-          className="flex w-full flex-col gap-3"
-          inert={!headlineReady || undefined}
-        >
-          <SummaryRow
-            ready={headlineReady}
-            icon={icCalendar}
-            label="Day"
-            value={appointmentDayLabel(day)}
-          />
-          <SummaryRow
-            ready={headlineReady}
-            icon={icClock}
-            label="Time"
-            value={time}
-          />
-          <SummaryRow
-            ready={headlineReady}
-            icon={icWorld}
-            label="Time Zone"
-            value={SCHEDULE_ZONE}
-          />
-        </div>
+    <div className="mt-8 flex min-h-0 flex-1 flex-col">
+      <div className="flex w-full flex-col gap-3">
+        <SummaryRow
+          ready
+          icon={icCalendar}
+          label="Day"
+          value={appointmentDayLabel(day)}
+        />
+        <SummaryRow
+          ready
+          icon={icClock}
+          label="Time"
+          value={time}
+        />
+        <SummaryRow
+          ready
+          icon={icWorld}
+          label="Time Zone"
+          value={SCHEDULE_ZONE}
+        />
       </div>
       <FooterActions>
-        <PrimaryAction disabled={!headlineReady} onClick={onConfirm}>
-          Confirm appointment
-        </PrimaryAction>
+        <PrimaryAction onClick={onConfirm}>Confirm appointment</PrimaryAction>
       </FooterActions>
     </div>
   );

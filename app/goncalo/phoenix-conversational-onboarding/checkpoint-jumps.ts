@@ -6,6 +6,7 @@ import {
   activityLabel,
   activityQuestion,
   areaQuestion,
+  cameraLine,
   completeCondition,
   conditionWrapLine,
   currentArea,
@@ -23,6 +24,7 @@ import {
   intensityQuestion,
   MORE_NO_LABEL,
   moreQuestion,
+  offerLine,
   READY_LABEL,
   regionAnswer,
   regionQuestion,
@@ -94,11 +96,6 @@ export interface JumpState {
   door: DoorId | null;
   chatCount: number;
   isHero: boolean;
-  panelLayoutReady: boolean;
-  cameraContentReady: boolean;
-  offerContentReady: boolean;
-  safetyContentReady: boolean;
-  confirmContentReady: boolean;
 }
 
 const DEMO_AREA = 'Shoulder';
@@ -107,14 +104,6 @@ const DEMO_INTENSITY = 7;
 const DEMO_ACTIVITY: ActivityId = 'moderate';
 const DEMO_REGIONS = ['Shoulder blade', 'Upper arm'];
 const DEMO_IMPACTS = ['Carrying a bag or groceries'];
-
-const PANEL_HEADING_IDS = {
-  camera: 'camera-heading',
-  offer: 'offer-heading',
-  safety: 'safety-heading',
-  schedule: 'schedule-heading',
-  confirm: 'confirm-heading',
-} as const;
 
 const EMPTY_ANSWERS: Answers = {
   area: null,
@@ -330,9 +319,18 @@ function buildActivityTurns(nextTurnId: () => string) {
   return builder.snapshot();
 }
 
-function buildSafetyTurns(nextTurnId: () => string) {
+function buildOfferTurns(nextTurnId: () => string) {
   const builder = new TurnBuilder(nextTurnId);
   buildActivityTurns(nextTurnId).forEach((turn) => {
+    builder.turns.push(turn);
+  });
+  builder.phoenix(offerLine());
+  return builder.snapshot();
+}
+
+function buildSafetyTurns(nextTurnId: () => string) {
+  const builder = new TurnBuilder(nextTurnId);
+  buildOfferTurns(nextTurnId).forEach((turn) => {
     builder.turns.push(turn);
   });
   builder.member(START_SESSION_LABEL).phoenix(safetyLine());
@@ -361,26 +359,8 @@ function buildFlagTurns(nextTurnId: () => string) {
   return builder.snapshot();
 }
 
-function streamedIdsForTurns(
-  turns: StackTurn[],
-  step: PhoenixStep,
-  flags: {
-    cameraContentReady: boolean;
-    offerContentReady: boolean;
-    safetyContentReady: boolean;
-    confirmContentReady: boolean;
-    panelLayoutReady: boolean;
-  },
-) {
-  const ids = turns.map((turn) => turn.id);
-  if (flags.cameraContentReady) ids.push(PANEL_HEADING_IDS.camera);
-  if (flags.offerContentReady) ids.push(PANEL_HEADING_IDS.offer);
-  if (flags.safetyContentReady) ids.push(PANEL_HEADING_IDS.safety);
-  if (flags.confirmContentReady) ids.push(PANEL_HEADING_IDS.confirm);
-  if (flags.panelLayoutReady && step.kind === 'schedule') {
-    ids.push(PANEL_HEADING_IDS.schedule);
-  }
-  return ids;
+function streamedIdsForTurns(turns: StackTurn[]) {
+  return turns.map((turn) => turn.id);
 }
 
 function finishJump(
@@ -396,17 +376,12 @@ function finishJump(
   chatCount: number,
   flags: {
     isHero: boolean;
-    panelLayoutReady: boolean;
-    cameraContentReady: boolean;
-    offerContentReady: boolean;
-    safetyContentReady: boolean;
-    confirmContentReady: boolean;
   },
 ): JumpState {
   return {
     checkpoints,
     targetIndex,
-    streamedTurnIds: streamedIdsForTurns(turns, step, flags),
+    streamedTurnIds: streamedIdsForTurns(turns),
     phase,
     step,
     answers: cloneAnswers(answers),
@@ -457,11 +432,6 @@ export function buildJumpState(
       0,
       {
         isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: false,
-        offerContentReady: false,
-        safetyContentReady: false,
-        confirmContentReady: false,
       },
     );
   }
@@ -504,11 +474,6 @@ export function buildJumpState(
       0,
       {
         isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: false,
-        offerContentReady: false,
-        safetyContentReady: false,
-        confirmContentReady: false,
       },
     );
   }
@@ -579,11 +544,6 @@ export function buildJumpState(
       0,
       {
         isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: false,
-        offerContentReady: false,
-        safetyContentReady: false,
-        confirmContentReady: false,
       },
     );
   }
@@ -650,23 +610,18 @@ export function buildJumpState(
       0,
       {
         isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: false,
-        offerContentReady: false,
-        safetyContentReady: false,
-        confirmContentReady: false,
       },
     );
   }
 
   const activityAnswers = demoActivityAnswers();
-  const activityTurns = buildActivityTurns(nextTurnId);
+  const offerTurns = buildOfferTurns(nextTurnId);
   checkpoints.push(
     makeCheckpoint(
       'phoenix',
       { kind: 'offer' },
       activityAnswers,
-      activityTurns,
+      offerTurns,
       'listen',
       null,
       0,
@@ -678,7 +633,7 @@ export function buildJumpState(
       destinationId,
       checkpoints,
       checkpoints.length - 1,
-      activityTurns,
+      offerTurns,
       activityAnswers,
       'phoenix',
       { kind: 'offer' },
@@ -687,11 +642,6 @@ export function buildJumpState(
       0,
       {
         isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: false,
-        offerContentReady: true,
-        safetyContentReady: false,
-        confirmContentReady: false,
       },
     );
   }
@@ -736,11 +686,6 @@ export function buildJumpState(
       0,
       {
         isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: false,
-        offerContentReady: true,
-        safetyContentReady: true,
-        confirmContentReady: false,
       },
     );
   }
@@ -797,11 +742,6 @@ export function buildJumpState(
       0,
       {
         isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: false,
-        offerContentReady: true,
-        safetyContentReady: true,
-        confirmContentReady: false,
       },
     );
   }
@@ -834,12 +774,16 @@ export function buildJumpState(
       ),
     );
     const cameraStep: PhoenixStep = { kind: 'camera' };
+    const cameraTurns = [
+      ...clearanceTurns,
+      { id: nextTurnId(), role: 'phoenix' as const, text: cameraLine(), kind: 'question' as const },
+    ];
     checkpoints.push(
       makeCheckpoint(
         'phoenix',
         cameraStep,
         activityAnswers,
-        clearanceTurns,
+        cameraTurns,
         'listen',
         null,
         0,
@@ -870,11 +814,6 @@ export function buildJumpState(
       0,
       {
         isHero: true,
-        panelLayoutReady: false,
-        cameraContentReady: false,
-        offerContentReady: true,
-        safetyContentReady: true,
-        confirmContentReady: false,
       },
     );
   }
@@ -904,14 +843,9 @@ export function buildJumpState(
     'listen',
     null,
     0,
-    {
-      isHero: true,
-      panelLayoutReady: false,
-      cameraContentReady: false,
-      offerContentReady: true,
-      safetyContentReady: true,
-      confirmContentReady: false,
-    },
+      {
+        isHero: true,
+      },
   );
 }
 

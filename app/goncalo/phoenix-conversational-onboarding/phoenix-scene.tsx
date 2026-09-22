@@ -69,12 +69,6 @@ export type PhoenixStep =
   | { kind: 'region' }
   | { kind: 'impact' };
 
-export function isPanelStep(step: PhoenixStep) {
-  return (
-    step.kind === 'camera' || step.kind === 'offer' || step.kind === 'confirm'
-  );
-}
-
 export function isRewardStep(step: PhoenixStep) {
   return (
     step.kind === 'reward-reveal' ||
@@ -102,7 +96,12 @@ export function hasConversationTools(step: PhoenixStep) {
     step.kind === 'more' ||
     step.kind === 'activity' ||
     step.kind === 'call' ||
-    step.kind === 'remind'
+    step.kind === 'remind' ||
+    step.kind === 'camera' ||
+    step.kind === 'offer' ||
+    step.kind === 'safety' ||
+    step.kind === 'schedule' ||
+    step.kind === 'confirm'
   );
 }
 
@@ -667,6 +666,7 @@ export function PhoenixTools({
   onCallNo,
   onRemindYes,
   onRemindNo,
+  panelContent,
 }: {
   step: PhoenixStep;
   show: boolean;
@@ -687,6 +687,7 @@ export function PhoenixTools({
   onCallNo: () => void;
   onRemindYes: () => void;
   onRemindNo: () => void;
+  panelContent?: ReactNode;
 }) {
   const rewindHighlight = Boolean(selectedAnswer);
 
@@ -751,6 +752,7 @@ export function PhoenixTools({
           onNo={onRemindNo}
         />
       ) : null}
+      {panelContent}
     </ToolShell>
   );
 }
@@ -790,7 +792,12 @@ export function isFormQuestion(step: PhoenixStep) {
     step.kind === 'more' ||
     step.kind === 'activity' ||
     step.kind === 'call' ||
-    step.kind === 'remind'
+    step.kind === 'remind' ||
+    step.kind === 'camera' ||
+    step.kind === 'offer' ||
+    step.kind === 'safety' ||
+    step.kind === 'schedule' ||
+    step.kind === 'confirm'
   );
 }
 
@@ -805,6 +812,15 @@ export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
   if (step.kind === 'more') return 2;
   if (step.kind === 'activity') return 3;
   if (step.kind === 'call' || step.kind === 'remind') return 2;
+  if (
+    step.kind === 'camera' ||
+    step.kind === 'offer' ||
+    step.kind === 'safety' ||
+    step.kind === 'schedule' ||
+    step.kind === 'confirm'
+  ) {
+    return 5;
+  }
   return 0;
 }
 
@@ -1007,4 +1023,5 @@ export interface ConversationProps {
   onRemindYes: () => void;
   onRemindNo: () => void;
   onTurnStreamComplete: (turnId: string) => void;
+  panelContent?: ReactNode;
 }
