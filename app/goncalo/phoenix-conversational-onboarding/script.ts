@@ -324,6 +324,25 @@ export function kitTeaserHint() {
   return 'It includes all the equipment you need to help you progress through your program.';
 }
 
+export function welcomeKitLine() {
+  return 'You’ve earned your Welcome Kit';
+}
+
+export function addressLine() {
+  return 'Where should we send your welcome kit?';
+}
+
+export function kitOnTheWayLine() {
+  return 'Your welcome kit is on the way';
+}
+
+export function kitOnTheWayHint() {
+  return 'Shipping will take 5–7 days';
+}
+
+export const GET_KIT_LABEL = 'Get my welcome kit';
+export const SEND_KIT_LABEL = 'Send my welcome kit';
+
 export function checkupTitle(area: string) {
   return `${area} Check-up`;
 }

@@ -10,14 +10,13 @@ import {
 } from 'react';
 import { buildJumpState, type JumpDestinationId } from './checkpoint-jumps';
 import { AssessmentScene } from './assessment-scene';
-import { RewardCommitmentScene } from './reward-commitment-scene';
 import { RewardConfirmationScene } from './reward-confirmation-scene';
 import { RewardRevealScene } from './reward-reveal-scene';
-import { RewardShippingScene } from './reward-shipping-scene';
 import { ChatScene } from './chat-scene';
 import { ConversationShell } from './conversation-variants';
 import { HomeIndicatorSpace, StatusBar } from './device-frame';
 import {
+  AddressPanel,
   CameraPanel,
   ConfirmPanel,
   OfferPanel,
@@ -27,9 +26,7 @@ import {
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
 import {
   hasConversationTools,
-  isCommitmentStep,
   isImmersiveStep,
-  isRewardStep,
   shouldCompactStack,
   streamDurationMs,
   TOOL_MOTION_MS,
@@ -62,6 +59,7 @@ import {
   activityIntroLine,
   activityLabel,
   activityQuestion,
+  addressLine,
   callCareLine,
   callQuestion,
   cameraLine,
@@ -160,6 +158,7 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'call') return callQuestion();
   if (step.kind === 'schedule') return scheduleLine();
   if (step.kind === 'confirm') return confirmLine();
+  if (step.kind === 'reward-shipping') return addressLine();
   if (step.kind === 'remind') return remindQuestion();
   if (step.kind === 'know' && step.index === 0) {
     return areaQuestion(answers.completed.length);
@@ -237,7 +236,6 @@ function checkpointLabel(
   if (step.kind === 'reward-reveal') return 'Reward';
   if (step.kind === 'reward-shipping') return 'Shipping';
   if (step.kind === 'reward-confirmation') return 'Reward sent';
-  if (step.kind === 'reward-commitment') return 'Commitment';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
@@ -578,8 +576,8 @@ export function Experience({
     if (phase !== 'phoenix' || step.kind === 'guide') return;
     if (
       isImmersiveStep(step) ||
-      isRewardStep(step) ||
-      isCommitmentStep(step)
+      step.kind === 'reward-reveal' ||
+      step.kind === 'reward-confirmation'
     ) {
       setMood('listen');
       return;
@@ -589,7 +587,12 @@ export function Experience({
 
   useEffect(() => {
     if (restoringRef.current) return;
-    if (phase !== 'phoenix' || !isImmersiveStep(step)) {
+    if (
+      phase !== 'phoenix' ||
+      (!isImmersiveStep(step) &&
+        step.kind !== 'reward-reveal' &&
+        step.kind !== 'reward-confirmation')
+    ) {
       return;
     }
     recordCheckpoint(
@@ -789,18 +792,8 @@ export function Experience({
     enterChat('session');
   }
 
-  function goToRewardCommitment() {
-    discardFutureCheckpoints();
-    setSkipToolDelay(false);
-    setStep({ kind: 'reward-commitment' });
-    setMood('breath');
-  }
-
   function goToRewardShipping() {
-    discardFutureCheckpoints();
-    setSkipToolDelay(false);
-    setStep({ kind: 'reward-shipping' });
-    setMood('listen');
+    goToQuestion({ kind: 'reward-shipping' }, addressLine());
   }
 
   function goToRewardConfirmation() {
@@ -846,14 +839,15 @@ export function Experience({
   const showConversation =
     (phase === 'phoenix' || phase === 'exiting') &&
     !isImmersiveStep(step) &&
-    !isRewardStep(step) &&
-    !isCommitmentStep(step);
+    step.kind !== 'reward-reveal' &&
+    step.kind !== 'reward-confirmation';
   const confirmDay =
     SCHEDULE_DAYS.find(
       (day) => appointmentDayLabel(day) === answers.appointmentDay,
     ) ?? SCHEDULE_DAYS[0];
   const hideFloatingOrb =
-    phase === 'phoenix' && (isImmersiveStep(step) || isCommitmentStep(step));
+    phase === 'phoenix' &&
+    (isImmersiveStep(step) || step.kind === 'reward-confirmation');
   const orbLayout: Layout = layout;
 
   const isAtFrontier =
@@ -1177,6 +1171,9 @@ export function Experience({
             onConfirm={() => enterChat('scheduled')}
           />
         ) : null}
+        {step.kind === 'reward-shipping' ? (
+          <AddressPanel onSubmit={goToRewardConfirmation} />
+        ) : null}
       </>
     ),
   };
@@ -1236,11 +1233,17 @@ export function Experience({
         <div
           className={cn(
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-            layout === 'hero' && 'h-[108px]',
-            (layout === 'raised' || layout === 'immersive') && 'h-0',
+            layout === 'hero' &&
+              step.kind !== 'reward-confirmation' &&
+              'h-[108px]',
+            (layout === 'raised' ||
+              layout === 'immersive' ||
+              step.kind === 'reward-confirmation') &&
+              'h-0',
             layout !== 'hero' &&
               layout !== 'raised' &&
               layout !== 'immersive' &&
+              step.kind !== 'reward-confirmation' &&
               'h-[108px]',
           )}
         />
@@ -1261,19 +1264,10 @@ export function Experience({
           />
         ) : null}
         {phase === 'phoenix' && step.kind === 'reward-reveal' ? (
-          <RewardRevealScene
-            fastDemo={fastDemo}
-            onContinue={goToRewardShipping}
-          />
-        ) : null}
-        {phase === 'phoenix' && step.kind === 'reward-shipping' ? (
-          <RewardShippingScene onSubmit={goToRewardConfirmation} />
+          <RewardRevealScene onContinue={goToRewardShipping} />
         ) : null}
         {phase === 'phoenix' && step.kind === 'reward-confirmation' ? (
-          <RewardConfirmationScene onContinue={goToRewardCommitment} />
-        ) : null}
-        {phase === 'phoenix' && step.kind === 'reward-commitment' ? (
-          <RewardCommitmentScene onComplete={enterChatAfterReward} />
+          <RewardConfirmationScene onContinue={enterChatAfterReward} />
         ) : null}
         {layout !== 'immersive' ? <HomeIndicatorSpace /> : null}
       </div>
@@ -1297,7 +1291,11 @@ export function Experience({
         ) : null}
       </div>
 
-      {showConversation && phase === 'phoenix' && conversation.canRewind ? (
+      {(showConversation ||
+        step.kind === 'reward-reveal' ||
+        step.kind === 'reward-confirmation') &&
+      phase === 'phoenix' &&
+      conversation.canRewind ? (
         <div className="absolute top-[52px] left-4 z-30">
           <BackButton onClick={() => conversation.onRewind?.()} />
         </div>

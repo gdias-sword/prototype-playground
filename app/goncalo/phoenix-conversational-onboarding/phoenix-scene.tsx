@@ -61,7 +61,6 @@ export type PhoenixStep =
   | { kind: 'reward-reveal' }
   | { kind: 'reward-shipping' }
   | { kind: 'reward-confirmation' }
-  | { kind: 'reward-commitment' }
   | { kind: 'call' }
   | { kind: 'schedule' }
   | { kind: 'confirm' }
@@ -77,14 +76,8 @@ export function isRewardStep(step: PhoenixStep) {
   );
 }
 
-export function isCommitmentStep(step: PhoenixStep) {
-  return step.kind === 'reward-commitment';
-}
-
 export function isImmersiveStep(step: PhoenixStep) {
-  return (
-    step.kind === 'placement' || step.kind === 'exercise' || isRewardStep(step)
-  );
+  return step.kind === 'placement' || step.kind === 'exercise';
 }
 
 export function hasConversationTools(step: PhoenixStep) {
@@ -101,7 +94,8 @@ export function hasConversationTools(step: PhoenixStep) {
     step.kind === 'offer' ||
     step.kind === 'safety' ||
     step.kind === 'schedule' ||
-    step.kind === 'confirm'
+    step.kind === 'confirm' ||
+    step.kind === 'reward-shipping'
   );
 }
 
@@ -797,7 +791,8 @@ export function isFormQuestion(step: PhoenixStep) {
     step.kind === 'offer' ||
     step.kind === 'safety' ||
     step.kind === 'schedule' ||
-    step.kind === 'confirm'
+    step.kind === 'confirm' ||
+    step.kind === 'reward-shipping'
   );
 }
 
@@ -817,7 +812,8 @@ export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
     step.kind === 'offer' ||
     step.kind === 'safety' ||
     step.kind === 'schedule' ||
-    step.kind === 'confirm'
+    step.kind === 'confirm' ||
+    step.kind === 'reward-shipping'
   ) {
     return 5;
   }

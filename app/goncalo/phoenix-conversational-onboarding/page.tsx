@@ -20,7 +20,6 @@ import {
   type ExperienceControls,
   type ExperienceHandle,
 } from './experience';
-import './commitment-motion.css';
 import './motion.css';
 import './reward-motion.css';
 

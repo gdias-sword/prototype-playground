@@ -15,6 +15,7 @@ import icSecurity from './assets/ic-security.svg';
 import icTagClock from './assets/ic-tag-clock.svg';
 import icWorld from './assets/ic-world.svg';
 import sessionCard from './assets/session-card.png';
+import { ChevronDown } from 'lucide-react';
 import {
   ACTIVITIES,
   CALL_NO_LABEL,
@@ -26,6 +27,7 @@ import {
   REMIND_YES_LABEL,
   SAFETY_FLAGS,
   SAFETY_NONE_LABEL,
+  SEND_KIT_LABEL,
   SCHEDULE_DAYS,
   SCHEDULE_MONTH,
   SCHEDULE_ZONE,
@@ -607,6 +609,44 @@ export function ConfirmPanel({
       </div>
       <FooterActions>
         <PrimaryAction onClick={onConfirm}>Confirm appointment</PrimaryAction>
+      </FooterActions>
+    </div>
+  );
+}
+
+function AddressField({
+  placeholder,
+  type = 'text',
+}: {
+  placeholder: string;
+  type?: string;
+}) {
+  return (
+    <input
+      type={type}
+      placeholder={placeholder}
+      className="border-border-neutral-faded bg-background-neutral-default text-body-medium-default text-foreground-neutral-default placeholder:text-foreground-neutral-faded h-16 w-full rounded-2xl border px-4 outline-none"
+    />
+  );
+}
+
+export function AddressPanel({ onSubmit }: { onSubmit: () => void }) {
+  return (
+    <div className="mt-8 flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-col gap-6">
+        <AddressField placeholder="Address" />
+        <AddressField placeholder="City" />
+        <button
+          type="button"
+          className="border-border-neutral-faded bg-background-neutral-default text-body-medium-default text-foreground-neutral-faded flex h-16 w-full items-center justify-between rounded-2xl border px-4"
+        >
+          Country
+          <ChevronDown className="size-5 shrink-0" />
+        </button>
+        <AddressField placeholder="Postal code" />
+      </div>
+      <FooterActions>
+        <PrimaryAction onClick={onSubmit}>{SEND_KIT_LABEL}</PrimaryAction>
       </FooterActions>
     </div>
   );

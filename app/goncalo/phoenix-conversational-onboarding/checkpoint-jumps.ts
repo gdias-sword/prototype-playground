@@ -50,7 +50,6 @@ export type JumpDestinationId =
   | 'session'
   | 'assess'
   | 'reward'
-  | 'commitment'
   | 'flags';
 
 export interface JumpDestination {
@@ -67,7 +66,6 @@ export const JUMP_DESTINATIONS: JumpDestination[] = [
   { id: 'session', label: 'Session', shortcut: '5' },
   { id: 'assess', label: 'Assess', shortcut: '6' },
   { id: 'reward', label: 'Reward', shortcut: '8' },
-  { id: 'commitment', label: 'Commitment', shortcut: '9' },
   { id: 'flags', label: 'Flags', shortcut: '7' },
 ];
 
@@ -163,7 +161,6 @@ function checkpointLabel(
   if (step.kind === 'reward-reveal') return 'Reward';
   if (step.kind === 'reward-shipping') return 'Shipping';
   if (step.kind === 'reward-confirmation') return 'Reward sent';
-  if (step.kind === 'reward-commitment') return 'Commitment';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
@@ -682,62 +679,6 @@ export function buildJumpState(
       'phoenix',
       rewardStep,
       'listen',
-      null,
-      0,
-      {
-        isHero: true,
-      },
-    );
-  }
-
-  if (destinationId === 'commitment') {
-    const activityAnswers = demoActivityAnswers();
-    const clearanceTurns = buildClearanceTurns(nextTurnId);
-    const exerciseStep: PhoenixStep = { kind: 'exercise' };
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        exerciseStep,
-        activityAnswers,
-        clearanceTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    const rewardStep: PhoenixStep = { kind: 'reward-reveal' };
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        rewardStep,
-        activityAnswers,
-        clearanceTurns,
-        'listen',
-        null,
-        0,
-      ),
-    );
-    const commitmentStep: PhoenixStep = { kind: 'reward-commitment' };
-    checkpoints.push(
-      makeCheckpoint(
-        'phoenix',
-        commitmentStep,
-        activityAnswers,
-        clearanceTurns,
-        'breath',
-        null,
-        0,
-      ),
-    );
-    return finishJump(
-      destinationId,
-      checkpoints,
-      checkpoints.length - 1,
-      clearanceTurns,
-      activityAnswers,
-      'phoenix',
-      commitmentStep,
-      'breath',
       null,
       0,
       {
