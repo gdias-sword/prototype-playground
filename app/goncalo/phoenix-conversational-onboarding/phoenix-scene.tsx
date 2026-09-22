@@ -61,6 +61,10 @@ export type PhoenixStep =
   | { kind: 'reward-reveal' }
   | { kind: 'reward-shipping' }
   | { kind: 'reward-confirmation' }
+  | { kind: 'pt-reveal'; beat: 0 | 1 | 2 }
+  | { kind: 'chat-intro'; beat: 0 | 1 | 2 | 3 }
+  | { kind: 'notify'; dialog: boolean }
+  | { kind: 'chat-transition' }
   | { kind: 'call' }
   | { kind: 'schedule' }
   | { kind: 'confirm' }
@@ -78,6 +82,15 @@ export function isRewardStep(step: PhoenixStep) {
 
 export function isImmersiveStep(step: PhoenixStep) {
   return step.kind === 'placement' || step.kind === 'exercise';
+}
+
+export function isCareTeamStep(step: PhoenixStep) {
+  return (
+    step.kind === 'pt-reveal' ||
+    step.kind === 'chat-intro' ||
+    step.kind === 'notify' ||
+    step.kind === 'chat-transition'
+  );
 }
 
 export function hasConversationTools(step: PhoenixStep) {

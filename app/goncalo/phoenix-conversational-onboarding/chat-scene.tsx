@@ -1,99 +1,93 @@
 'use client';
 
-import { cn } from '@/design/utils';
+import { Mic, Plus, Settings } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import sessionCard from './assets/session-card.png';
+import { HomeIndicatorSpace } from './device-frame';
+import { LaurenPortrait } from './lauren-portrait';
+import { PhoenixOrb } from './phoenix-orb';
 import {
-  MEMBER,
+  CARE_TEAM_CHAT,
   PT,
   type Answers,
+  type CareTeamMessage,
   type DoorId,
   type StackTurn,
   chatIntro,
 } from './script';
-import { HomeIndicatorSpace } from './device-frame';
-import { GlassField } from './glass';
-import { LaurenPortrait } from './lauren-portrait';
 
-function Avatar({
-  kind,
-  className,
-}: {
-  kind: 'lauren' | 'alex' | 'slot';
-  className?: string;
-}) {
-  if (kind === 'slot')
-    return <div className={cn('size-8 shrink-0', className)} />;
+function assetSrc(asset: string | { src: string }) {
+  return typeof asset === 'string' ? asset : asset.src;
+}
 
-  if (kind === 'lauren') {
+function messagesFor(
+  door: DoorId,
+  answers: Answers,
+  afterReward: boolean,
+): CareTeamMessage[] {
+  if (afterReward) return CARE_TEAM_CHAT;
+
+  return chatIntro(door, answers).map((message) => ({
+    from: message.from,
+    text: message.text,
+    time: '8:34 AM',
+  }));
+}
+
+function SenderMark({ from }: { from: CareTeamMessage['from'] }) {
+  if (from === 'Lauren') {
     return (
-      <div
-        className={cn(
-          'size-8 shrink-0 overflow-hidden rounded-full',
-          className,
-        )}
-      >
-        <LaurenPortrait />
+      <div className="size-6 shrink-0 overflow-hidden rounded-full">
+        <LaurenPortrait decorative />
       </div>
     );
   }
 
   return (
-    <div
-      className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-full bg-[#e8eef6] text-[12px] font-semibold text-[#4a5568]',
-        className,
-      )}
-    >
-      {MEMBER[0]}
+    <div className="size-6 shrink-0">
+      <PhoenixOrb mood="breath" className="size-full" />
     </div>
   );
 }
 
-function HistoryTurn({
-  turn,
-  avatarSlot,
-  index,
-}: {
-  turn: StackTurn;
-  avatarSlot: boolean;
-  index: number;
-}) {
-  if (turn.role === 'member') {
+function CareBubble({ message }: { message: CareTeamMessage }) {
+  if (message.from === 'member') {
     return (
-      <div
-        className="flex justify-end"
-        style={{
-          animation: 'rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both',
-          animationDelay: `${index * 30}ms`,
-        }}
-      >
-        <div className="text-body-medium-default text-foreground-neutral-strong max-w-[80%] rounded-[20px] bg-[#e8f0ff] px-3.5 py-2.5">
-          {turn.text}
+      <div className="flex justify-end">
+        <div className="max-w-[78%] rounded-[18px] bg-[#d7e6ff] px-3.5 py-2 text-[#1c2430]">
+          <p className="text-[15px] leading-snug">{message.text}</p>
+          <p className="mt-1 text-right text-[11px] text-[#5d6b82]">
+            {message.time} ✓
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="flex items-end gap-2"
-      style={{
-        animation: 'rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both',
-        animationDelay: `${index * 30}ms`,
-      }}
-    >
-      {avatarSlot ? (
-        <div className="size-6" />
-      ) : (
-        <div className="size-6 rounded-full bg-[radial-gradient(circle_at_35%_35%,#ffb3a4,#8ea2f5)]" />
-      )}
-      <div className="max-w-[82%] rounded-[20px] bg-white/80 px-3.5 py-2.5 shadow-[0_8px_24px_rgba(80,70,140,0.06)] backdrop-blur-xl">
-        <p className="text-body-small-subtle text-foreground-neutral-faded">
-          Phoenix
-        </p>
-        <p className="text-body-medium-default text-foreground-neutral-strong">
-          {turn.text}
-        </p>
+    <div className="flex items-end gap-2">
+      <SenderMark from={message.from} />
+      <div className="max-w-[82%] rounded-[18px] bg-white px-3.5 py-2.5 text-[#1c2430] shadow-[0_8px_24px_rgba(80,70,140,0.06)]">
+        <p className="text-[13px] font-semibold">{message.from}</p>
+        <p className="mt-0.5 text-[15px] leading-snug">{message.text}</p>
+        {message.card ? (
+          <div className="relative mt-2 h-[132px] overflow-hidden rounded-xl">
+            <img
+              alt=""
+              src={assetSrc(sessionCard)}
+              className="size-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+            <div className="absolute inset-x-3 top-2 flex items-center justify-between text-[12px] text-white">
+              <span>Shoulder</span>
+              <span>Day 1</span>
+            </div>
+            <p className="absolute inset-x-3 bottom-2 text-[15px] font-medium text-white">
+              Your recovery score →
+            </p>
+          </div>
+        ) : null}
+        <p className="mt-1 text-right text-[11px] text-[#8b93a0]">{message.time}</p>
       </div>
     </div>
   );
@@ -103,18 +97,17 @@ export function ChatScene({
   door,
   answers,
   history,
-  avatarSlot,
   visibleCount,
   afterReward = false,
 }: {
   door: DoorId;
   answers: Answers;
   history: StackTurn[];
-  avatarSlot: boolean;
+  avatarSlot?: boolean;
   visibleCount: number;
   afterReward?: boolean;
 }) {
-  const messages = chatIntro(door, answers, { afterReward });
+  const messages = messagesFor(door, answers, afterReward);
   const shown = messages.slice(0, visibleCount);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -125,72 +118,60 @@ export function ChatScene({
   }, [shown.length]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex h-[104px] items-end gap-3 px-4 pb-3">
-        <div className="flex items-center">
-          <Avatar kind="lauren" className="relative z-20" />
-          {avatarSlot ? (
-            <div className="relative z-10 -ml-2 size-8" />
-          ) : (
-            <div className="relative z-10 -ml-2 size-8 rounded-full bg-[radial-gradient(circle_at_35%_35%,#ffb3a4,#8ea2f5)]" />
-          )}
-          <Avatar kind="alex" className="relative -ml-2" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-body-medium-strong text-foreground-neutral-default">
-            Your Care Team
-          </p>
-          <p className="text-body-small-default text-foreground-neutral-faded">
-            {PT}, Phoenix, You
-          </p>
-        </div>
-      </div>
-      <div
-        ref={scrollRef}
-        className="flex-1 space-y-4 overflow-y-auto px-4 pt-2 pb-2"
-      >
-        <p className="text-body-small-default text-foreground-neutral-faded text-center">
-          Today
-        </p>
-        {history.map((turn, index) => (
-          <HistoryTurn
-            key={turn.id}
-            turn={turn}
-            avatarSlot={avatarSlot}
-            index={index}
-          />
-        ))}
-        {shown.map((message, index) => (
-          <div
-            key={`${message.from}-${index}`}
-            className="flex items-end gap-2"
-            style={{
-              animation: 'rise-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both',
-              animationDelay: `${80 + index * 80}ms`,
-            }}
-          >
-            {message.from === 'Phoenix' ? (
-              avatarSlot ? (
-                <div className="size-6" />
-              ) : (
-                <div className="size-6 rounded-full bg-[radial-gradient(circle_at_35%_35%,#ffb3a4,#8ea2f5)]" />
-              )
-            ) : (
-              <Avatar kind="lauren" className="size-6 text-[10px]" />
-            )}
-            <div className="max-w-[82%] rounded-[20px] bg-white/80 px-3.5 py-2.5 shadow-[0_8px_24px_rgba(80,70,140,0.06)] backdrop-blur-xl">
-              <p className="text-body-small-subtle text-foreground-neutral-faded">
-                {message.from}
-              </p>
-              <p className="text-body-medium-default text-foreground-neutral-strong">
-                {message.text}
-              </p>
+    <div className="flex h-full flex-col bg-[#f4f7ff]">
+      <div className="flex h-[104px] items-end justify-between px-4 pb-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex items-center">
+            <div className="relative z-10 size-8">
+              <PhoenixOrb mood="breath" className="size-full" />
+            </div>
+            <div className="relative -ml-2 size-8 overflow-hidden rounded-full ring-2 ring-[#f4f7ff]">
+              <LaurenPortrait decorative />
             </div>
           </div>
+          <div className="min-w-0">
+            <p className="text-[16px] font-semibold text-[#1c2430]">
+              Your Care Team
+            </p>
+            <p className="text-[13px] text-[#6b7280]">
+              {PT}, Phoenix, You
+            </p>
+          </div>
+        </div>
+        <Settings className="size-5 text-[#6b7280]" aria-hidden />
+      </div>
+      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 pb-2">
+        <p className="text-center text-[13px] text-[#8b93a0]">— Today —</p>
+        {afterReward
+          ? null
+          : history
+              .filter((turn) => turn.role === 'member')
+              .slice(-2)
+              .map((turn) => (
+                <CareBubble
+                  key={turn.id}
+                  message={{
+                    from: 'member',
+                    text: turn.text,
+                    time: '8:34 AM',
+                  }}
+                />
+              ))}
+        {shown.map((message, index) => (
+          <CareBubble key={`${message.from}-${index}`} message={message} />
         ))}
       </div>
-      <div className="px-4 pt-4 pb-2">
-        <GlassField readOnly placeholder="Talk with Phoenix" />
+      <div className="px-3 pt-2 pb-1">
+        <div className="flex h-12 items-center gap-2 rounded-full bg-white px-3 shadow-[0_8px_24px_rgba(80,70,140,0.08)]">
+          <Plus className="size-5 text-[#1c2430]" aria-hidden />
+          <span className="flex-1 text-[15px] text-[#8b93a0]">
+            Talk with Phoenix
+          </span>
+          <Mic className="size-5 text-[#1c2430]" aria-hidden />
+          <span className="flex size-8 items-center justify-center rounded-full bg-[#eceff4] text-[#1c2430]">
+            ↑
+          </span>
+        </div>
       </div>
       <HomeIndicatorSpace />
     </div>

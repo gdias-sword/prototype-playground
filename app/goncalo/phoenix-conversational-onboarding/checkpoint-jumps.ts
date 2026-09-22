@@ -50,7 +50,10 @@ export type JumpDestinationId =
   | 'session'
   | 'assess'
   | 'reward'
-  | 'flags';
+  | 'flags'
+  | 'pt'
+  | 'chat-intro'
+  | 'notify';
 
 export interface JumpDestination {
   id: JumpDestinationId;
@@ -67,6 +70,9 @@ export const JUMP_DESTINATIONS: JumpDestination[] = [
   { id: 'assess', label: 'Assess', shortcut: '6' },
   { id: 'reward', label: 'Reward', shortcut: '8' },
   { id: 'flags', label: 'Flags', shortcut: '7' },
+  { id: 'pt', label: 'PT reveal', shortcut: '9' },
+  { id: 'chat-intro', label: 'Care team', shortcut: '0' },
+  { id: 'notify', label: 'Notify', shortcut: 'n' },
 ];
 
 export interface JumpCheckpoint {
@@ -134,6 +140,9 @@ function cloneAnswers(answers: Answers): Answers {
 function checkpointKey(phase: Phase, step: PhoenixStep, turnCount: number) {
   if (phase === 'chat' || phase === 'exiting') return `chat:${turnCount}`;
   if (step.kind === 'know') return `know:${step.index}:${turnCount}`;
+  if (step.kind === 'pt-reveal') return `pt-reveal:${step.beat}:${turnCount}`;
+  if (step.kind === 'chat-intro') return `chat-intro:${step.beat}:${turnCount}`;
+  if (step.kind === 'notify') return `notify:${step.dialog}:${turnCount}`;
   return `${step.kind}:${turnCount}`;
 }
 
@@ -161,6 +170,10 @@ function checkpointLabel(
   if (step.kind === 'reward-reveal') return 'Reward';
   if (step.kind === 'reward-shipping') return 'Shipping';
   if (step.kind === 'reward-confirmation') return 'Reward sent';
+  if (step.kind === 'pt-reveal') return 'PT reveal';
+  if (step.kind === 'chat-intro') return 'Care team';
+  if (step.kind === 'notify') return 'Notify';
+  if (step.kind === 'chat-transition') return 'Meet in chat';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
@@ -684,6 +697,52 @@ export function buildJumpState(
       {
         isHero: true,
       },
+    );
+  }
+
+  if (
+    destinationId === 'pt' ||
+    destinationId === 'chat-intro' ||
+    destinationId === 'notify'
+  ) {
+    const activityAnswers = demoActivityAnswers();
+    const step: PhoenixStep =
+      destinationId === 'pt'
+        ? { kind: 'pt-reveal', beat: 0 }
+        : destinationId === 'chat-intro'
+          ? { kind: 'chat-intro', beat: 0 }
+          : { kind: 'notify', dialog: false };
+    const turns: StackTurn[] = [
+      {
+        id: nextTurnId(),
+        role: 'phoenix',
+        text: 'Connecting with your physical therapist',
+        kind: 'question',
+      },
+    ];
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
+        step,
+        activityAnswers,
+        turns,
+        'listen',
+        null,
+        0,
+      ),
+    );
+    return finishJump(
+      destinationId,
+      checkpoints,
+      0,
+      turns,
+      activityAnswers,
+      'phoenix',
+      step,
+      'listen',
+      null,
+      0,
+      { isHero: true },
     );
   }
 

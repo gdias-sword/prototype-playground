@@ -10,6 +10,13 @@ import {
 } from 'react';
 import { buildJumpState, type JumpDestinationId } from './checkpoint-jumps';
 import { AssessmentScene } from './assessment-scene';
+import {
+  ChatIntroScene,
+  ChatTransitionScene,
+  NotifyScene,
+  OsPermissionDialog,
+  PtRevealScene,
+} from './care-team-scenes';
 import { RewardConfirmationScene } from './reward-confirmation-scene';
 import { RewardRevealScene } from './reward-reveal-scene';
 import { ChatScene } from './chat-scene';
@@ -26,6 +33,7 @@ import {
 import { PhoenixOrb, type PhoenixMood } from './phoenix-orb';
 import {
   hasConversationTools,
+  isCareTeamStep,
   isImmersiveStep,
   shouldCompactStack,
   streamDurationMs,
@@ -63,6 +71,8 @@ import {
   callCareLine,
   callQuestion,
   cameraLine,
+  CARE_TEAM_CHAT,
+  chatIntro,
   completeCondition,
   confirmLine,
   currentArea,
@@ -201,12 +211,24 @@ function stepsEqual(left: PhoenixStep, right: PhoenixStep) {
   if (left.kind === 'guide' && right.kind === 'guide') {
     return left.index === right.index;
   }
+  if (left.kind === 'pt-reveal' && right.kind === 'pt-reveal') {
+    return left.beat === right.beat;
+  }
+  if (left.kind === 'chat-intro' && right.kind === 'chat-intro') {
+    return left.beat === right.beat;
+  }
+  if (left.kind === 'notify' && right.kind === 'notify') {
+    return left.dialog === right.dialog;
+  }
   return true;
 }
 
 function checkpointKey(phase: Phase, step: PhoenixStep, turnCount: number) {
   if (phase === 'chat' || phase === 'exiting') return `chat:${turnCount}`;
   if (step.kind === 'know') return `know:${step.index}:${turnCount}`;
+  if (step.kind === 'pt-reveal') return `pt-reveal:${step.beat}:${turnCount}`;
+  if (step.kind === 'chat-intro') return `chat-intro:${step.beat}:${turnCount}`;
+  if (step.kind === 'notify') return `notify:${step.dialog}:${turnCount}`;
   return `${step.kind}:${turnCount}`;
 }
 
@@ -234,6 +256,13 @@ function checkpointLabel(
   if (step.kind === 'reward-reveal') return 'Reward';
   if (step.kind === 'reward-shipping') return 'Shipping';
   if (step.kind === 'reward-confirmation') return 'Reward sent';
+  if (step.kind === 'pt-reveal') {
+    if (step.beat === 2) return 'Meet Lauren';
+    return step.beat === 0 ? 'Connecting' : 'Match';
+  }
+  if (step.kind === 'chat-intro') return 'Care team';
+  if (step.kind === 'notify') return 'Notifications';
+  if (step.kind === 'chat-transition') return 'Meet in chat';
   if (step.kind === 'call') return 'Call';
   if (step.kind === 'schedule') return 'Schedule';
   if (step.kind === 'confirm') return 'Confirm';
@@ -294,6 +323,7 @@ export function Experience({
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [checkpointIndex, setCheckpointIndex] = useState(-1);
   const [sessionAfterReward, setSessionAfterReward] = useState(false);
+  const [cameraPrompt, setCameraPrompt] = useState(false);
   const answersRef = useRef(EMPTY_ANSWERS);
   const rushExperience = skipToolDelay || fastDemo;
   const toolReady = useDelayedTool(
@@ -452,6 +482,7 @@ export function Experience({
     setDoor(snapshot.door);
     setChatCount(snapshot.chatCount);
     setSessionAfterReward(snapshot.sessionAfterReward);
+    setCameraPrompt(false);
   }
 
   function rewindPrev() {
@@ -502,6 +533,7 @@ export function Experience({
     setSessionAfterReward(
       jump.checkpoints[jump.targetIndex]?.sessionAfterReward ?? false,
     );
+    setCameraPrompt(false);
   }
 
   useImperativeHandle(navigatorRef, () => ({
@@ -574,6 +606,7 @@ export function Experience({
     if (phase !== 'phoenix' || step.kind === 'guide') return;
     if (
       isImmersiveStep(step) ||
+      isCareTeamStep(step) ||
       step.kind === 'reward-reveal' ||
       step.kind === 'reward-confirmation'
     ) {
@@ -588,6 +621,7 @@ export function Experience({
     if (
       phase !== 'phoenix' ||
       (!isImmersiveStep(step) &&
+        !isCareTeamStep(step) &&
         step.kind !== 'reward-reveal' &&
         step.kind !== 'reward-confirmation')
     ) {
@@ -646,26 +680,25 @@ export function Experience({
   useEffect(() => {
     if (restoringRef.current) return;
     if (phase !== 'chat' || !door) return;
-    const messageCount = sessionAfterReward ? 1 : 2;
+    const messageCount = sessionAfterReward ? CARE_TEAM_CHAT.length : 2;
     if (fastDemo) {
       setChatCount(messageCount);
       return;
     }
     setChatCount(0);
-    const first = window.setTimeout(() => setChatCount(1), 700);
-    if (messageCount === 1) {
-      return () => window.clearTimeout(first);
-    }
-    const second = window.setTimeout(() => setChatCount(2), 1700);
+    const timers = Array.from({ length: messageCount }, (_, index) =>
+      window.setTimeout(() => setChatCount(index + 1), 500 + index * 420),
+    );
     return () => {
-      window.clearTimeout(first);
-      window.clearTimeout(second);
+      timers.forEach((id) => window.clearTimeout(id));
     };
   }, [phase, door, fastDemo, sessionAfterReward]);
 
   useEffect(() => {
     if (phase !== 'chat' || !door) return;
-    const messageCount = sessionAfterReward ? 1 : 2;
+    const messageCount = sessionAfterReward
+      ? CARE_TEAM_CHAT.length
+      : chatIntro(door, answers).length;
     if (chatCount < messageCount) return;
     recordCheckpoint(
       makeCheckpoint(
@@ -783,6 +816,30 @@ export function Experience({
     setMood('listen');
   }
 
+  function advancePtReveal() {
+    if (stepRef.current.kind !== 'pt-reveal') return;
+    const beat = stepRef.current.beat;
+    if (beat >= 2) return;
+    goToPanel({ kind: 'pt-reveal', beat: beat === 0 ? 1 : 2 });
+  }
+
+  function advanceChatIntro() {
+    if (stepRef.current.kind !== 'chat-intro') return;
+    const beat = stepRef.current.beat;
+    if (beat >= 3) {
+      goToPanel({ kind: 'notify', dialog: false });
+      return;
+    }
+    goToPanel({
+      kind: 'chat-intro',
+      beat: (beat + 1) as 1 | 2 | 3,
+    });
+  }
+
+  function finishNotify() {
+    goToPanel({ kind: 'chat-transition' });
+  }
+
   function goToPanel(next: PhoenixStep) {
     discardFutureCheckpoints();
     setSkipToolDelay(false);
@@ -819,6 +876,7 @@ export function Experience({
   const showConversation =
     (phase === 'phoenix' || phase === 'exiting') &&
     !isImmersiveStep(step) &&
+    !isCareTeamStep(step) &&
     step.kind !== 'reward-reveal' &&
     step.kind !== 'reward-confirmation';
   const confirmDay =
@@ -827,7 +885,9 @@ export function Experience({
     ) ?? SCHEDULE_DAYS[0];
   const hideFloatingOrb =
     phase === 'phoenix' &&
-    (isImmersiveStep(step) || step.kind === 'reward-confirmation');
+    (isImmersiveStep(step) ||
+      isCareTeamStep(step) ||
+      step.kind === 'reward-confirmation');
   const orbLayout: Layout = layout;
 
   const isAtFrontier =
@@ -1045,7 +1105,7 @@ export function Experience({
     panelContent: (
       <>
         {step.kind === 'camera' ? (
-          <CameraPanel onEnable={() => goToPanel({ kind: 'placement' })} />
+          <CameraPanel onEnable={() => setCameraPrompt(true)} />
         ) : null}
         {step.kind === 'offer' ? (
           <OfferPanel
@@ -1215,15 +1275,18 @@ export function Experience({
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
             layout === 'hero' &&
               step.kind !== 'reward-confirmation' &&
+              !isCareTeamStep(step) &&
               'h-[108px]',
             (layout === 'raised' ||
               layout === 'immersive' ||
-              step.kind === 'reward-confirmation') &&
+              step.kind === 'reward-confirmation' ||
+              isCareTeamStep(step)) &&
               'h-0',
             layout !== 'hero' &&
               layout !== 'raised' &&
               layout !== 'immersive' &&
               step.kind !== 'reward-confirmation' &&
+              !isCareTeamStep(step) &&
               'h-[108px]',
           )}
         />
@@ -1248,7 +1311,32 @@ export function Experience({
           <RewardRevealScene onContinue={goToRewardShipping} />
         ) : null}
         {phase === 'phoenix' && step.kind === 'reward-confirmation' ? (
-          <RewardConfirmationScene onContinue={enterChatAfterReward} />
+          <RewardConfirmationScene
+            onContinue={() => goToPanel({ kind: 'pt-reveal', beat: 0 })}
+          />
+        ) : null}
+        {phase === 'phoenix' && step.kind === 'pt-reveal' ? (
+          <PtRevealScene
+            beat={step.beat}
+            fastDemo={fastDemo}
+            onAdvance={advancePtReveal}
+            onContinue={() => goToPanel({ kind: 'chat-intro', beat: 0 })}
+          />
+        ) : null}
+        {phase === 'phoenix' && step.kind === 'chat-intro' ? (
+          <ChatIntroScene beat={step.beat} onContinue={advanceChatIntro} />
+        ) : null}
+        {phase === 'phoenix' && step.kind === 'notify' ? (
+          <NotifyScene
+            onYes={() => goToPanel({ kind: 'notify', dialog: true })}
+            onSkip={finishNotify}
+          />
+        ) : null}
+        {phase === 'phoenix' && step.kind === 'chat-transition' ? (
+          <ChatTransitionScene
+            fastDemo={fastDemo}
+            onDone={enterChatAfterReward}
+          />
         ) : null}
         {layout !== 'immersive' ? <HomeIndicatorSpace /> : null}
       </div>
@@ -1274,12 +1362,36 @@ export function Experience({
 
       {(showConversation ||
         step.kind === 'reward-reveal' ||
-        step.kind === 'reward-confirmation') &&
+        step.kind === 'reward-confirmation' ||
+        (step.kind === 'pt-reveal' && step.beat === 2)) &&
       phase === 'phoenix' &&
       conversation.canRewind ? (
         <div className="absolute top-[52px] left-4 z-30">
           <BackButton onClick={() => conversation.onRewind?.()} />
         </div>
+      ) : null}
+
+      {cameraPrompt ? (
+        <OsPermissionDialog
+          title="Sword Health would like to access the camera"
+          body="This lets Phoenix guide each movement in real time. You can change this later in Settings."
+          onAllow={() => {
+            setCameraPrompt(false);
+            goToPanel({ kind: 'placement' });
+          }}
+          onDeny={() => {
+            setCameraPrompt(false);
+            goToPanel({ kind: 'placement' });
+          }}
+        />
+      ) : null}
+      {phase === 'phoenix' && step.kind === 'notify' && step.dialog ? (
+        <OsPermissionDialog
+          title="Sword Health would like to send you notifications"
+          body="Notification may include alerts, sounds, and icons. These can be configured in Settings"
+          onAllow={finishNotify}
+          onDeny={finishNotify}
+        />
       ) : null}
 
       <div

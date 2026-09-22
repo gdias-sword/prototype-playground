@@ -494,6 +494,86 @@ export function intensityAnswer(value: number) {
   return `${value}/10`;
 }
 
+export const PT_REVEAL_LINES = [
+  'Connecting with your physical therapist',
+  'Finding your perfect match',
+] as const;
+
+export const PT_MEET_STAT = 'Helped 340 members recover from pain';
+export const PT_MEET_QUOTE =
+  'I’m looking forward to helping you get back to living without pain.';
+
+export const CHAT_INTRO_TITLE = 'Me and Lauren will be your dedicated care team';
+export const CHAT_INTRO_HINT =
+  'Available 24/7 to support you during the program.';
+
+export const CHAT_INTRO_BUBBLES = [
+  {
+    from: 'member' as const,
+    text: 'My knee felt sharper than usual after today’s session.',
+  },
+  {
+    from: 'Phoenix' as const,
+    text: 'Thanks for telling me. I’m sharing this with Lauren so she can review your session.',
+  },
+  {
+    from: 'Lauren' as const,
+    text: 'Let’s adjust the intensity of your next session and check how your knee responds.',
+  },
+];
+
+export const NOTIFY_TITLE = 'Stay connected with your care team';
+export const NOTIFY_BODY =
+  'Get notified when Phoenix or Lauren sends guidance, updates your plan, or reminds you about your care.';
+export const NOTIFY_YES = 'Yes, notify me';
+export const NOTIFY_SKIP = 'Skip for now';
+export const NOTIFY_PREVIEW = 'Your next session is ready. You got this!';
+
+export function chatTransitionLine() {
+  return `You’re all set ${MEMBER}!\nLet’s meet in the chat`;
+}
+
+export type CareTeamMessage = {
+  from: 'Phoenix' | 'Lauren' | 'member';
+  text: string;
+  time: string;
+  card?: boolean;
+};
+
+export const CARE_TEAM_CHAT: CareTeamMessage[] = [
+  {
+    from: 'Phoenix',
+    text: 'Great, let’s get your first session going then.',
+    time: '8:34 AM',
+  },
+  {
+    from: 'Phoenix',
+    text: 'It starts with a quick shoulder check-up, it’s how I’ll shape everything that follows.',
+    time: '8:34 AM',
+  },
+  {
+    from: 'Phoenix',
+    text: 'Takes just a few minutes. Ready to start?',
+    time: '8:34 AM',
+  },
+  {
+    from: 'member',
+    text: 'Start my first session',
+    time: '8:34 AM',
+  },
+  {
+    from: 'Phoenix',
+    text: `Nice work, ${MEMBER}! You just finished your first session. Your welcome kit is on the way.`,
+    time: '8:56 AM',
+  },
+  {
+    from: 'Phoenix',
+    text: 'We’ve built your recovery score. Here is where you’re starting from.',
+    time: '8:56 AM',
+    card: true,
+  },
+];
+
 export function chatIntro(
   door: DoorId,
   answers: Answers,
