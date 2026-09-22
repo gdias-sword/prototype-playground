@@ -22,6 +22,7 @@ import {
   intensityAnswer,
   intensityCareLine,
   intensityQuestion,
+  kitTeaserLine,
   MORE_NO_LABEL,
   moreQuestion,
   offerLine,
@@ -161,6 +162,7 @@ function checkpointLabel(
   }
   if (step.kind === 'activity') return 'Activity';
   if (step.kind === 'session') return 'Session';
+  if (step.kind === 'kit-teaser') return 'Welcome kit';
   if (step.kind === 'camera') return 'Camera';
   if (step.kind === 'offer') return 'Session';
   if (step.kind === 'safety') return 'Safety';
@@ -329,9 +331,18 @@ function buildActivityTurns(nextTurnId: () => string) {
   return builder.snapshot();
 }
 
-function buildOfferTurns(nextTurnId: () => string) {
+function buildKitTeaserTurns(nextTurnId: () => string) {
   const builder = new TurnBuilder(nextTurnId);
   buildActivityTurns(nextTurnId).forEach((turn) => {
+    builder.turns.push(turn);
+  });
+  builder.phoenix(kitTeaserLine());
+  return builder.snapshot();
+}
+
+function buildOfferTurns(nextTurnId: () => string) {
+  const builder = new TurnBuilder(nextTurnId);
+  buildKitTeaserTurns(nextTurnId).forEach((turn) => {
     builder.turns.push(turn);
   });
   builder.phoenix(offerLine());
@@ -625,6 +636,37 @@ export function buildJumpState(
   }
 
   const activityAnswers = demoActivityAnswers();
+  const teaserTurns = buildKitTeaserTurns(nextTurnId);
+  checkpoints.push(
+    makeCheckpoint(
+      'phoenix',
+      { kind: 'kit-teaser' },
+      activityAnswers,
+      teaserTurns,
+      'listen',
+      null,
+      0,
+    ),
+  );
+
+  if (destinationId === 'session') {
+    return finishJump(
+      destinationId,
+      checkpoints,
+      checkpoints.length - 1,
+      teaserTurns,
+      activityAnswers,
+      'phoenix',
+      { kind: 'kit-teaser' },
+      'listen',
+      null,
+      0,
+      {
+        isHero: true,
+      },
+    );
+  }
+
   const offerTurns = buildOfferTurns(nextTurnId);
   checkpoints.push(
     makeCheckpoint(
@@ -637,24 +679,6 @@ export function buildJumpState(
       0,
     ),
   );
-
-  if (destinationId === 'session') {
-    return finishJump(
-      destinationId,
-      checkpoints,
-      checkpoints.length - 1,
-      offerTurns,
-      activityAnswers,
-      'phoenix',
-      { kind: 'offer' },
-      'listen',
-      null,
-      0,
-      {
-        isHero: true,
-      },
-    );
-  }
 
   if (destinationId === 'reward') {
     const activityAnswers = demoActivityAnswers();

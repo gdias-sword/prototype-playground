@@ -9,7 +9,6 @@ import {
   STACK_WINDOW_MAX_PX,
   shouldCompactStack,
   toolShellFills,
-  stackBlur,
   stackOpacity,
   useStackWindow,
   windowedTurns,
@@ -18,7 +17,7 @@ import {
 
 const LIST_CLASS = 'flex w-full shrink-0 flex-col items-stretch gap-2.5';
 const STACK_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
-const LINE_TRANSITION = `color ${STACK_COMPACT_MS}ms ${STACK_EASE}, opacity ${STACK_COMPACT_MS}ms ${STACK_EASE}, filter ${STACK_COMPACT_MS}ms ${STACK_EASE}, transform ${STACK_COMPACT_MS}ms ${STACK_EASE}`;
+const LINE_TRANSITION = `color ${STACK_COMPACT_MS}ms ${STACK_EASE}, opacity ${STACK_COMPACT_MS}ms ${STACK_EASE}, transform ${STACK_COMPACT_MS}ms ${STACK_EASE}`;
 
 function useConversationStack(props: ConversationProps) {
   const visibleTurns = useMemo(() => windowedTurns(props.turns), [props.turns]);
@@ -78,29 +77,9 @@ function StackFrame({
   );
 }
 
-function phoenixLineClass(
-  isCurrent: boolean,
-  kind: ConversationProps['turns'][number]['kind'],
-) {
-  return cn(
-    'text-start font-sans text-title-large-subtle',
-    isCurrent
-      ? 'text-foreground-neutral-default'
-      : kind === 'care'
-        ? 'text-foreground-neutral-default'
-        : 'text-foreground-neutral-default/20',
-  );
-}
-
-function lineMotion(
-  fromEnd: number,
-  role: 'phoenix' | 'member',
-  isLeavingWindow: boolean,
-) {
-  const blur = isLeavingWindow ? 2.5 : stackBlur(fromEnd);
+function lineMotion(fromEnd: number) {
   return {
-    opacity: isLeavingWindow ? 0 : stackOpacity(fromEnd, role),
-    filter: blur ? `blur(${blur}px)` : undefined,
+    opacity: stackOpacity(fromEnd),
     transition: LINE_TRANSITION,
     animation:
       'line-in 1300ms cubic-bezier(0.22, 1, 0.36, 1) backwards' as const,
@@ -138,7 +117,6 @@ function PhoenixTurn({
   turn,
   isCurrent,
   fromEnd,
-  isLeavingWindow,
   hasStreamedTurn,
   instantStream,
   onTurnStreamComplete,
@@ -146,15 +124,14 @@ function PhoenixTurn({
   turn: ConversationProps['turns'][number];
   isCurrent: boolean;
   fromEnd: number;
-  isLeavingWindow: boolean;
   hasStreamedTurn?: (turnId: string) => boolean;
   instantStream?: boolean;
   onTurnStreamComplete: (turnId: string) => void;
 }) {
   return (
     <p
-      className={phoenixLineClass(isCurrent, turn.kind)}
-      style={lineMotion(fromEnd, 'phoenix', isLeavingWindow)}
+      className="text-title-large-subtle text-foreground-neutral-default text-start font-sans"
+      style={lineMotion(fromEnd)}
     >
       <PhoenixLineText
         text={turn.text}
@@ -195,16 +172,12 @@ export function ConversationShell(props: ConversationProps) {
   return (
     <div
       className={cn(
-        'flex min-h-0 flex-1 flex-col px-4',
-        // Back control is fixed at top 52px (42px tall). With the status bar
-        // in flow, pt-10 + the stack's pt-6 lands the headline at 112px —
-        // the same clearance as the enrollment question screen.
-        props.canRewind ? 'pt-10' : 'pt-2',
+        'flex min-h-0 flex-1 flex-col px-4 pt-3',
         !toolShellFills(step) && 'pb-24',
       )}
       onClick={advanceHandler(props)}
     >
-      <div className="flex min-h-0 flex-1 flex-col pt-6">
+      <div className="flex min-h-0 flex-1 flex-col">
         <StackFrame
           maxHeight={maxHeight}
           frameRef={frameRef}
@@ -222,7 +195,7 @@ export function ConversationShell(props: ConversationProps) {
                   <p
                     key={turn.id}
                     className="text-foreground-brand-default pr-1 text-right font-sans text-[26px] leading-8 font-medium"
-                    style={lineMotion(fromEnd, 'member', isLeavingWindow)}
+                    style={lineMotion(fromEnd)}
                   >
                     {turn.text}
                   </p>
@@ -235,7 +208,6 @@ export function ConversationShell(props: ConversationProps) {
                   turn={turn}
                   isCurrent={isCurrent}
                   fromEnd={fromEnd}
-                  isLeavingWindow={isLeavingWindow}
                   hasStreamedTurn={props.hasStreamedTurn}
                   instantStream={props.instantStream}
                   onTurnStreamComplete={onTurnStreamComplete}

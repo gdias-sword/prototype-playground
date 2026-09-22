@@ -10,11 +10,11 @@ import {
 } from 'react';
 import icCalendar from './assets/ic-calendar.svg';
 import icClock from './assets/ic-clock.svg';
-import icGift from './assets/ic-gift.svg';
 import icSecurity from './assets/ic-security.svg';
 import icTagClock from './assets/ic-tag-clock.svg';
 import icWorld from './assets/ic-world.svg';
 import sessionCard from './assets/session-card.png';
+import welcomeKitBox from './assets/welcome-kit-box.png';
 import { ChevronDown } from 'lucide-react';
 import {
   ACTIVITIES,
@@ -22,6 +22,7 @@ import {
   CALL_YES_LABEL,
   CAMERA_PRIVACY,
   ENABLE_CAMERA_LABEL,
+  kitTeaserHint,
   LATER_LABEL,
   REMIND_NO_LABEL,
   REMIND_YES_LABEL,
@@ -51,8 +52,43 @@ const SESSION_PREVIEW_SRC = new URL(
   import.meta.url,
 ).href;
 
+const WELCOME_KIT_REVEAL_SRC = new URL(
+  './assets/welcome-kit-reveal.mp4',
+  import.meta.url,
+).href;
+
 const PANEL_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const PANEL_CONTENT_MS = 800;
+
+// welcome-kit-box.png is 1566×2052 with the open lid above the tray.
+// This window keeps the bands and the tray rim, so the lid stays clipped.
+const WELCOME_KIT_CROP = {
+  sourceWidth: 1566,
+  sourceHeight: 2052,
+  left: 381,
+  top: 848,
+  width: 786,
+  bottom: 1529,
+  displayWidth: 96,
+};
+
+function welcomeKitFrameStyle(): CSSProperties {
+  const scale = WELCOME_KIT_CROP.displayWidth / WELCOME_KIT_CROP.width;
+  return {
+    width: WELCOME_KIT_CROP.displayWidth,
+    height: (WELCOME_KIT_CROP.bottom - WELCOME_KIT_CROP.top) * scale,
+  };
+}
+
+function welcomeKitImageStyle(): CSSProperties {
+  const scale = WELCOME_KIT_CROP.displayWidth / WELCOME_KIT_CROP.width;
+  return {
+    width: WELCOME_KIT_CROP.sourceWidth * scale,
+    height: WELCOME_KIT_CROP.sourceHeight * scale,
+    left: -WELCOME_KIT_CROP.left * scale,
+    top: -WELCOME_KIT_CROP.top * scale,
+  };
+}
 
 export function PrimaryAction({
   children,
@@ -172,17 +208,32 @@ export function SubmitReveal({
   className?: string;
 }) {
   return (
-    <div
-      inert={!visible || undefined}
-      className={cn(
-        'grid w-full shrink-0 transition-[grid-template-rows] duration-500',
-        SUBMIT_REVEAL_EASE,
-        visible ? 'grid-rows-[1fr] min-h-12' : 'grid-rows-[0fr]',
-        className,
-      )}
-    >
-      <div className="overflow-hidden">
-        <PrimaryAction onClick={onClick}>{children}</PrimaryAction>
+    <div className={cn('w-full shrink-0', className)}>
+      <div className="relative">
+        <div
+          aria-hidden
+          className={cn(
+            'phoenix-submit-reveal grid transition-[grid-template-rows] duration-500',
+            SUBMIT_REVEAL_EASE,
+            visible ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+          )}
+        >
+          <div className="min-h-0 overflow-hidden">
+            <div className="h-12" />
+          </div>
+        </div>
+        <div
+          inert={!visible || undefined}
+          className={cn(
+            'phoenix-submit-reveal-cta absolute inset-x-0 bottom-0',
+            visible
+              ? 'phoenix-submit-reveal-cta-in'
+              : 'pointer-events-none translate-y-8 opacity-0 transition-[transform,opacity] duration-300',
+            !visible && SUBMIT_REVEAL_EASE,
+          )}
+        >
+          <PrimaryAction onClick={onClick}>{children}</PrimaryAction>
+        </div>
       </div>
     </div>
   );
@@ -279,6 +330,125 @@ function OfferPiece({
   );
 }
 
+function drawCover(
+  context: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  width: number,
+  height: number,
+) {
+  const videoAspect = video.videoWidth / video.videoHeight;
+  const frameAspect = width / height;
+  let sx = 0;
+  let sy = 0;
+  let sw = video.videoWidth;
+  let sh = video.videoHeight;
+
+  if (videoAspect > frameAspect) {
+    sw = video.videoHeight * frameAspect;
+    sx = (video.videoWidth - sw) / 2;
+  } else {
+    sh = video.videoWidth / frameAspect;
+    sy = (video.videoHeight - sh) / 2;
+  }
+
+  context.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
+  const frame = context.getImageData(0, 0, width, height);
+  const pixels = frame.data;
+  for (let index = 0; index < pixels.length; index += 4) {
+    const red = pixels[index];
+    const green = pixels[index + 1];
+    const blue = pixels[index + 2];
+    const chroma = Math.max(red, green, blue) - Math.min(red, green, blue);
+    const luminance = (red + green + blue) / 3;
+    if (chroma < 14 && luminance > 198) {
+      const fade = Math.min(1, (luminance - 198) / 48);
+      pixels[index + 3] = Math.round(pixels[index + 3] * (1 - fade));
+    }
+  }
+  context.putImageData(frame, 0, 0);
+}
+
+export function KitTeaserPanel({ onContinue }: { onContinue: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return;
+
+    const playFromStart = () => {
+      video.currentTime = 0;
+      void video.play();
+    };
+
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      playFromStart();
+    } else {
+      video.addEventListener('loadeddata', playFromStart, { once: true });
+    }
+
+    let frame = 0;
+    const paint = () => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (
+        width > 0 &&
+        height > 0 &&
+        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+        video.videoWidth > 0
+      ) {
+        const pixelRatio = window.devicePixelRatio || 1;
+        const pixelWidth = Math.round(width * pixelRatio);
+        const pixelHeight = Math.round(height * pixelRatio);
+        if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+          canvas.width = pixelWidth;
+          canvas.height = pixelHeight;
+        }
+        drawCover(context, video, pixelWidth, pixelHeight);
+      }
+      frame = window.requestAnimationFrame(paint);
+    };
+
+    frame = window.requestAnimationFrame(paint);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      video.removeEventListener('loadeddata', playFromStart);
+    };
+  }, []);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <p className="text-body-large-default text-foreground-neutral-default">
+        {kitTeaserHint()}
+      </p>
+      <div className="relative mt-8 min-h-0 w-full flex-1 overflow-hidden">
+        <video
+          ref={videoRef}
+          loop
+          muted
+          playsInline
+          preload="auto"
+          aria-hidden
+          src={WELCOME_KIT_REVEAL_SRC}
+          className="pointer-events-none absolute size-px opacity-0"
+        />
+        <canvas
+          ref={canvasRef}
+          aria-label="Welcome kit opening"
+          className="absolute inset-0 size-full mix-blend-multiply"
+        />
+      </div>
+      <div className="mt-auto w-full shrink-0 pt-4 pb-2">
+        <PrimaryAction onClick={onContinue}>Continue</PrimaryAction>
+      </div>
+    </div>
+  );
+}
+
 export function OfferPanel({
   area,
   onStart,
@@ -323,24 +493,26 @@ export function OfferPanel({
               8:00
             </span>
           </div>
-          <p className="text-title-large-strong absolute inset-x-5 bottom-4 font-serif font-medium tracking-[-0.04em] text-white">
+          <p className="text-title-large-subtle absolute inset-x-5 bottom-4 font-sans text-white">
             {checkupTitle(area)}
           </p>
         </OfferPiece>
         <OfferPiece
           index={1}
           ready={headlineReady}
-          className="flex items-center gap-3 rounded-b-2xl border border-white bg-white/80 px-5 py-3"
+          className="flex items-center gap-5 overflow-hidden rounded-b-2xl border border-white bg-white/80 pr-5 pb-1.5 pl-1.5"
         >
-          <span className="bg-background-neutral-default flex size-8 items-center justify-center rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.08)]">
-            <span className="relative size-5 overflow-clip">
-              <img
-                alt=""
-                aria-hidden
-                src={assetSrc(icGift)}
-                className="absolute inset-0 size-full"
-              />
-            </span>
+          <span
+            aria-hidden
+            className="relative shrink-0 self-start overflow-hidden"
+            style={welcomeKitFrameStyle()}
+          >
+            <img
+              alt=""
+              src={assetSrc(welcomeKitBox)}
+              className="absolute max-w-none"
+              style={welcomeKitImageStyle()}
+            />
           </span>
           <p className="text-body-medium-subtle text-foreground-neutral-default">
             Complete the session to unlock your welcome kit

@@ -19,7 +19,9 @@ export function progressForStep(step: PhoenixStep) {
   if (step.kind === 'impact') return 0.58;
   if (step.kind === 'more') return 0.66;
   if (step.kind === 'activity') return 0.74;
-  if (step.kind === 'session' || step.kind === 'offer') return 0.82;
+  if (step.kind === 'session' || step.kind === 'kit-teaser' || step.kind === 'offer') {
+    return 0.82;
+  }
   if (step.kind === 'safety' || step.kind === 'camera') return 0.88;
   if (step.kind === 'call' || step.kind === 'schedule' || step.kind === 'remind') {
     return 0.92;

@@ -26,6 +26,7 @@ import {
   AddressPanel,
   CameraPanel,
   ConfirmPanel,
+  KitTeaserPanel,
   OfferPanel,
   SafetyPanel,
   SchedulePanel,
@@ -89,6 +90,7 @@ import {
   intensityAnswer,
   intensityCareLine,
   intensityQuestion,
+  kitTeaserLine,
   moreQuestion,
   offerLine,
   placementIntroLine,
@@ -106,6 +108,30 @@ import { WorldBackdrop } from './world-scene';
 
 type Phase = 'entering' | 'phoenix' | 'exiting' | 'chat';
 type Layout = 'seed' | 'hero' | 'raised' | 'avatar' | 'immersive';
+
+// Back button is pinned (`top-[52px]`, 42px). Raised screens drop the 108px
+// hero stage, so this keeps the headline 16px under that control after the
+// 48px status bar and the conversation's 12px top padding.
+// 52 + 42 + 16 - 48 - 12 = 50
+const RAISED_BACK_CLEARANCE = 'h-[50px]';
+
+function topStageClass(
+  layout: Layout,
+  step: PhoenixStep,
+  reserveBackButton: boolean,
+) {
+  if (
+    layout === 'immersive' ||
+    step.kind === 'reward-confirmation' ||
+    isCareTeamStep(step)
+  ) {
+    return 'h-0';
+  }
+  if (layout === 'raised') {
+    return reserveBackButton ? RAISED_BACK_CLEARANCE : 'h-0';
+  }
+  return 'h-[108px]';
+}
 
 const CARE_LEAD_MS = 700;
 const CARE_HOLD_MS = 400;
@@ -159,6 +185,7 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'more') return moreQuestion(answers.area ?? 'that');
   if (step.kind === 'activity') return activityQuestion();
   if (step.kind === 'session') return sessionIntroLine(currentArea(answers));
+  if (step.kind === 'kit-teaser') return kitTeaserLine();
   if (step.kind === 'offer') return offerLine();
   if (step.kind === 'safety') return safetyLine();
   if (step.kind === 'placement-intro') return placementIntroLine();
@@ -247,6 +274,7 @@ function checkpointLabel(
   }
   if (step.kind === 'activity') return 'Activity';
   if (step.kind === 'session') return 'Session';
+  if (step.kind === 'kit-teaser') return 'Welcome kit';
   if (step.kind === 'camera') return 'Camera';
   if (step.kind === 'offer') return 'Session';
   if (step.kind === 'safety') return 'Safety';
@@ -647,7 +675,7 @@ export function Experience({
       return;
     }
     const id = window.setTimeout(() => {
-      goToQuestion({ kind: 'offer' }, offerLine());
+      goToQuestion({ kind: 'kit-teaser' }, kitTeaserLine());
     }, delay(1600));
     return () => window.clearTimeout(id);
   }, [phase, step, mood, fastDemo]);
@@ -823,19 +851,6 @@ export function Experience({
     goToPanel({ kind: 'pt-reveal', beat: beat === 0 ? 1 : 2 });
   }
 
-  function advanceChatIntro() {
-    if (stepRef.current.kind !== 'chat-intro') return;
-    const beat = stepRef.current.beat;
-    if (beat >= 3) {
-      goToPanel({ kind: 'notify', dialog: false });
-      return;
-    }
-    goToPanel({
-      kind: 'chat-intro',
-      beat: (beat + 1) as 1 | 2 | 3,
-    });
-  }
-
   function finishNotify() {
     goToPanel({ kind: 'chat-transition' });
   }
@@ -986,7 +1001,7 @@ export function Experience({
     },
     onSessionAdvance: () => {
       if (step.kind === 'session' && mood === 'listen') {
-        goToQuestion({ kind: 'offer' }, offerLine());
+        goToQuestion({ kind: 'kit-teaser' }, kitTeaserLine());
         return;
       }
       if (step.kind === 'placement-intro' && mood === 'listen') {
@@ -1104,6 +1119,11 @@ export function Experience({
     },
     panelContent: (
       <>
+        {step.kind === 'kit-teaser' ? (
+          <KitTeaserPanel
+            onContinue={() => goToQuestion({ kind: 'offer' }, offerLine())}
+          />
+        ) : null}
         {step.kind === 'camera' ? (
           <CameraPanel onEnable={() => setCameraPrompt(true)} />
         ) : null}
@@ -1238,6 +1258,15 @@ export function Experience({
       ? 'Continue'
       : undefined;
 
+  const showBackButton = Boolean(
+    (showConversation ||
+      step.kind === 'reward-reveal' ||
+      step.kind === 'reward-confirmation' ||
+      (step.kind === 'pt-reveal' && step.beat === 2)) &&
+      phase === 'phoenix' &&
+      conversation.canRewind,
+  );
+
   function handlePhoenixTap() {
     if (canSkipStream) {
       setSkipStream(true);
@@ -1273,21 +1302,7 @@ export function Experience({
         <div
           className={cn(
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-            layout === 'hero' &&
-              step.kind !== 'reward-confirmation' &&
-              !isCareTeamStep(step) &&
-              'h-[108px]',
-            (layout === 'raised' ||
-              layout === 'immersive' ||
-              step.kind === 'reward-confirmation' ||
-              isCareTeamStep(step)) &&
-              'h-0',
-            layout !== 'hero' &&
-              layout !== 'raised' &&
-              layout !== 'immersive' &&
-              step.kind !== 'reward-confirmation' &&
-              !isCareTeamStep(step) &&
-              'h-[108px]',
+            topStageClass(layout, step, showBackButton),
           )}
         />
         {showConversation ? (
@@ -1324,7 +1339,10 @@ export function Experience({
           />
         ) : null}
         {phase === 'phoenix' && step.kind === 'chat-intro' ? (
-          <ChatIntroScene beat={step.beat} onContinue={advanceChatIntro} />
+          <ChatIntroScene
+            fastDemo={fastDemo}
+            onContinue={() => goToPanel({ kind: 'notify', dialog: false })}
+          />
         ) : null}
         {phase === 'phoenix' && step.kind === 'notify' ? (
           <NotifyScene
@@ -1360,12 +1378,7 @@ export function Experience({
         ) : null}
       </div>
 
-      {(showConversation ||
-        step.kind === 'reward-reveal' ||
-        step.kind === 'reward-confirmation' ||
-        (step.kind === 'pt-reveal' && step.beat === 2)) &&
-      phase === 'phoenix' &&
-      conversation.canRewind ? (
+      {showBackButton ? (
         <div className="absolute top-[52px] left-4 z-30">
           <BackButton onClick={() => conversation.onRewind?.()} />
         </div>
@@ -1400,7 +1413,8 @@ export function Experience({
           'transition-[top,left,width,height,translate,opacity] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
           orbLayout === 'seed' && 'top-[42%] left-1/2 size-[60px]',
           orbLayout === 'hero' && 'top-[64px] left-1/2 size-[80px]',
-          orbLayout === 'raised' && 'top-[-32px] left-1/2 size-[112px]',
+          orbLayout === 'raised' &&
+            'top-0 left-1/2 size-[112px] -translate-y-1/2',
           (orbLayout === 'immersive' || hideFloatingOrb) &&
             'pointer-events-none invisible size-0 opacity-0',
           orbLayout === 'avatar' && 'top-[62px] left-[60px] size-[32px]',

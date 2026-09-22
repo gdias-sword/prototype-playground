@@ -16,7 +16,7 @@ export function RewardConfirmationScene({
           <PhoenixOrb mood="listen" className="h-full w-full" />
         </div>
         <div className="flex max-w-[343px] flex-col gap-4 text-center">
-          <h1 className="text-display-small-strong text-foreground-neutral-default font-serif font-medium tracking-[-0.04em]">
+          <h1 className="font-sans text-title-large-subtle text-foreground-neutral-default">
             {kitOnTheWayLine()}
           </h1>
           <p className="text-body-large-default text-foreground-neutral-default">

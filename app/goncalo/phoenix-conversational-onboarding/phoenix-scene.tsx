@@ -52,6 +52,7 @@ export type PhoenixStep =
   | { kind: 'more' }
   | { kind: 'activity' }
   | { kind: 'session' }
+  | { kind: 'kit-teaser' }
   | { kind: 'camera' }
   | { kind: 'offer' }
   | { kind: 'safety' }
@@ -103,6 +104,7 @@ export function hasConversationTools(step: PhoenixStep) {
     step.kind === 'activity' ||
     step.kind === 'call' ||
     step.kind === 'remind' ||
+    step.kind === 'kit-teaser' ||
     step.kind === 'camera' ||
     step.kind === 'offer' ||
     step.kind === 'safety' ||
@@ -800,6 +802,7 @@ export function isFormQuestion(step: PhoenixStep) {
     step.kind === 'activity' ||
     step.kind === 'call' ||
     step.kind === 'remind' ||
+    step.kind === 'kit-teaser' ||
     step.kind === 'camera' ||
     step.kind === 'offer' ||
     step.kind === 'safety' ||
@@ -821,6 +824,7 @@ export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
   if (step.kind === 'activity') return 3;
   if (step.kind === 'call' || step.kind === 'remind') return 2;
   if (
+    step.kind === 'kit-teaser' ||
     step.kind === 'camera' ||
     step.kind === 'offer' ||
     step.kind === 'safety' ||
@@ -853,19 +857,8 @@ export function windowedTurns(turns: StackTurn[]) {
   return kept;
 }
 
-export function stackOpacity(fromEnd: number, role: 'phoenix' | 'member') {
-  if (fromEnd === 0) return 1;
-  if (role === 'member') return 0.2;
-  if (fromEnd === 1) return 0.72;
-  if (fromEnd === 2) return 0.48;
-  if (fromEnd === 3) return 0.28;
-  return 0.12;
-}
-
-export function stackBlur(fromEnd: number) {
-  if (fromEnd <= 1) return 0;
-  if (fromEnd === 2) return 1.25;
-  return 2.5;
+export function stackOpacity(fromEnd: number) {
+  return fromEnd === 0 ? 1 : 0.2;
 }
 
 export function useStackWindow(visibleTurns: StackTurn[]) {

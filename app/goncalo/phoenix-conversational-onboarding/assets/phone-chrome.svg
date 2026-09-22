@@ -1,0 +1,15 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="240" height="336" viewBox="0 0 240 336" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chat-intro-phone-fade" x1="120" y1="0" x2="120" y2="336" gradientUnits="userSpaceOnUse">
+      <stop offset="0.445" stop-color="white"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="chat-intro-phone-mask">
+      <rect width="240" height="336" fill="url(#chat-intro-phone-fade)"/>
+    </mask>
+  </defs>
+  <g mask="url(#chat-intro-phone-mask)" opacity="0.2">
+    <path d="M25.6 1H214.4A24.6 24.6 0 0 1 239 25.6V335H1V25.6A24.6 24.6 0 0 1 25.6 1Z" stroke="#ABABAB" stroke-width="2"/>
+    <rect x="114" y="10" width="12" height="4" rx="2" fill="#ABABAB"/>
+  </g>
+</svg>
