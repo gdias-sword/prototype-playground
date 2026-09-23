@@ -10,6 +10,7 @@ import {
 } from 'react';
 import arrowRight from './assets/ic-arrow-narrow-right.svg';
 import notifyLauren from './assets/notify-lauren.png';
+import phoneChrome from './assets/phone-chrome.svg';
 import swordMark from './assets/sword-mark.svg';
 import pt1 from './assets/pts/pt-1.png';
 import pt2 from './assets/pts/pt-2.png';
@@ -916,12 +917,14 @@ function NotifyHomeIllustration({ animate }: { animate: boolean }) {
                 'linear-gradient(0deg, rgba(255,255,255,0) 51.923%, #fff 100%), linear-gradient(90deg, #f7f4f2, #f7f4f2)',
             }}
           >
-            <div className="absolute inset-[calc(18.75%-0.63px)]">
-              <img
-                alt=""
-                src={assetSrc(swordMark)}
-                className="absolute inset-y-0 right-[21.87%] left-[21.88%] size-full max-w-none"
-              />
+            <div className="absolute inset-[calc(18.75%-0.63px)] overflow-hidden">
+              <div className="absolute inset-y-0 right-[21.87%] left-[21.88%]">
+                <img
+                  alt=""
+                  src={assetSrc(swordMark)}
+                  className="absolute inset-0 size-full max-w-none"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -1097,6 +1100,11 @@ export function ChatIntroScene({
                 : 'pointer-events-none opacity-0'),
           )}
         >
+          <img
+            alt=""
+            src={assetSrc(phoneChrome)}
+            className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2"
+          />
           <div
             ref={viewportRef}
             className="chat-intro-viewport absolute inset-0"
@@ -1131,26 +1139,9 @@ export function ChatIntroScene({
               : 'pointer-events-none opacity-0',
           )}
         >
-          <div className="relative mx-auto h-[220px] w-[220px]">
-            <div className="absolute inset-x-6 top-2 h-[200px] rounded-[28px] border border-[#d5dbe6] bg-white/40" />
-            <div className="absolute inset-x-10 top-8 flex justify-between">
-              <span className="size-10 rounded-xl bg-[#e7ebf2]" />
-              <span className="size-10 rounded-xl bg-[#e7ebf2]" />
-              <span className="size-10 rounded-xl bg-[#e7ebf2]" />
-            </div>
-            <div className="absolute inset-x-2 top-[108px] flex items-center gap-2 rounded-2xl bg-white px-2.5 py-2 shadow-[0_10px_24px_rgba(40,50,80,0.12)]">
-              <div className="size-9 shrink-0 overflow-hidden rounded-full">
-                <LaurenPortrait decorative />
-              </div>
-              <div className="min-w-0 text-left">
-                <p className="text-[13px] font-semibold text-[#1c2430]">{PT}</p>
-                <p className="truncate text-[12px] text-[#5c6570]">
-                  {NOTIFY_PREVIEW}
-                </p>
-              </div>
-              <span className="ml-auto text-[11px] text-[#8b93a0]">now</span>
-            </div>
-          </div>
+          <NotifyHomeIllustration
+            animate={notifyMotion && !instant && !prefersReducedMotion()}
+          />
         </div>
       </div>
       <div
