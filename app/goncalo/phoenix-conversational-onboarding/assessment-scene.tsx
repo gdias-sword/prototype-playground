@@ -12,7 +12,6 @@ function assetSrc(asset: string | { src: string }) {
 export type AssessmentBeat = 'placement' | 'exercise';
 
 type PlacementPhase = 'dial' | 'confirmed' | 'step-back';
-type ExercisePhase = 'card' | 'reps';
 
 function timing(fastDemo: boolean, ms: number) {
   return fastDemo ? Math.min(ms, 280) : ms;
@@ -28,13 +27,11 @@ export function AssessmentScene({
   onAdvance: () => void;
 }) {
   const [placementPhase, setPlacementPhase] = useState<PlacementPhase>('dial');
-  const [exercisePhase, setExercisePhase] = useState<ExercisePhase>('card');
   const onAdvanceRef = useRef(onAdvance);
   onAdvanceRef.current = onAdvance;
 
   useEffect(() => {
     setPlacementPhase('dial');
-    setExercisePhase('card');
   }, [beat]);
 
   useEffect(() => {
@@ -59,16 +56,9 @@ export function AssessmentScene({
 
   useEffect(() => {
     if (beat !== 'exercise') return;
-    if (exercisePhase === 'card') {
-      const id = window.setTimeout(
-        () => setExercisePhase('reps'),
-        timing(fastDemo, 1600),
-      );
-      return () => window.clearTimeout(id);
-    }
     const id = window.setTimeout(() => onAdvanceRef.current(), timing(fastDemo, 1800));
     return () => window.clearTimeout(id);
-  }, [beat, exercisePhase, fastDemo]);
+  }, [beat, fastDemo]);
 
   function handleSkip() {
     if (beat === 'placement') {
@@ -83,15 +73,10 @@ export function AssessmentScene({
       onAdvance();
       return;
     }
-    if (exercisePhase === 'card') {
-      setExercisePhase('reps');
-      return;
-    }
     onAdvance();
   }
 
   const showStepBack = beat === 'placement' && placementPhase === 'step-back';
-  const showCard = beat === 'exercise' && exercisePhase === 'card';
 
   return (
     <button
@@ -109,7 +94,7 @@ export function AssessmentScene({
         src={assetSrc(assessmentMember)}
         className={cn(
           'absolute inset-0 size-full object-cover object-[center_15%]',
-          (showStepBack || showCard) && 'scale-110 blur-md',
+          beat === 'placement' && 'scale-110 blur-md',
         )}
       />
       <div className="absolute inset-0 bg-black/35" />
@@ -126,8 +111,6 @@ export function AssessmentScene({
           </p>
         </div>
       ) : null}
-
-      {showCard ? <ExerciseCard /> : null}
     </button>
   );
 }
@@ -166,33 +149,6 @@ function PlacementDial({ confirmed }: { confirmed: boolean }) {
       <p className="absolute inset-x-6 bottom-16 text-center font-serif text-[28px] leading-8 font-medium tracking-[-0.03em] text-white">
         Place your device on the floor and tilt it toward you
       </p>
-    </div>
-  );
-}
-
-function ExerciseCard() {
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-[327px] overflow-hidden rounded-[28px] bg-white">
-        <div className="relative h-[420px] overflow-hidden bg-white">
-          <span className="absolute top-4 left-4 z-10 rounded-lg bg-[#3b82f6] px-2.5 py-1 text-sm font-medium text-white">
-            New
-          </span>
-          <img
-            alt=""
-            src={assetSrc(assessmentMember)}
-            className="size-full object-cover object-top"
-          />
-        </div>
-        <div className="px-5 pt-4 pb-6">
-          <p className="text-display-small-strong text-foreground-neutral-default font-serif font-medium tracking-[-0.04em]">
-            Squat
-          </p>
-          <p className="text-body-large-default text-foreground-neutral-default mt-1">
-            10 reps
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

@@ -10,11 +10,13 @@ import { PhoenixOrb } from './phoenix-orb';
 import {
   CARE_TEAM_CHAT,
   PT,
+  currentArea,
   type Answers,
   type CareTeamMessage,
   type DoorId,
   type StackTurn,
   chatIntro,
+  enrollmentChatHistory,
 } from './script';
 
 function assetSrc(asset: string | { src: string }) {
@@ -51,7 +53,15 @@ function SenderMark({ from }: { from: CareTeamMessage['from'] }) {
   );
 }
 
-function CareBubble({ message }: { message: CareTeamMessage }) {
+function CareBubble({
+  message,
+  animate = false,
+  area = 'Shoulder',
+}: {
+  message: CareTeamMessage;
+  animate?: boolean;
+  area?: string;
+}) {
   if (message.from === 'member') {
     return (
       <div className="flex justify-end">
@@ -66,7 +76,7 @@ function CareBubble({ message }: { message: CareTeamMessage }) {
   }
 
   return (
-    <div className="flex items-end gap-2">
+    <div className={animate ? 'chat-intro-enter flex items-end gap-2' : 'flex items-end gap-2'}>
       <SenderMark from={message.from} />
       <div className="max-w-[82%] rounded-[18px] bg-white px-3.5 py-2.5 text-[#1c2430] shadow-[0_8px_24px_rgba(80,70,140,0.06)]">
         <p className="text-[13px] font-semibold">{message.from}</p>
@@ -80,11 +90,11 @@ function CareBubble({ message }: { message: CareTeamMessage }) {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
             <div className="absolute inset-x-3 top-2 flex items-center justify-between text-[12px] text-white">
-              <span>Shoulder</span>
+              <span>{area}</span>
               <span>Day 1</span>
             </div>
             <p className="absolute inset-x-3 bottom-2 text-[15px] font-medium text-white">
-              Your recovery score →
+              Your discovery score →
             </p>
           </div>
         ) : null}
@@ -113,6 +123,8 @@ export function ChatScene({
 }) {
   const messages = messagesFor(door, answers, afterReward);
   const shown = messages.slice(0, visibleCount);
+  const settled = afterReward ? enrollmentChatHistory(answers) : [];
+  const area = currentArea(answers);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -153,7 +165,13 @@ export function ChatScene({
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 pb-2">
         <p className="text-center text-[13px] text-[#8b93a0]">— Today —</p>
         {afterReward
-          ? null
+          ? settled.map((message, index) => (
+              <CareBubble
+                key={`enrollment-${message.from}-${index}`}
+                message={message}
+                area={area}
+              />
+            ))
           : history
               .filter((turn) => turn.role === 'member')
               .slice(-2)
@@ -165,10 +183,16 @@ export function ChatScene({
                     text: turn.text,
                     time: '8:34 AM',
                   }}
+                  area={area}
                 />
               ))}
         {shown.map((message, index) => (
-          <CareBubble key={`${message.from}-${index}`} message={message} />
+          <CareBubble
+            key={`${message.from}-${index}`}
+            message={message}
+            animate={afterReward}
+            area={area}
+          />
         ))}
       </div>
       <div className="px-3 pt-2 pb-1">

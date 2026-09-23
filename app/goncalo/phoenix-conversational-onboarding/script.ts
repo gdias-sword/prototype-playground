@@ -362,7 +362,7 @@ export function doorLabel(door: DoorId) {
 }
 
 export function safetyLine() {
-  return 'Before we start, just a quick safety check';
+  return 'Does any of these apply to you?';
 }
 
 export function safetyHint() {
@@ -383,10 +383,6 @@ export function callQuestion() {
 
 export function flagsCareLine() {
   return 'Thanks for letting us know.';
-}
-
-export function flagsQuestion() {
-  return 'Your program will be adapted to make sure you can perform it safely.';
 }
 
 export function scheduleLine() {
@@ -540,39 +536,126 @@ export type CareTeamMessage = {
   card?: boolean;
 };
 
-export const CARE_TEAM_CHAT: CareTeamMessage[] = [
-  {
-    from: 'Phoenix',
-    text: 'Great, let’s get your first session going then.',
-    time: '8:34 AM',
-  },
-  {
-    from: 'Phoenix',
-    text: 'It starts with a quick shoulder check-up, it’s how I’ll shape everything that follows.',
-    time: '8:34 AM',
-  },
-  {
-    from: 'Phoenix',
-    text: 'Takes just a few minutes. Ready to start?',
-    time: '8:34 AM',
-  },
-  {
-    from: 'member',
-    text: 'Start my first session',
-    time: '8:34 AM',
-  },
-  {
-    from: 'Phoenix',
-    text: `Nice work, ${MEMBER}! You just finished your first session. Your welcome kit is on the way.`,
-    time: '8:56 AM',
-  },
-  {
-    from: 'Phoenix',
-    text: 'We’ve built your recovery score. Here is where you’re starting from.',
-    time: '8:56 AM',
-    card: true,
-  },
-];
+const ENROLLMENT_TIME = '8:34 AM';
+
+export const DISCOVERY_READY_MESSAGE: CareTeamMessage = {
+  from: 'Phoenix',
+  text: `You’re all set, ${MEMBER}! Your initial discovery score is ready.`,
+  time: '8:56 AM',
+  card: true,
+};
+
+export const CARE_TEAM_CHAT: CareTeamMessage[] = [DISCOVERY_READY_MESSAGE];
+
+export function enrollmentChatHistory(answers: Answers): CareTeamMessage[] {
+  const conditions =
+    answers.completed.length > 0
+      ? answers.completed
+      : answers.area && answers.duration && answers.intensity != null
+        ? [
+            {
+              area: answers.area,
+              duration: answers.duration,
+              intensity: answers.intensity,
+              tingling: answers.tingling,
+              regions: [...(answers.regions ?? [])],
+              impacts: [...(answers.impacts ?? [])],
+            },
+          ]
+        : [];
+
+  const messages: CareTeamMessage[] = [];
+
+  conditions.forEach((condition, index) => {
+    messages.push(
+      {
+        from: 'Phoenix',
+        text: areaQuestion(index),
+        time: ENROLLMENT_TIME,
+      },
+      { from: 'member', text: condition.area, time: ENROLLMENT_TIME },
+    );
+
+    if (condition.regions.length > 0) {
+      messages.push(
+        {
+          from: 'Phoenix',
+          text: regionQuestion(condition.area),
+          time: ENROLLMENT_TIME,
+        },
+        {
+          from: 'member',
+          text: regionAnswer(condition.regions),
+          time: ENROLLMENT_TIME,
+        },
+      );
+    }
+
+    messages.push(
+      {
+        from: 'Phoenix',
+        text: durationQuestion(condition.area),
+        time: ENROLLMENT_TIME,
+      },
+      { from: 'member', text: condition.duration, time: ENROLLMENT_TIME },
+      { from: 'Phoenix', text: intensityQuestion(), time: ENROLLMENT_TIME },
+      {
+        from: 'member',
+        text: intensityAnswer(condition.intensity),
+        time: ENROLLMENT_TIME,
+      },
+      { from: 'Phoenix', text: impactQuestion(), time: ENROLLMENT_TIME },
+      {
+        from: 'member',
+        text:
+          condition.impacts.length > 0
+            ? impactAnswer(condition.impacts)
+            : IMPACT_NONE_LABEL,
+        time: ENROLLMENT_TIME,
+      },
+    );
+
+    const askedMore =
+      index < conditions.length - 1 || conditions.length < MAX_BODY_AREAS;
+    if (askedMore) {
+      messages.push(
+        { from: 'Phoenix', text: moreQuestion(), time: ENROLLMENT_TIME },
+        {
+          from: 'member',
+          text: index < conditions.length - 1 ? MORE_YES_LABEL : MORE_NO_LABEL,
+          time: ENROLLMENT_TIME,
+        },
+      );
+    }
+  });
+
+  if (answers.activity) {
+    messages.push(
+      { from: 'Phoenix', text: activityQuestion(), time: ENROLLMENT_TIME },
+      {
+        from: 'member',
+        text: activityLabel(answers.activity),
+        time: ENROLLMENT_TIME,
+      },
+    );
+  }
+
+  if (conditions.length > 0) {
+    messages.push(
+      { from: 'Phoenix', text: safetyLine(), time: ENROLLMENT_TIME },
+      {
+        from: 'member',
+        text:
+          answers.safetyFlags.length > 0
+            ? answers.safetyFlags.join(', ')
+            : SAFETY_NONE_LABEL,
+        time: ENROLLMENT_TIME,
+      },
+    );
+  }
+
+  return messages;
+}
 
 export function chatIntro(
   door: DoorId,

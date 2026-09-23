@@ -81,7 +81,6 @@ import {
   durationQuestion,
   doorLabel,
   flagsCareLine,
-  flagsQuestion,
   areaQuestion,
   conditionWrapLine,
   impactAnswer,
@@ -349,10 +348,14 @@ export function Experience({
   const [checkpointIndex, setCheckpointIndex] = useState(-1);
   const [sessionAfterReward, setSessionAfterReward] = useState(false);
   const [cameraPrompt, setCameraPrompt] = useState(false);
+  const [promptReady, setPromptReady] = useState(false);
   const answersRef = useRef(EMPTY_ANSWERS);
   const rushExperience = skipToolDelay || fastDemo;
   const toolReady = useDelayedTool(
-    phase === 'phoenix' && hasConversationTools(step) && mood === 'listen',
+    phase === 'phoenix' &&
+      hasConversationTools(step) &&
+      mood === 'listen' &&
+      promptReady,
     rushExperience ? 0 : 480,
   );
 
@@ -412,6 +415,9 @@ export function Experience({
   }
 
   function pushTurns(...incoming: Omit<StackTurn, 'id'>[]) {
+    if (incoming.some((turn) => turn.role === 'phoenix')) {
+      setPromptReady(false);
+    }
     setTurns((current) => [
       ...current,
       ...incoming.map((turn) => ({ ...turn, id: nextTurnId() })),
@@ -508,6 +514,11 @@ export function Experience({
     setChatCount(snapshot.chatCount);
     setSessionAfterReward(snapshot.sessionAfterReward);
     setCameraPrompt(false);
+    const latestTurn = snapshot.turns.at(-1);
+    setPromptReady(
+      latestTurn?.role !== 'phoenix' ||
+        streamedTurnIdsRef.current.has(latestTurn.id),
+    );
   }
 
   function rewindPrev() {
@@ -559,6 +570,11 @@ export function Experience({
       jump.checkpoints[jump.targetIndex]?.sessionAfterReward ?? false,
     );
     setCameraPrompt(false);
+    const latestJumpTurn = jump.turns.at(-1);
+    setPromptReady(
+      latestJumpTurn?.role !== 'phoenix' ||
+        jump.streamedTurnIds.includes(latestJumpTurn.id),
+    );
   }
 
   useImperativeHandle(navigatorRef, () => ({
@@ -635,6 +651,17 @@ export function Experience({
       step.kind === 'reward-reveal' ||
       step.kind === 'reward-confirmation'
     ) {
+      setMood('listen');
+      setPromptReady(true);
+      return;
+    }
+    const latest = turnsRef.current.at(-1);
+    if (
+      latest?.role === 'phoenix' &&
+      latest.kind === 'question' &&
+      streamedTurnIdsRef.current.has(latest.id)
+    ) {
+      setPromptReady(true);
       setMood('listen');
       return;
     }
@@ -775,6 +802,7 @@ export function Experience({
 
     discardFutureCheckpoints();
     setSkipToolDelay(false);
+    setPromptReady(false);
     const nextTurns = [...baseTurns, memberTurn];
     turnsRef.current = nextTurns;
     setTurns(nextTurns);
@@ -857,6 +885,18 @@ export function Experience({
     setSkipToolDelay(false);
     setStep(next);
     setMood('listen');
+  }
+
+  function finishCameraPrompt() {
+    setCameraPrompt(false);
+    if (stepRef.current.kind === 'offer') {
+      pushTurns({
+        role: 'member',
+        text: START_SESSION_LABEL,
+        kind: 'answer',
+      });
+    }
+    goToPanel({ kind: 'placement' });
   }
 
   function goToQuestion(next: PhoenixStep, line: string) {
@@ -965,6 +1005,7 @@ export function Experience({
         return;
       }
       setMood(currentTurn.kind === 'question' ? 'listen' : 'breath');
+      if (currentTurn.kind === 'question') setPromptReady(true);
       if (currentTurn.kind === 'care') {
         later(revealPending, delay(CARE_HOLD_MS));
         return;
@@ -1084,7 +1125,7 @@ export function Experience({
       setAnswers(nextAnswers);
       commitMember(
         activityLabel(id),
-        { kind: 'session' },
+        { kind: 'safety' },
         nextAnswers,
         activityCareLine(id),
       );
@@ -1135,24 +1176,7 @@ export function Experience({
         {step.kind === 'offer' ? (
           <OfferPanel
             area={currentArea(answers)}
-            onStart={() => {
-              discardFutureCheckpoints();
-              setSkipToolDelay(false);
-              pushTurns({
-                role: 'member',
-                text: START_SESSION_LABEL,
-                kind: 'answer',
-              });
-              setMood('think');
-              later(() => {
-                pushTurns({
-                  role: 'phoenix',
-                  text: safetyLine(),
-                  kind: 'question',
-                });
-                setStep({ kind: 'safety' });
-              }, delay(620));
-            }}
+            onStart={() => setCameraPrompt(true)}
             onLater={() => {
               discardFutureCheckpoints();
               setSkipToolDelay(false);
@@ -1191,29 +1215,22 @@ export function Experience({
               });
               setMood('think');
 
-              function advanceToPlacement() {
+              function advanceToSession() {
                 later(() => {
                   pushTurns({
                     role: 'phoenix',
-                    text: placementIntroLine(),
+                    text: sessionIntroLine(currentArea(nextAnswers)),
                     kind: 'question',
                   });
-                  setStep({ kind: 'placement-intro' });
+                  setStep({ kind: 'session' });
                 }, delay(620));
               }
 
               if (flags.length > 0) {
-                speakCareThen(flagsCareLine(), () => {
-                  pushTurns({
-                    role: 'phoenix',
-                    text: flagsQuestion(),
-                    kind: 'care',
-                  });
-                  advanceToPlacement();
-                });
+                speakCareThen(flagsCareLine(), advanceToSession);
                 return;
               }
-              advanceToPlacement();
+              advanceToSession();
             }}
           />
         ) : null}
@@ -1403,14 +1420,8 @@ export function Experience({
         <OsPermissionDialog
           title="Sword Health would like to access the camera"
           body="This lets Phoenix guide each movement in real time. You can change this later in Settings."
-          onAllow={() => {
-            setCameraPrompt(false);
-            goToPanel({ kind: 'placement' });
-          }}
-          onDeny={() => {
-            setCameraPrompt(false);
-            goToPanel({ kind: 'placement' });
-          }}
+          onAllow={finishCameraPrompt}
+          onDeny={finishCameraPrompt}
         />
       ) : null}
       {phase === 'phoenix' && step.kind === 'notify' && step.dialog ? (
