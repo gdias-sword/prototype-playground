@@ -4,6 +4,7 @@ import { Mic, Plus, Settings } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import sessionCard from './assets/session-card.png';
 import { HomeIndicatorSpace } from './device-frame';
+import { PairSlot } from './care-team-scenes';
 import { LaurenPortrait } from './lauren-portrait';
 import { PhoenixOrb } from './phoenix-orb';
 import {
@@ -99,6 +100,7 @@ export function ChatScene({
   history,
   visibleCount,
   afterReward = false,
+  sharedPair = false,
 }: {
   door: DoorId;
   answers: Answers;
@@ -106,6 +108,7 @@ export function ChatScene({
   avatarSlot?: boolean;
   visibleCount: number;
   afterReward?: boolean;
+  sharedPair?: boolean;
 }) {
   const messages = messagesFor(door, answers, afterReward);
   const shown = messages.slice(0, visibleCount);
@@ -121,14 +124,20 @@ export function ChatScene({
     <div className="flex h-full flex-col bg-[#f4f7ff]">
       <div className="flex h-[104px] items-end justify-between px-4 pb-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex items-center">
-            <div className="relative z-10 size-8">
-              <PhoenixOrb mood="breath" className="size-full" />
+          {sharedPair ? (
+            <PairSlot pose="header" size={32} />
+          ) : (
+            <div className="flex items-center">
+              <div className="relative z-10 size-8">
+                {avatarSlot ? null : (
+                  <PhoenixOrb mood="breath" className="size-full" />
+                )}
+              </div>
+              <div className="relative -ml-2 size-8 overflow-hidden rounded-full ring-2 ring-[#f4f7ff]">
+                <LaurenPortrait decorative />
+              </div>
             </div>
-            <div className="relative -ml-2 size-8 overflow-hidden rounded-full ring-2 ring-[#f4f7ff]">
-              <LaurenPortrait decorative />
-            </div>
-          </div>
+          )}
           <div className="min-w-0">
             <p className="text-[16px] font-semibold text-[#1c2430]">
               Your Care Team

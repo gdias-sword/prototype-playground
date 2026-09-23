@@ -172,7 +172,7 @@ export function ConversationShell(props: ConversationProps) {
   return (
     <div
       className={cn(
-        'flex min-h-0 flex-1 flex-col px-4 pt-3',
+        'flex min-h-0 flex-1 flex-col px-4 pt-5',
         !toolShellFills(step) && 'pb-24',
       )}
       onClick={advanceHandler(props)}

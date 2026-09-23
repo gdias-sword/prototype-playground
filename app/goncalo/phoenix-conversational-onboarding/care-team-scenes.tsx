@@ -1,8 +1,16 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { cn } from '@/design/utils';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react';
 import arrowRight from './assets/ic-arrow-narrow-right.svg';
-import phoneChrome from './assets/phone-chrome.svg';
+import notifyLauren from './assets/notify-lauren.png';
+import swordMark from './assets/sword-mark.svg';
 import pt1 from './assets/pts/pt-1.png';
 import pt2 from './assets/pts/pt-2.png';
 import pt3 from './assets/pts/pt-3.png';
@@ -12,10 +20,10 @@ import pt6 from './assets/pts/pt-6.png';
 import pt7 from './assets/pts/pt-7.png';
 import pt8 from './assets/pts/pt-8.png';
 import sessionCard from './assets/session-card.png';
-import { PhoenixOrb } from './phoenix-orb';
 import { PrimaryAction } from './extended-scenes';
 import { LaurenPortrait } from './lauren-portrait';
-import { ptQuoteLines } from './pt-quote-paths';
+import { PhoenixOrb } from './phoenix-orb';
+import { ptQuoteStrokes, ptQuoteViewBox } from './pt-quote-paths';
 import {
   CHAT_INTRO_BUBBLES,
   CHAT_INTRO_HINT,
@@ -48,7 +56,8 @@ const RING = [
 
 const ORBIT_RADIUS = 198;
 const SPIN_DEG_PER_MS = 0.05;
-const SEARCH_BEAT_MS = 2300;
+const SEARCH_BEAT_MS = 2000;
+const PT_LINE_SWAP_MS = 200;
 const GATHER_MS = 920;
 
 const MEET_WORDS = [
@@ -102,17 +111,152 @@ export function OsPermissionDialog({
   );
 }
 
-function DualAvatar({ size = 80 }: { size?: number }) {
+const PAIR_GAP_PX = 4;
+
+export function PairSlot({
+  pose,
+  size,
+}: {
+  pose: 'intro' | 'handoff' | 'header';
+  size: number;
+}) {
   return (
-    <div className="relative" style={{ width: size + size * 0.75, height: size }}>
+    <div
+      data-care-pair={pose}
+      aria-hidden
+      className="invisible shrink-0"
+      style={{ width: size * 1.75, height: size }}
+    />
+  );
+}
+
+const PAIR_RENDER = 96;
+
+export function CarePairFlight({
+  pose,
+  instant,
+  stageRef,
+}: {
+  pose: 'intro' | 'handoff' | 'header' | null;
+  instant: boolean;
+  stageRef: RefObject<HTMLDivElement | null>;
+}) {
+  const [placed, setPlaced] = useState<{
+    x: number;
+    y: number;
+    scale: number;
+  } | null>(null);
+  const [animate, setAnimate] = useState(false);
+  const placedRef = useRef(placed);
+  placedRef.current = placed;
+
+  useLayoutEffect(() => {
+    if (!pose) {
+      setPlaced(null);
+      setAnimate(false);
+      return;
+    }
+
+    let frame = 0;
+    let cancelled = false;
+
+    const measure = () => {
+      const stage = stageRef.current;
+      if (!stage) return null;
+      const node = stage.querySelector<HTMLElement>(
+        `[data-care-pair="${pose}"]`,
+      );
+      if (!node || node.offsetWidth === 0) return null;
+      const stageRect = stage.getBoundingClientRect();
+      const nodeRect = node.getBoundingClientRect();
+      const scale =
+        stage.offsetWidth > 0 ? stageRect.width / stage.offsetWidth : 1;
+      const width = nodeRect.width / scale;
+      return {
+        x: (nodeRect.left - stageRect.left) / scale,
+        y: (nodeRect.top - stageRect.top) / scale,
+        scale: width / (PAIR_RENDER * 1.75),
+      };
+    };
+
+    const apply = () => {
+      const next = measure();
+      if (!next || cancelled) return false;
+      const reduce = window.matchMedia(
+        '(prefers-reduced-motion: reduce)',
+      ).matches;
+      const canAnimate = Boolean(placedRef.current) && !instant && !reduce;
+      if (!canAnimate) {
+        setAnimate(false);
+        setPlaced(next);
+        return true;
+      }
+      setAnimate(true);
+      frame = window.requestAnimationFrame(() => {
+        if (!cancelled) setPlaced(next);
+      });
+      return true;
+    };
+
+    if (!apply()) {
+      frame = window.requestAnimationFrame(() => {
+        apply();
+      });
+    }
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [pose, instant, stageRef]);
+
+  if (!pose || !placed) return null;
+
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        'pointer-events-none absolute top-0 left-0 z-30 origin-top-left',
+        animate
+          ? 'transition-transform duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]'
+          : instant
+            ? undefined
+            : 'care-pair-arrive',
+      )}
+      style={{
+        transform: `translate3d(${placed.x}px, ${placed.y}px, 0) scale(${placed.scale})`,
+      }}
+    >
+      <DualAvatar size={PAIR_RENDER} />
+    </div>
+  );
+}
+
+function DualAvatar({ size = 80 }: { size?: number }) {
+  const overlap = size * 0.25;
+  const cutoutRadius = size / 2 + PAIR_GAP_PX;
+  const cutoutMask = `radial-gradient(circle ${cutoutRadius}px at calc(100% + ${size / 2 - overlap}px) 50%, transparent ${cutoutRadius}px, #000 ${cutoutRadius + 1}px)`;
+
+  return (
+    <div
+      className="relative"
+      style={{ width: size + size * 0.75, height: size }}
+    >
       <div
-        className="absolute top-0 left-0 overflow-visible"
-        style={{ width: size, height: size }}
+        className="absolute top-0 left-0 overflow-hidden rounded-full"
+        style={{
+          width: size,
+          height: size,
+          WebkitMaskImage: cutoutMask,
+          maskImage: cutoutMask,
+          WebkitMaskRepeat: 'no-repeat',
+          maskRepeat: 'no-repeat',
+        }}
       >
         <PhoenixOrb mood="breath" className="size-full" />
       </div>
       <div
-        className="absolute top-0 overflow-hidden rounded-full bg-[#d7e8fb] ring-4 ring-white"
+        className="absolute top-0 overflow-hidden rounded-full bg-[#d7e8fb]"
         style={{ left: size * 0.75, width: size, height: size }}
       >
         <LaurenPortrait decorative />
@@ -170,18 +314,20 @@ function applyPose(
 
 function RevealLine({ text, instant }: { text: string; instant: boolean }) {
   const [shown, setShown] = useState(text);
-  const [leaving, setLeaving] = useState<string | null>(null);
+  const [phase, setPhase] = useState<'in' | 'out' | 'still'>('in');
 
   useEffect(() => {
-    if (text === shown) return;
     if (instant) {
-      setLeaving(null);
       setShown(text);
+      setPhase('still');
       return;
     }
-    setLeaving(shown);
-    setShown(text);
-    const id = window.setTimeout(() => setLeaving(null), 640);
+    if (text === shown) return;
+    setPhase('out');
+    const id = window.setTimeout(() => {
+      setShown(text);
+      setPhase('in');
+    }, PT_LINE_SWAP_MS);
     return () => window.clearTimeout(id);
   }, [instant, shown, text]);
 
@@ -198,16 +344,13 @@ function RevealLine({ text, instant }: { text: string; instant: boolean }) {
 
   return (
     <div className="pt-cycle" aria-live="polite">
-      {leaving ? (
-        <p className="font-sans text-title-large-subtle text-foreground-neutral-default pt-cycle-out">
-          {copy(leaving)}
-        </p>
-      ) : null}
       <p
         className={
-          instant
-            ? 'font-sans text-title-large-subtle text-foreground-neutral-default'
-            : 'font-sans text-title-large-subtle text-foreground-neutral-default pt-cycle-in'
+          phase === 'still'
+            ? 'text-title-large-subtle text-foreground-neutral-default font-sans'
+            : phase === 'out'
+              ? 'text-title-large-subtle text-foreground-neutral-default pt-cycle-out font-sans'
+              : 'text-title-large-subtle text-foreground-neutral-default pt-cycle-in font-sans'
         }
       >
         {copy(shown)}
@@ -219,24 +362,24 @@ function RevealLine({ text, instant }: { text: string; instant: boolean }) {
 function MeetTitle({ play }: { play: boolean }) {
   let delay = 0;
   return (
-    <h1 className="font-sans text-title-large-subtle text-foreground-neutral-default mt-8">
+    <h1 className="text-title-large-subtle text-foreground-neutral-default mt-8 font-sans">
       {MEET_WORDS.map((line) => (
         <span key={line.map((word) => word.text).join('')} className="block">
-            {line.map((word, index) => {
+          {line.map((word, index) => {
             const wordDelay = delay;
             delay += 55;
             return (
               <span
                 key={word.text}
                 className={
-                  word.accent
-                    ? 'pt-meet-word text-[#4a89e8]'
-                    : 'pt-meet-word'
+                  word.accent ? 'pt-meet-word text-[#4a89e8]' : 'pt-meet-word'
                 }
                 style={{
                   animationDelay: play ? `${wordDelay}ms` : undefined,
                   marginLeft:
-                    index > 0 && !word.text.startsWith(',') ? '0.28em' : undefined,
+                    index > 0 && !word.text.startsWith(',')
+                      ? '0.28em'
+                      : undefined,
                 }}
                 data-play={play ? '' : undefined}
               >
@@ -250,42 +393,42 @@ function MeetTitle({ play }: { play: boolean }) {
   );
 }
 
+const QUOTE_START_MS = 780;
+const QUOTE_WRITE_MS = 3400;
+
 function HandwrittenQuote({ play }: { play: boolean }) {
-  const width = 320;
-  let glyphIndex = 0;
-  const lineOneCount = ptQuoteLines[0].glyphs.length;
+  const totalLength = ptQuoteStrokes.reduce(
+    (sum, stroke) => sum + stroke.length,
+    0,
+  );
+  let elapsed = QUOTE_START_MS;
 
   return (
     <svg
-      viewBox="-16 -4 352 86"
+      viewBox={ptQuoteViewBox}
       role="img"
       aria-label={PT_MEET_QUOTE}
-      className="mt-8 w-full max-w-[320px] overflow-visible"
+      className="mt-8 w-[80%] overflow-visible"
     >
-      {ptQuoteLines.map((line, lineIndex) => {
-        const x = (width - line.width) / 2;
-        const y = lineIndex === 0 ? 2 : 42;
+      {ptQuoteStrokes.map((stroke, index) => {
+        const duration = (stroke.length / totalLength) * QUOTE_WRITE_MS;
+        const delay = elapsed;
+        elapsed += duration;
         return (
-          <g key={line.width} transform={`translate(${x} ${y})`}>
-            {line.glyphs.map((d) => {
-              const order = glyphIndex;
-              glyphIndex += 1;
-              const delay =
-                lineIndex === 0
-                  ? order * 42
-                  : Math.round(lineOneCount * 42 * 0.58) +
-                    (order - lineOneCount) * 42;
-              return (
-                <path
-                  key={`${lineIndex}-${order}`}
-                  d={d}
-                  pathLength={1}
-                  className={play ? 'pt-ink' : 'pt-ink pt-ink-still'}
-                  style={play ? { animationDelay: `${680 + delay}ms` } : undefined}
-                />
-              );
-            })}
-          </g>
+          <path
+            key={index}
+            d={stroke.d}
+            pathLength={1}
+            className={play ? 'pt-ink' : 'pt-ink pt-ink-still'}
+            style={
+              play
+                ? {
+                    animationDuration: `${duration}ms`,
+                    animationDelay: `${delay}ms`,
+                  }
+                : undefined
+            }
+          />
         );
       })}
     </svg>
@@ -294,11 +437,7 @@ function HandwrittenQuote({ play }: { play: boolean }) {
 
 function Portrait({ alt = '' }: { alt?: string }) {
   return (
-    <img
-      alt={alt}
-      src={assetSrc(pt1)}
-      className="size-full object-cover object-[center_18%]"
-    />
+    <img alt={alt} src={assetSrc(pt1)} className="size-full object-cover" />
   );
 }
 
@@ -468,7 +607,9 @@ export function PtRevealScene({
         if (t >= 1) {
           motion.from = RING.map((avatar, index) => {
             const pose = orbitPose(index, motion.angle);
-            return avatar.hero ? { ...pose, opacity: 1, scale: pose.scale } : pose;
+            return avatar.hero
+              ? { ...pose, opacity: 1, scale: pose.scale }
+              : pose;
           });
           const scene = sceneRef.current;
           const origin = originRef.current;
@@ -539,15 +680,14 @@ export function PtRevealScene({
                 ref={(node) => {
                   nodeRefs.current[index] = node;
                 }}
-                className="pt-orbit-avatar absolute top-0 left-0"
+                className="pt-orbit-avatar absolute top-0 left-0 size-0"
               >
-                <div className="relative size-20 -translate-x-1/2 -translate-y-1/2">
-                  <div className="pt-avatar-ring absolute -inset-[3px] rounded-full bg-gradient-to-b from-[#e0ecfd] to-[#a6c9f8]" />
-                  <div className="relative size-full overflow-hidden rounded-full bg-[#d7e8fb]">
+                <div className="absolute top-0 left-0 size-20 -translate-x-1/2 -translate-y-1/2">
+                  <div className="relative size-full overflow-hidden rounded-full">
                     <img
                       alt=""
                       src={assetSrc(avatar.src)}
-                      className="size-full object-cover object-[center_18%]"
+                      className="size-full object-cover"
                     />
                   </div>
                 </div>
@@ -559,7 +699,8 @@ export function PtRevealScene({
             <div
               className={showCopy ? 'pt-search-out' : 'pt-search-in'}
               onAnimationEnd={(event) => {
-                if (event.animationName === 'pt-search-out') setSearchGone(true);
+                if (event.animationName === 'pt-search-out')
+                  setSearchGone(true);
               }}
             >
               <div className="flex w-[280px] flex-col items-center gap-6 text-center">
@@ -579,10 +720,8 @@ export function PtRevealScene({
       <div className="absolute inset-x-4 top-[18%] z-[2] flex flex-col items-center text-center">
         <div ref={padRef} className="size-[120px]">
           {beat === 2 && !showOrbit ? (
-            <div className="size-full rounded-full bg-gradient-to-b from-[#e0ecfd] to-[#a6c9f8] p-[3px]">
-              <div className="size-full overflow-hidden rounded-full bg-[#d7e8fb]">
-                <Portrait alt={PT} />
-              </div>
+            <div className="size-full overflow-hidden rounded-full">
+              <Portrait alt={PT} />
             </div>
           ) : null}
         </div>
@@ -596,7 +735,8 @@ export function PtRevealScene({
                   : 'text-body-large-default text-foreground-neutral-default pt-meet-stat mt-3'
               }
             >
-              Helped <span className="font-medium text-[#0d0d0d]">340 members</span>{' '}
+              Helped{' '}
+              <span className="font-medium text-[#0d0d0d]">340 members</span>{' '}
               recover from pain
             </p>
             <HandwrittenQuote play={!instant} />
@@ -622,6 +762,8 @@ export function PtRevealScene({
 const CHAT_INTRO_STEPS = 4;
 const CHAT_INTRO_FIRST_MS = 640;
 const CHAT_INTRO_STEP_MS = 1700;
+const CHAT_INTRO_COPY_STAGGER_MS = 180;
+const CHAT_INTRO_COPY_REVEAL_MS = 720;
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -711,29 +853,151 @@ function SessionCardBubble() {
   );
 }
 
+const NOTIFY_HOME_APPS = [
+  [92, 77],
+  [156, 77],
+  [220, 77],
+  [92, 157],
+  [156, 157],
+  [220, 157],
+  [92, 237],
+  [156, 237],
+] as const;
+
+function NotifyHomeIllustration({ animate }: { animate: boolean }) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const fit = () => {
+      const { width, height } = frame.getBoundingClientRect();
+      const next = Math.min(width / 360, height / 360);
+      setScale(Number.isFinite(next) && next > 0 ? next : 1);
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={frameRef} className="absolute inset-0 overflow-hidden">
+      <div
+        className="absolute top-1/2 left-1/2 size-[360px]"
+        style={{ transform: `translate(-50%, -50%) scale(${scale})` }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            maskImage:
+              'linear-gradient(to bottom, #000 50.4808%, transparent 100%)',
+            WebkitMaskImage:
+              'linear-gradient(to bottom, #000 50.4808%, transparent 100%)',
+          }}
+        >
+          <div className="absolute top-6 left-[68px] h-[336px] w-[224px] rounded-t-[25.6px] border-[2.4px] border-[#ababab] opacity-20" />
+          <div className="absolute top-[34px] left-[166px] h-1 w-7 rounded-full bg-[#ababab] opacity-20" />
+          {NOTIFY_HOME_APPS.map(([left, top]) => (
+            <div
+              key={`${left}-${top}`}
+              className="absolute size-12 rounded-2xl bg-[#ababab] opacity-20"
+              style={{ left, top }}
+            />
+          ))}
+          <div
+            className={cn(
+              'absolute top-[237px] left-[220px] size-12 overflow-hidden rounded-2xl border border-[rgba(153,153,153,0.2)] shadow-[0_6px_17px_rgba(31,34,44,0.07)]',
+              animate && 'notify-home-logo',
+            )}
+            style={{
+              backgroundImage:
+                'linear-gradient(0deg, rgba(255,255,255,0) 51.923%, #fff 100%), linear-gradient(90deg, #f7f4f2, #f7f4f2)',
+            }}
+          >
+            <div className="absolute inset-[calc(18.75%-0.63px)]">
+              <img
+                alt=""
+                src={assetSrc(swordMark)}
+                className="absolute inset-y-0 right-[21.87%] left-[21.88%] size-full max-w-none"
+              />
+            </div>
+          </div>
+        </div>
+        <div
+          className={cn(
+            'absolute top-[148px] left-4 flex w-[328px] items-start gap-3 rounded-[20px] border border-white bg-white/80 p-3',
+            animate && 'notify-home-card',
+          )}
+        >
+          <div className="relative size-10 shrink-0 overflow-hidden rounded-full border-[1.333px] border-[#f2f2f2] bg-gradient-to-b from-[#eaf2fe] to-[#a6c9f8] shadow-[0_2.667px_2.667px_rgba(0,0,0,0.08)]">
+            <div className="absolute top-[1.33px] left-0 size-10 overflow-hidden">
+              <img
+                alt=""
+                src={assetSrc(notifyLauren)}
+                className="absolute top-[-8.57%] left-[-47.85%] h-[108.57%] w-[192.86%] max-w-none"
+              />
+            </div>
+          </div>
+          <div className="min-w-0 flex-1 text-[#1f222c]">
+            <div className="flex items-center gap-4">
+              <p className="font-sans text-[14px] leading-5 font-semibold">
+                {PT}
+              </p>
+              <p className="ml-auto font-sans text-[12px] leading-[18px] font-medium opacity-50">
+                now
+              </p>
+            </div>
+            <p className="font-sans text-[14px] leading-5">{NOTIFY_PREVIEW}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ChatIntroScene({
+  stage = 'intro',
   fastDemo = false,
   onContinue,
+  onYes,
+  onSkip,
 }: {
   beat?: 0 | 1 | 2 | 3;
+  stage?: 'intro' | 'notify';
   fastDemo?: boolean;
   onContinue: () => void;
+  onYes?: () => void;
+  onSkip?: () => void;
 }) {
-  const [visible, setVisible] = useState(fastDemo ? CHAT_INTRO_STEPS : 0);
+  const instant = fastDemo;
+  const [copyReady, setCopyReady] = useState(instant);
+  const [visible, setVisible] = useState(instant ? CHAT_INTRO_STEPS : 0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
   const [shift, setShift] = useState(0);
 
   useEffect(() => {
-    if (fastDemo || prefersReducedMotion()) {
+    if (instant || prefersReducedMotion()) {
+      setCopyReady(true);
       setVisible(CHAT_INTRO_STEPS);
       return;
     }
+    const id = window.setTimeout(
+      () => setCopyReady(true),
+      CHAT_INTRO_COPY_STAGGER_MS + CHAT_INTRO_COPY_REVEAL_MS,
+    );
+    return () => window.clearTimeout(id);
+  }, [instant]);
+
+  useEffect(() => {
+    if (!copyReady || instant || prefersReducedMotion()) return;
     if (visible >= CHAT_INTRO_STEPS) return;
     const delay = visible === 0 ? CHAT_INTRO_FIRST_MS : CHAT_INTRO_STEP_MS;
     const id = window.setTimeout(() => setVisible((count) => count + 1), delay);
     return () => window.clearTimeout(id);
-  }, [visible, fastDemo]);
+  }, [visible, instant, copyReady]);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -744,96 +1008,188 @@ export function ChatIntroScene({
     return () => window.cancelAnimationFrame(frame);
   }, [visible]);
 
+  const notify = stage === 'notify';
+  const arrivedOnNotify = useRef(notify);
+  const [notifyMotion, setNotifyMotion] = useState(false);
+
+  useEffect(() => {
+    if (!notify || arrivedOnNotify.current) return;
+    setNotifyMotion(true);
+  }, [notify]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col px-4 pt-2">
       <div className="flex shrink-0 flex-col items-center text-center">
-        <DualAvatar />
-        <h1 className="font-sans text-title-large-subtle text-foreground-neutral-default mt-6">
-          {CHAT_INTRO_TITLE}
-        </h1>
-        <p className="text-body-large-default text-foreground-neutral-default mt-3 max-w-[300px]">
-          {CHAT_INTRO_HINT}
-        </p>
-      </div>
-      <div className="relative mx-auto mt-6 min-h-0 w-full max-w-[343px] flex-1 overflow-hidden">
-        <img
-          alt=""
-          src={assetSrc(phoneChrome)}
-          className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2"
-        />
-        <div ref={viewportRef} className="chat-intro-viewport absolute inset-0">
-          <div
-            ref={stackRef}
-            className="chat-intro-stack absolute inset-x-0 top-0 flex flex-col gap-4 pt-12 pb-10"
-            style={{ transform: `translateY(-${shift}px)` }}
+        <PairSlot pose="intro" size={80} />
+        <div
+          className={cn(
+            'mt-6 grid w-full max-w-[300px]',
+            !instant && 'chat-intro-enter',
+          )}
+        >
+          <h1
+            className={cn(
+              'text-title-large-subtle text-foreground-neutral-default col-start-1 row-start-1 font-sans',
+              notify &&
+                (notifyMotion
+                  ? 'care-pitch-out'
+                  : 'pointer-events-none opacity-0'),
+            )}
           >
-            <div className="mx-auto flex w-[284px] flex-col gap-4">
-              {CHAT_INTRO_BUBBLES.slice(0, Math.min(visible, 3)).map(
-                (bubble) => (
-                  <IntroBubble
-                    key={bubble.from}
-                    from={bubble.from}
-                    text={bubble.text}
-                  />
-                ),
-              )}
-              {visible >= 4 ? <SessionCardBubble /> : null}
+            {CHAT_INTRO_TITLE}
+          </h1>
+          <h1
+            className={cn(
+              'text-title-large-subtle text-foreground-neutral-default col-start-1 row-start-1 font-sans',
+              notify
+                ? notifyMotion
+                  ? 'care-pitch-in'
+                  : undefined
+                : 'pointer-events-none opacity-0',
+            )}
+          >
+            {NOTIFY_TITLE}
+          </h1>
+        </div>
+        <div
+          className={cn(
+            'mt-3 grid w-full max-w-[300px]',
+            !instant && 'chat-intro-enter chat-intro-enter-late',
+          )}
+        >
+          <p
+            className={cn(
+              'text-body-large-default text-foreground-neutral-default col-start-1 row-start-1',
+              notify &&
+                (notifyMotion
+                  ? 'care-pitch-out'
+                  : 'pointer-events-none opacity-0'),
+            )}
+          >
+            {CHAT_INTRO_HINT}
+          </p>
+          <p
+            className={cn(
+              'text-body-large-default text-foreground-neutral-default col-start-1 row-start-1',
+              notify
+                ? notifyMotion
+                  ? 'care-pitch-in'
+                  : undefined
+                : 'pointer-events-none opacity-0',
+            )}
+          >
+            {NOTIFY_BODY}
+          </p>
+        </div>
+      </div>
+      <div
+        className={cn(
+          'relative mx-auto mt-6 min-h-0 w-full max-w-[343px] flex-1',
+          !instant && 'chat-intro-enter',
+        )}
+      >
+        <div
+          className={cn(
+            'absolute inset-0 overflow-hidden',
+            notify &&
+              (notifyMotion
+                ? 'care-pitch-out'
+                : 'pointer-events-none opacity-0'),
+          )}
+        >
+          <div
+            ref={viewportRef}
+            className="chat-intro-viewport absolute inset-0"
+          >
+            <div
+              ref={stackRef}
+              className="chat-intro-stack absolute inset-x-0 top-0 flex flex-col gap-4 pt-12 pb-10"
+              style={{ transform: `translateY(-${shift}px)` }}
+            >
+              <div className="mx-auto flex w-[284px] flex-col gap-4">
+                {CHAT_INTRO_BUBBLES.slice(0, Math.min(visible, 3)).map(
+                  (bubble) => (
+                    <IntroBubble
+                      key={bubble.from}
+                      from={bubble.from}
+                      text={bubble.text}
+                    />
+                  ),
+                )}
+                {visible >= 4 ? <SessionCardBubble /> : null}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          className={cn(
+            'absolute inset-0',
+            notify
+              ? notifyMotion
+                ? 'care-pitch-in'
+                : undefined
+              : 'pointer-events-none opacity-0',
+          )}
+        >
+          <div className="relative mx-auto h-[220px] w-[220px]">
+            <div className="absolute inset-x-6 top-2 h-[200px] rounded-[28px] border border-[#d5dbe6] bg-white/40" />
+            <div className="absolute inset-x-10 top-8 flex justify-between">
+              <span className="size-10 rounded-xl bg-[#e7ebf2]" />
+              <span className="size-10 rounded-xl bg-[#e7ebf2]" />
+              <span className="size-10 rounded-xl bg-[#e7ebf2]" />
+            </div>
+            <div className="absolute inset-x-2 top-[108px] flex items-center gap-2 rounded-2xl bg-white px-2.5 py-2 shadow-[0_10px_24px_rgba(40,50,80,0.12)]">
+              <div className="size-9 shrink-0 overflow-hidden rounded-full">
+                <LaurenPortrait decorative />
+              </div>
+              <div className="min-w-0 text-left">
+                <p className="text-[13px] font-semibold text-[#1c2430]">{PT}</p>
+                <p className="truncate text-[12px] text-[#5c6570]">
+                  {NOTIFY_PREVIEW}
+                </p>
+              </div>
+              <span className="ml-auto text-[11px] text-[#8b93a0]">now</span>
             </div>
           </div>
         </div>
       </div>
-      <div className="mt-auto w-full shrink-0 pt-2 pb-2">
-        <PrimaryAction onClick={onContinue}>Continue</PrimaryAction>
-      </div>
-    </div>
-  );
-}
-
-export function NotifyScene({
-  onYes,
-  onSkip,
-}: {
-  onYes: () => void;
-  onSkip: () => void;
-}) {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
-      <div className="flex flex-col items-center text-center">
-        <DualAvatar />
-        <h1 className="font-sans text-title-large-subtle text-foreground-neutral-default mt-8">
-          {NOTIFY_TITLE}
-        </h1>
-        <p className="text-body-large-default text-foreground-neutral-default mt-3 max-w-[320px]">
-          {NOTIFY_BODY}
-        </p>
-      </div>
-      <div className="relative mx-auto mt-6 h-[220px] w-[220px]">
-        <div className="absolute inset-x-6 top-2 h-[200px] rounded-[28px] border border-[#d5dbe6] bg-white/40" />
-        <div className="absolute inset-x-10 top-8 flex justify-between">
-          <span className="size-10 rounded-xl bg-[#e7ebf2]" />
-          <span className="size-10 rounded-xl bg-[#e7ebf2]" />
-          <span className="size-10 rounded-xl bg-[#e7ebf2]" />
-        </div>
-        <div className="absolute inset-x-2 top-[108px] flex items-center gap-2 rounded-2xl bg-white px-2.5 py-2 shadow-[0_10px_24px_rgba(40,50,80,0.12)]">
-          <div className="size-9 shrink-0 overflow-hidden rounded-full">
-            <LaurenPortrait decorative />
-          </div>
-          <div className="min-w-0 text-left">
-            <p className="text-[13px] font-semibold text-[#1c2430]">{PT}</p>
-            <p className="truncate text-[12px] text-[#5c6570]">{NOTIFY_PREVIEW}</p>
-          </div>
-          <span className="ml-auto text-[11px] text-[#8b93a0]">now</span>
-        </div>
-      </div>
-      <div className="mt-auto flex w-full flex-col items-center gap-3 pt-4 pb-2">
-        <PrimaryAction onClick={onYes}>{NOTIFY_YES}</PrimaryAction>
-        <button
-          type="button"
-          onClick={onSkip}
-          className="text-body-large-strong text-foreground-neutral-default h-11 cursor-pointer"
+      <div
+        className={cn(
+          'mt-auto w-full shrink-0 pt-2 pb-2',
+          !instant && 'chat-intro-enter',
+        )}
+      >
+        <PrimaryAction onClick={notify ? () => onYes?.() : onContinue}>
+          {notify ? NOTIFY_YES : 'Continue'}
+        </PrimaryAction>
+        <div
+          className={cn(
+            'grid',
+            instant
+              ? undefined
+              : 'motion-safe:transition-[grid-template-rows] motion-safe:duration-[620ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]',
+            notify ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+          )}
         >
-          {NOTIFY_SKIP}
-        </button>
+          <div className="min-h-0 overflow-hidden">
+            <button
+              type="button"
+              onClick={onSkip}
+              tabIndex={notify ? undefined : -1}
+              aria-hidden={notify ? undefined : true}
+              className={cn(
+                'text-body-large-strong text-foreground-neutral-default mt-3 h-11 w-full cursor-pointer',
+                notify
+                  ? notifyMotion
+                    ? 'care-pitch-in'
+                    : undefined
+                  : 'pointer-events-none opacity-0',
+              )}
+            >
+              {NOTIFY_SKIP}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -850,7 +1206,10 @@ export function ChatTransitionScene({
   onDoneRef.current = onDone;
 
   useEffect(() => {
-    const id = window.setTimeout(() => onDoneRef.current(), fastDemo ? 400 : 1600);
+    const id = window.setTimeout(
+      () => onDoneRef.current(),
+      fastDemo ? 400 : 1600,
+    );
     return () => window.clearTimeout(id);
   }, [fastDemo]);
 
@@ -858,8 +1217,13 @@ export function ChatTransitionScene({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center">
-      <DualAvatar size={96} />
-      <h1 className="font-sans text-title-large-subtle text-foreground-neutral-default mt-8">
+      <PairSlot pose="handoff" size={96} />
+      <h1
+        className={cn(
+          'text-title-large-subtle text-foreground-neutral-default mt-8 font-sans',
+          !fastDemo && 'chat-intro-enter',
+        )}
+      >
         {lead}
         <br />
         {trail}

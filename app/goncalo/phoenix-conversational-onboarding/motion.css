@@ -129,21 +129,6 @@
   }
 }
 
-@keyframes phoenix-submit-rise {
-  0% {
-    opacity: 0;
-    transform: translateY(32px);
-  }
-  35% {
-    opacity: 1;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes chip-press {
   0% {
     transform: scale(1);
@@ -188,12 +173,7 @@
 }
 
 .phoenix-stack-window {
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 56px,
-    #000 100%
-  );
+  mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 100%);
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0,
@@ -316,10 +296,6 @@
   }
 }
 
-.phoenix-submit-reveal-cta-in {
-  animation: phoenix-submit-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
 .phoenix-summary-row {
   animation: rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -368,6 +344,49 @@
   animation: phoenix-cta-label-wipe 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.chat-intro-enter {
+  animation: chat-intro-enter 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.chat-intro-enter-late {
+  animation-delay: 180ms;
+}
+
+.care-pair-arrive {
+  animation: care-pair-arrive 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes care-pair-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.chat-intro-avatars {
+  animation: pt-meet-word 680ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes chat-intro-enter {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.chat-intro-instant .chat-intro-enter,
+.chat-intro-instant .chat-intro-avatars {
+  animation: none;
+}
+
 .chat-intro-viewport {
   mask-image: linear-gradient(
     to bottom,
@@ -387,6 +406,28 @@
 
 .chat-intro-stack {
   transition: transform 980ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.care-pitch-fade {
+  transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.care-pitch-in {
+  animation: pt-cycle-in 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.care-pitch-out {
+  animation: pt-cycle-out 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+}
+
+.chat-intro-instant .care-pitch-in,
+.chat-intro-instant .care-pitch-out {
+  animation: none;
+}
+
+.chat-intro-instant .care-pitch-out {
+  opacity: 0;
 }
 
 .chat-intro-bubble {
@@ -429,6 +470,7 @@
 
 .pt-orbit-avatar {
   --pt-ring: 0;
+  transform-origin: 0 0;
 }
 
 .pt-avatar-ring {
@@ -440,18 +482,7 @@
   width: min(280px, 100%);
   height: 104px;
   place-items: center;
-  -webkit-mask-image: linear-gradient(
-    transparent,
-    #000 18px,
-    #000 calc(100% - 18px),
-    transparent
-  );
-  mask-image: linear-gradient(
-    transparent,
-    #000 18px,
-    #000 calc(100% - 18px),
-    transparent
-  );
+  overflow: hidden;
 }
 
 .pt-cycle p {
@@ -460,11 +491,29 @@
 }
 
 .pt-cycle-in {
-  animation: pt-cycle-in 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pt-slot-in 200ms ease-in-out both;
 }
 
 .pt-cycle-out {
-  animation: pt-cycle-out 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pt-slot-out 200ms ease-in-out both;
+}
+
+@keyframes pt-slot-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pt-slot-out {
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
 }
 
 @keyframes pt-cycle-in {
@@ -553,21 +602,27 @@
 }
 
 .pt-ink {
-  fill: #5e5e5e;
-  stroke: none;
-  clip-path: inset(0 100% 0 0);
-  animation: pt-ink 340ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  fill: none;
+  stroke: #000;
+  opacity: 0.8;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation-name: pt-ink;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
 }
 
 .pt-ink-still {
   animation: none;
-  clip-path: none;
-  fill: #5e5e5e;
+  stroke-dashoffset: 0;
 }
 
 @keyframes pt-ink {
   to {
-    clip-path: inset(0 0 0 0);
+    stroke-dashoffset: 0;
   }
 }
 
@@ -583,8 +638,13 @@
   opacity: 1;
   filter: none;
   transform: none;
-  fill: #5e5e5e;
-  stroke: none;
+}
+
+.pt-reveal-instant .pt-ink {
+  fill: none;
+  stroke: #000;
+  opacity: 0.8;
+  stroke-dashoffset: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -597,18 +657,17 @@
     animation-duration: 1ms;
   }
 
-  .phoenix-tool-shell,
-  .phoenix-submit-reveal,
-  .phoenix-submit-reveal-cta,
-  .phoenix-submit-reveal-cta-in {
+  .phoenix-tool-shell {
     animation-duration: 1ms !important;
-    transition-duration: 1ms !important;
   }
 
   .phoenix-summary-row,
   .phoenix-offer-piece,
   .phoenix-card-mini-cta,
   .phoenix-rewind-selected,
+  .chat-intro-enter,
+  .care-pair-arrive,
+  .chat-intro-avatars,
   .chat-intro-bubble,
   .chat-intro-bubble-member,
   .chat-intro-bubble-care {
@@ -616,8 +675,20 @@
     animation-duration: 1ms !important;
   }
 
-  .chat-intro-stack {
+  .chat-intro-stack,
+  .care-pitch-fade {
     transition-duration: 1ms !important;
+  }
+
+  .care-pitch-in,
+  .care-pitch-out {
+    animation: none !important;
+    filter: none;
+    transform: none;
+  }
+
+  .care-pitch-out {
+    opacity: 0;
   }
 
   .pt-cycle-in,
@@ -635,8 +706,9 @@
   }
 
   .pt-ink {
-    fill: #5e5e5e;
-    stroke: none;
+    fill: none;
+    stroke: #5e5e5e;
+    stroke-dashoffset: 0;
     clip-path: none;
   }
 }

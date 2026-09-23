@@ -11,9 +11,9 @@ import {
 import { buildJumpState, type JumpDestinationId } from './checkpoint-jumps';
 import { AssessmentScene } from './assessment-scene';
 import {
+  CarePairFlight,
   ChatIntroScene,
   ChatTransitionScene,
-  NotifyScene,
   OsPermissionDialog,
   PtRevealScene,
 } from './care-team-scenes';
@@ -111,20 +111,16 @@ type Layout = 'seed' | 'hero' | 'raised' | 'avatar' | 'immersive';
 
 // Back button is pinned (`top-[52px]`, 42px). Raised screens drop the 108px
 // hero stage, so this keeps the headline 16px under that control after the
-// 48px status bar and the conversation's 12px top padding.
-// 52 + 42 + 16 - 48 - 12 = 50
-const RAISED_BACK_CLEARANCE = 'h-[50px]';
+// 48px status bar and the conversation's 20px top padding.
+// 52 + 42 + 16 - 48 - 20 = 42
+const RAISED_BACK_CLEARANCE = 'h-[42px]';
 
 function topStageClass(
   layout: Layout,
   step: PhoenixStep,
   reserveBackButton: boolean,
 ) {
-  if (
-    layout === 'immersive' ||
-    step.kind === 'reward-confirmation' ||
-    isCareTeamStep(step)
-  ) {
+  if (layout === 'immersive' || isCareTeamStep(step)) {
     return 'h-0';
   }
   if (layout === 'raised') {
@@ -338,6 +334,7 @@ export function Experience({
   const rewindLockRef = useRef(false);
   const fastDemoRef = useRef(fastDemo);
   fastDemoRef.current = fastDemo;
+  const stageRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<Phase>('entering');
   const [isHero, setIsHero] = useState(false);
   const [step, setStep] = useState<PhoenixStep>({ kind: 'guide', index: 0 });
@@ -898,11 +895,19 @@ export function Experience({
     SCHEDULE_DAYS.find(
       (day) => appointmentDayLabel(day) === answers.appointmentDay,
     ) ?? SCHEDULE_DAYS[0];
-  const hideFloatingOrb =
+  const carePose: 'intro' | 'handoff' | 'header' | null =
     phase === 'phoenix' &&
-    (isImmersiveStep(step) ||
-      isCareTeamStep(step) ||
-      step.kind === 'reward-confirmation');
+    (step.kind === 'chat-intro' || step.kind === 'notify')
+      ? 'intro'
+      : phase === 'phoenix' && step.kind === 'chat-transition'
+        ? 'handoff'
+        : (phase === 'exiting' || phase === 'chat') && sessionAfterReward
+          ? 'header'
+          : null;
+  const hideFloatingOrb =
+    (phase === 'phoenix' &&
+      (isImmersiveStep(step) || isCareTeamStep(step))) ||
+    carePose === 'header';
   const orbLayout: Layout = layout;
 
   const isAtFrontier =
@@ -1282,18 +1287,26 @@ export function Experience({
   }
 
   return (
-    <div className="relative h-full overflow-hidden bg-[#f2f2f2] select-none">
+    <div
+      ref={stageRef}
+      className="relative h-full overflow-hidden bg-[#f2f2f2] select-none"
+    >
       <WorldBackdrop />
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 bg-[#f4f7ff] transition-opacity duration-1000',
-          showChat && phase === 'chat' ? 'opacity-100' : 'opacity-0',
+          'pointer-events-none absolute inset-0 bg-[#f4f7ff] transition-opacity',
+          showChat
+            ? 'duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] opacity-100'
+            : 'opacity-0 duration-1000',
         )}
       />
 
       <div
         className={cn(
-          'absolute inset-0 flex flex-col transition-opacity duration-700',
+          'absolute inset-0 flex flex-col transition-opacity',
+          phase === 'exiting'
+            ? 'duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]'
+            : 'duration-700',
           phase === 'phoenix' ? 'opacity-100' : 'opacity-0',
           phase !== 'phoenix' && 'pointer-events-none',
         )}
@@ -1338,19 +1351,18 @@ export function Experience({
             onContinue={() => goToPanel({ kind: 'chat-intro', beat: 0 })}
           />
         ) : null}
-        {phase === 'phoenix' && step.kind === 'chat-intro' ? (
+        {phase === 'phoenix' &&
+        (step.kind === 'chat-intro' || step.kind === 'notify') ? (
           <ChatIntroScene
+            stage={step.kind === 'notify' ? 'notify' : 'intro'}
             fastDemo={fastDemo}
             onContinue={() => goToPanel({ kind: 'notify', dialog: false })}
-          />
-        ) : null}
-        {phase === 'phoenix' && step.kind === 'notify' ? (
-          <NotifyScene
             onYes={() => goToPanel({ kind: 'notify', dialog: true })}
             onSkip={finishNotify}
           />
         ) : null}
-        {phase === 'phoenix' && step.kind === 'chat-transition' ? (
+        {(phase === 'phoenix' || phase === 'exiting') &&
+        step.kind === 'chat-transition' ? (
           <ChatTransitionScene
             fastDemo={fastDemo}
             onDone={enterChatAfterReward}
@@ -1361,8 +1373,10 @@ export function Experience({
 
       <div
         className={cn(
-          'absolute inset-0 transition-opacity duration-700',
-          showChat && phase === 'chat' ? 'opacity-100' : 'opacity-0',
+          'absolute inset-0 transition-opacity',
+          showChat
+            ? 'duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] opacity-100'
+            : 'opacity-0 duration-700',
           phase !== 'chat' && 'pointer-events-none',
         )}
       >
@@ -1372,6 +1386,7 @@ export function Experience({
             answers={answers}
             history={turns}
             avatarSlot
+            sharedPair={sessionAfterReward}
             visibleCount={phase === 'chat' ? chatCount : 0}
             afterReward={sessionAfterReward}
           />
@@ -1407,6 +1422,12 @@ export function Experience({
         />
       ) : null}
 
+      <CarePairFlight
+        pose={carePose}
+        instant={fastDemo}
+        stageRef={stageRef}
+      />
+
       <div
         className={cn(
           'pointer-events-none absolute z-30 flex -translate-x-1/2 items-center justify-center',
@@ -1414,10 +1435,12 @@ export function Experience({
           orbLayout === 'seed' && 'top-[42%] left-1/2 size-[60px]',
           orbLayout === 'hero' && 'top-[64px] left-1/2 size-[80px]',
           orbLayout === 'raised' &&
-            'top-0 left-1/2 size-[112px] -translate-y-1/2',
+            'top-0 left-1/2 size-[120px] -translate-y-[80px]',
           (orbLayout === 'immersive' || hideFloatingOrb) &&
             'pointer-events-none invisible size-0 opacity-0',
-          orbLayout === 'avatar' && 'top-[62px] left-[60px] size-[32px]',
+          orbLayout === 'avatar' &&
+            !hideFloatingOrb &&
+            'top-[60px] left-[32px] size-[32px]',
         )}
       >
         <button
@@ -1435,9 +1458,9 @@ export function Experience({
             phoenixTapLabel && 'pointer-events-auto cursor-pointer',
             orbLayout === 'seed' && 'size-[60px]',
             orbLayout === 'hero' && 'size-[80px]',
-            orbLayout === 'raised' && 'size-[112px]',
+            orbLayout === 'raised' && 'size-[120px]',
             (orbLayout === 'immersive' || hideFloatingOrb) && 'size-0',
-            orbLayout === 'avatar' && 'size-[32px]',
+            orbLayout === 'avatar' && !hideFloatingOrb && 'size-[32px]',
           )}
         >
           <div className="relative h-full w-full">

@@ -4,7 +4,6 @@ import { cn } from '@/design/utils';
 import { ArrowDown, Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import assessmentMember from './assets/assessment-member.webp';
-import assessmentSkeleton from './assets/assessment-skeleton.svg';
 
 function assetSrc(asset: string | { src: string }) {
   return typeof asset === 'string' ? asset : asset.src;
@@ -91,7 +90,6 @@ export function AssessmentScene({
     onAdvance();
   }
 
-  const isReps = beat === 'exercise' && exercisePhase === 'reps';
   const showStepBack = beat === 'placement' && placementPhase === 'step-back';
   const showCard = beat === 'exercise' && exercisePhase === 'card';
 
@@ -130,25 +128,6 @@ export function AssessmentScene({
       ) : null}
 
       {showCard ? <ExerciseCard /> : null}
-
-      {isReps ? (
-        <>
-          <img
-            alt=""
-            aria-hidden
-            src={assetSrc(assessmentSkeleton)}
-            className="pointer-events-none absolute inset-x-6 top-[18%] h-[54%] object-contain"
-          />
-          <div className="absolute top-[42%] left-8 flex flex-col gap-0 text-[42px] leading-none font-semibold text-white/55">
-            <span>‹</span>
-            <span>‹</span>
-            <span>‹</span>
-          </div>
-          <p className="absolute inset-x-0 bottom-16 text-center font-sans text-[40px] leading-none font-medium text-white">
-            1<span className="text-white/50">/10</span>
-          </p>
-        </>
-      ) : null}
     </button>
   );
 }

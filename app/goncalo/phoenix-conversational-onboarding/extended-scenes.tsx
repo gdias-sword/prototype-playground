@@ -155,8 +155,6 @@ export function FooterActions({ children }: { children: ReactNode }) {
   );
 }
 
-const SUBMIT_REVEAL_EASE = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
-
 export function useRewindDraft<T>(
   saved: T | null | undefined,
   options?: { commitOnFirstSelect?: boolean },
@@ -207,34 +205,39 @@ export function SubmitReveal({
   children: string;
   className?: string;
 }) {
+  const [isPresented, setIsPresented] = useState(visible);
+  const [isLeaving, setIsLeaving] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setIsPresented(true);
+      setIsLeaving(false);
+      return;
+    }
+
+    if (!isPresented) return;
+
+    setIsLeaving(true);
+    const id = window.setTimeout(() => {
+      setIsPresented(false);
+      setIsLeaving(false);
+    }, PANEL_CONTENT_MS);
+    return () => window.clearTimeout(id);
+  }, [visible, isPresented]);
+
+  if (!isPresented) return null;
+
   return (
-    <div className={cn('w-full shrink-0', className)}>
-      <div className="relative">
-        <div
-          aria-hidden
-          className={cn(
-            'phoenix-submit-reveal grid transition-[grid-template-rows] duration-500',
-            SUBMIT_REVEAL_EASE,
-            visible ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
-          )}
-        >
-          <div className="min-h-0 overflow-hidden">
-            <div className="h-12" />
-          </div>
-        </div>
-        <div
-          inert={!visible || undefined}
-          className={cn(
-            'phoenix-submit-reveal-cta absolute inset-x-0 bottom-0',
-            visible
-              ? 'phoenix-submit-reveal-cta-in'
-              : 'pointer-events-none translate-y-8 opacity-0 transition-[transform,opacity] duration-300',
-            !visible && SUBMIT_REVEAL_EASE,
-          )}
-        >
-          <PrimaryAction onClick={onClick}>{children}</PrimaryAction>
-        </div>
-      </div>
+    <div
+      inert={isLeaving || undefined}
+      className={cn('phoenix-tool-shell w-full shrink-0', className)}
+      style={{
+        animation: isLeaving
+          ? `rise-out ${PANEL_CONTENT_MS}ms ${PANEL_EASE} both`
+          : `rise-in ${PANEL_CONTENT_MS}ms ${PANEL_EASE} both`,
+      }}
+    >
+      <PrimaryAction onClick={onClick}>{children}</PrimaryAction>
     </div>
   );
 }
@@ -428,7 +431,6 @@ export function KitTeaserPanel({ onContinue }: { onContinue: () => void }) {
       <div className="relative mt-8 min-h-0 w-full flex-1 overflow-hidden">
         <video
           ref={videoRef}
-          loop
           muted
           playsInline
           preload="auto"
@@ -469,7 +471,7 @@ export function OfferPanel({
         <OfferPiece
           index={0}
           ready={headlineReady}
-          className="relative h-80 overflow-hidden rounded-t-2xl"
+          className="relative aspect-[3/2] overflow-hidden rounded-t-2xl"
         >
           <img
             alt=""
@@ -493,7 +495,7 @@ export function OfferPanel({
               8:00
             </span>
           </div>
-          <p className="text-title-large-subtle absolute inset-x-5 bottom-4 font-sans text-white">
+          <p className="text-title-medium-strong absolute inset-x-5 bottom-4 font-sans text-white">
             {checkupTitle(area)}
           </p>
         </OfferPiece>
@@ -555,7 +557,7 @@ export function SafetyPanel({
       className="flex min-h-0 flex-1 flex-col"
       inert={!headlineReady || undefined}
     >
-      <OfferPiece index={0} ready={headlineReady} className="mt-4">
+      <OfferPiece index={0} ready={headlineReady}>
         <p className="text-body-large-default text-foreground-neutral-default">
           {safetyHint()}
         </p>
@@ -563,7 +565,7 @@ export function SafetyPanel({
       <OfferPiece
         index={1}
         ready={headlineReady}
-        className="mt-8 flex min-h-0 flex-1 flex-col pb-4"
+        className="mt-4 flex min-h-0 flex-1 flex-col pb-4"
       >
         <div
           ref={scrollerRef}
