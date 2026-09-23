@@ -6,6 +6,7 @@ import {
   PhoenixLineText,
   PhoenixTools,
   STACK_COMPACT_MS,
+  REGION_STACK_WINDOW_PX,
   STACK_WINDOW_MAX_PX,
   shouldCompactStack,
   toolShellFills,
@@ -21,8 +22,12 @@ const LINE_TRANSITION = `color ${STACK_COMPACT_MS}ms ${STACK_EASE}, opacity ${ST
 
 function useConversationStack(props: ConversationProps) {
   const visibleTurns = useMemo(() => windowedTurns(props.turns), [props.turns]);
-  const { listRef, frameRef, isFilled, promptHeight } =
-    useStackWindow(visibleTurns);
+  const windowMax =
+    props.step.kind === 'region' ? REGION_STACK_WINDOW_PX : STACK_WINDOW_MAX_PX;
+  const { listRef, frameRef, isFilled, promptHeight } = useStackWindow(
+    visibleTurns,
+    windowMax,
+  );
 
   return {
     visibleTurns,
@@ -30,6 +35,7 @@ function useConversationStack(props: ConversationProps) {
     frameRef,
     isFilled,
     promptHeight,
+    windowMax,
     currentId: visibleTurns.at(-1)?.id,
     isCompact:
       props.toolReady &&
@@ -162,12 +168,12 @@ export function ConversationShell(props: ConversationProps) {
     frameRef,
     isFilled,
     promptHeight,
+    windowMax,
     currentId,
     isCompact,
   } = useConversationStack(props);
 
-  const maxHeight =
-    isCompact && promptHeight > 0 ? promptHeight : STACK_WINDOW_MAX_PX;
+  const maxHeight = isCompact && promptHeight > 0 ? promptHeight : windowMax;
 
   return (
     <div

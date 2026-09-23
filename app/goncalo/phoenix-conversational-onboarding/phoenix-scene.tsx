@@ -322,29 +322,33 @@ function RegionTool({
     );
   }
 
+  const photoGrid = (
+    <div className="grid shrink-0 grid-cols-2 gap-2 [&>*]:h-[120px]">
+      {options.map((option) => (
+        <PhotoTile
+          key={option}
+          label={option}
+          image={REGION_PHOTOS[option]}
+          checkbox
+          selected={selected.includes(option)}
+          onClick={() => toggle(option)}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div
-        ref={scrollerRef}
-        className="phoenix-chip-scroller -mx-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-5"
-        data-fade-top={fadeTop || undefined}
-        data-fade-bottom={fadeBottom || undefined}
-        onScroll={onScroll}
-      >
-        {usePhotos ? (
-          <div className="grid grid-cols-2 gap-2 [&>*]:h-[120px]">
-            {options.map((option) => (
-              <PhotoTile
-                key={option}
-                label={option}
-                image={REGION_PHOTOS[option]}
-                checkbox
-                selected={selected.includes(option)}
-                onClick={() => toggle(option)}
-              />
-            ))}
-          </div>
-        ) : (
+      {usePhotos ? (
+        photoGrid
+      ) : (
+        <div
+          ref={scrollerRef}
+          className="phoenix-chip-scroller -mx-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-5"
+          data-fade-top={fadeTop || undefined}
+          data-fade-bottom={fadeBottom || undefined}
+          onScroll={onScroll}
+        >
           <div className="flex flex-col gap-3">
             {options.map((option) => (
               <GlassCheckRow
@@ -356,9 +360,9 @@ function RegionTool({
               </GlassCheckRow>
             ))}
           </div>
-        )}
-      </div>
-      <div className="relative z-10 shrink-0">
+        </div>
+      )}
+      <div className="relative z-10 mt-auto shrink-0">
         <FooterActions>
           <PrimaryAction
             disabled={selected.length === 0}
@@ -782,6 +786,8 @@ export function useDelayedTool(readyWhen: boolean, delay = 700) {
 }
 
 export const STACK_WINDOW_MAX_PX = 240;
+// Sub-area questions use a shorter history window so the photo tiles fit.
+export const REGION_STACK_WINDOW_PX = 200;
 const STACK_WINDOW_QUESTIONS = 4;
 export const STACK_COMPACT_MS = 800;
 export const STREAM_CHAR_DELAY_MS = 40;
@@ -861,7 +867,10 @@ export function stackOpacity(fromEnd: number) {
   return fromEnd === 0 ? 1 : 0.2;
 }
 
-export function useStackWindow(visibleTurns: StackTurn[]) {
+export function useStackWindow(
+  visibleTurns: StackTurn[],
+  windowMax = STACK_WINDOW_MAX_PX,
+) {
   const listRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const [isFilled, setIsFilled] = useState(false);
@@ -874,7 +883,7 @@ export function useStackWindow(visibleTurns: StackTurn[]) {
     const measuredFrame = frameRef.current;
 
     function measure() {
-      const nextIsFilled = measuredList.scrollHeight > STACK_WINDOW_MAX_PX + 2;
+      const nextIsFilled = measuredList.scrollHeight > windowMax + 2;
       setIsFilled((current) =>
         current === nextIsFilled ? current : nextIsFilled,
       );
@@ -893,7 +902,7 @@ export function useStackWindow(visibleTurns: StackTurn[]) {
     const prompt = measuredList.lastElementChild;
     if (prompt) observer.observe(prompt);
     return () => observer.disconnect();
-  }, [visibleTurns]);
+  }, [visibleTurns, windowMax]);
 
   return { listRef, frameRef, isFilled, promptHeight };
 }
