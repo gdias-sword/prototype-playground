@@ -59,6 +59,7 @@ const WELCOME_KIT_REVEAL_SRC = new URL(
 
 const PANEL_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const PANEL_CONTENT_MS = 800;
+const CAMERA_CONTINUE_FALLBACK_MS = 10_000;
 
 // welcome-kit-box.png is 1566×2052 with the open lid above the tray.
 // This window keeps the bands and the tray rim, so the lid stays clipped.
@@ -94,27 +95,58 @@ export function PrimaryAction({
   children,
   disabled,
   onClick,
+  autoSubmitMs,
 }: {
   children: string;
   disabled?: boolean;
   onClick: () => void;
+  autoSubmitMs?: number;
 }) {
   const prevLabelRef = useRef<string | null>(null);
+  const onClickRef = useRef(onClick);
+  const submittedRef = useRef(false);
   const shouldAnimate =
     prevLabelRef.current !== null && prevLabelRef.current !== children;
+
+  onClickRef.current = onClick;
 
   useEffect(() => {
     prevLabelRef.current = children;
   }, [children]);
 
+  useEffect(() => {
+    if (!autoSubmitMs || disabled) return;
+
+    const id = window.setTimeout(() => {
+      if (submittedRef.current) return;
+      submittedRef.current = true;
+      onClickRef.current();
+    }, autoSubmitMs);
+
+    return () => window.clearTimeout(id);
+  }, [autoSubmitMs, disabled]);
+
+  function handleClick() {
+    if (submittedRef.current || disabled) return;
+    submittedRef.current = true;
+    onClick();
+  }
+
   return (
     <button
       type="button"
       disabled={disabled}
-      onClick={onClick}
-      className="text-body-large-strong bg-background-neutral-inverse text-foreground-neutral-inverse flex h-12 w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl disabled:cursor-not-allowed disabled:opacity-40"
+      onClick={handleClick}
+      className="text-body-large-strong bg-background-neutral-inverse text-foreground-neutral-inverse relative flex h-12 w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl disabled:cursor-not-allowed disabled:opacity-40"
     >
-      <span className="grid overflow-hidden">
+      {autoSubmitMs ? (
+        <span
+          aria-hidden
+          className="phoenix-cta-autosubmit-fill pointer-events-none absolute inset-0 origin-left bg-white/20"
+          style={{ animationDuration: `${autoSubmitMs}ms` }}
+        />
+      ) : null}
+      <span className="relative z-10 grid overflow-hidden">
         <span
           key={children}
           className={cn(
@@ -244,6 +276,7 @@ export function SubmitReveal({
 
 export function CameraPanel({ onEnable }: { onEnable: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [continueMs, setContinueMs] = useState<number | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -251,16 +284,28 @@ export function CameraPanel({ onEnable }: { onEnable: () => void }) {
 
     const playFromStart = () => {
       video.currentTime = 0;
+      const durationMs = Number.isFinite(video.duration)
+        ? Math.round(video.duration * 1000)
+        : CAMERA_CONTINUE_FALLBACK_MS;
+      setContinueMs((current) => current ?? durationMs);
       void video.play();
     };
 
     if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
       playFromStart();
-      return;
+    } else {
+      video.addEventListener('loadeddata', playFromStart, { once: true });
     }
 
-    video.addEventListener('loadeddata', playFromStart, { once: true });
-    return () => video.removeEventListener('loadeddata', playFromStart);
+    const handleError = () => {
+      setContinueMs((current) => current ?? CAMERA_CONTINUE_FALLBACK_MS);
+    };
+    video.addEventListener('error', handleError, { once: true });
+
+    return () => {
+      video.removeEventListener('loadeddata', playFromStart);
+      video.removeEventListener('error', handleError);
+    };
   }, []);
 
   return (
@@ -272,7 +317,6 @@ export function CameraPanel({ onEnable }: { onEnable: () => void }) {
       >
         <video
           ref={videoRef}
-          loop
           muted
           playsInline
           preload="auto"
@@ -298,7 +342,10 @@ export function CameraPanel({ onEnable }: { onEnable: () => void }) {
           </div>
         </OfferPiece>
         <OfferPiece index={1} ready className="w-full">
-          <PrimaryAction onClick={onEnable}>
+          <PrimaryAction
+            onClick={onEnable}
+            autoSubmitMs={continueMs ?? undefined}
+          >
             {ENABLE_CAMERA_LABEL}
           </PrimaryAction>
         </OfferPiece>

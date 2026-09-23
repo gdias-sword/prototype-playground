@@ -344,6 +344,22 @@
   animation: phoenix-cta-label-wipe 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes phoenix-cta-autosubmit-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.phoenix-cta-autosubmit-fill {
+  transform: scaleX(0);
+  animation-name: phoenix-cta-autosubmit-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
 .chat-intro-enter {
   animation: chat-intro-enter 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
