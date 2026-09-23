@@ -12,6 +12,8 @@ import {
   doorLabel,
   durationCareLine,
   durationQuestion,
+  flagsAdaptLine,
+  cameraLine,
   flagsCareLine,
   GUIDE_LINES,
   impactAnswer,
@@ -336,6 +338,7 @@ function buildClearedKitTurns(nextTurnId: () => string) {
   builder
     .member(SAFETY_NONE_LABEL)
     .phoenix(sessionIntroLine(currentArea(demoActivityAnswers())))
+    .phoenix(cameraLine())
     .phoenix(kitTeaserLine());
   return builder.snapshot();
 }
@@ -366,7 +369,9 @@ function buildFlagKitTurns(nextTurnId: () => string) {
   builder
     .member(SAFETY_FLAGS[0])
     .phoenix(flagsCareLine(), 'care')
+    .phoenix(flagsAdaptLine(), 'care')
     .phoenix(sessionIntroLine(currentArea(demoActivityAnswers())))
+    .phoenix(cameraLine())
     .phoenix(kitTeaserLine());
   return builder.snapshot();
 }
@@ -648,6 +653,17 @@ export function buildJumpState(
     checkpoints.push(
       makeCheckpoint(
         'phoenix',
+        { kind: 'camera' },
+        flagAnswers,
+        flagTurns.slice(0, -1),
+        'listen',
+        null,
+        0,
+      ),
+    );
+    checkpoints.push(
+      makeCheckpoint(
+        'phoenix',
         flagKitStep,
         flagAnswers,
         flagTurns,
@@ -674,6 +690,17 @@ export function buildJumpState(
   }
 
   const teaserTurns = buildClearedKitTurns(nextTurnId);
+  checkpoints.push(
+    makeCheckpoint(
+      'phoenix',
+      { kind: 'camera' },
+      activityAnswers,
+      teaserTurns.slice(0, -1),
+      'listen',
+      null,
+      0,
+    ),
+  );
   checkpoints.push(
     makeCheckpoint(
       'phoenix',

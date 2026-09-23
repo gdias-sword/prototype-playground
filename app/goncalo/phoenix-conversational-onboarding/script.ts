@@ -385,6 +385,10 @@ export function flagsCareLine() {
   return 'Thanks for letting us know.';
 }
 
+export function flagsAdaptLine() {
+  return 'Your program will be adapted to make sure you can perform it safely.';
+}
+
 export function scheduleLine() {
   return 'Let’s schedule your call';
 }

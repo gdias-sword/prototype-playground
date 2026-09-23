@@ -80,6 +80,7 @@ import {
   durationCareLine,
   durationQuestion,
   doorLabel,
+  flagsAdaptLine,
   flagsCareLine,
   areaQuestion,
   conditionWrapLine,
@@ -330,6 +331,7 @@ export function Experience({
   const stepRef = useRef<PhoenixStep>({ kind: 'guide', index: 0 });
   const turnsRef = useRef<StackTurn[]>([]);
   const pendingRevealRef = useRef<(() => void) | null>(null);
+  const revealGenerationRef = useRef(0);
   const rewindLockRef = useRef(false);
   const fastDemoRef = useRef(fastDemo);
   fastDemoRef.current = fastDemo;
@@ -395,6 +397,7 @@ export function Experience({
     const reveal = pendingRevealRef.current;
     if (!reveal) return;
     pendingRevealRef.current = null;
+    revealGenerationRef.current += 1;
     reveal();
   }
 
@@ -403,14 +406,16 @@ export function Experience({
     reveal: () => void,
     leadMs = CARE_LEAD_MS,
   ) {
+    const generation = (revealGenerationRef.current += 1);
     pendingRevealRef.current = reveal;
     later(() => {
+      if (revealGenerationRef.current !== generation) return;
       pushTurns({ role: 'phoenix', text: care, kind: 'care' });
       setMood('speak');
-      later(
-        revealPending,
-        delay(streamDurationMs(care) + CARE_HOLD_MS + STREAM_FALLBACK_MS),
-      );
+      later(() => {
+        if (revealGenerationRef.current !== generation) return;
+        revealPending();
+      }, delay(streamDurationMs(care) + CARE_HOLD_MS + STREAM_FALLBACK_MS));
     }, delay(leadMs));
   }
 
@@ -699,7 +704,7 @@ export function Experience({
       return;
     }
     const id = window.setTimeout(() => {
-      goToQuestion({ kind: 'kit-teaser' }, kitTeaserLine());
+      goToQuestion({ kind: 'camera' }, cameraLine());
     }, delay(1600));
     return () => window.clearTimeout(id);
   }, [phase, step, mood, fastDemo]);
@@ -1047,7 +1052,7 @@ export function Experience({
     },
     onSessionAdvance: () => {
       if (step.kind === 'session' && mood === 'listen') {
-        goToQuestion({ kind: 'kit-teaser' }, kitTeaserLine());
+        goToQuestion({ kind: 'camera' }, cameraLine());
         return;
       }
       if (step.kind === 'placement-intro' && mood === 'listen') {
@@ -1171,7 +1176,9 @@ export function Experience({
           />
         ) : null}
         {step.kind === 'camera' ? (
-          <CameraPanel onEnable={() => setCameraPrompt(true)} />
+          <CameraPanel
+            onEnable={() => goToQuestion({ kind: 'kit-teaser' }, kitTeaserLine())}
+          />
         ) : null}
         {step.kind === 'offer' ? (
           <OfferPanel
@@ -1227,7 +1234,9 @@ export function Experience({
               }
 
               if (flags.length > 0) {
-                speakCareThen(flagsCareLine(), advanceToSession);
+                speakCareThen(flagsCareLine(), () => {
+                  speakCareThen(flagsAdaptLine(), advanceToSession);
+                });
                 return;
               }
               advanceToSession();
