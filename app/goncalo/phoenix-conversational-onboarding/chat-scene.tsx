@@ -98,6 +98,7 @@ export function ChatScene({
   door,
   answers,
   history,
+  avatarSlot = false,
   visibleCount,
   afterReward = false,
   sharedPair = false,
