@@ -2,11 +2,33 @@
 
 import { SwordLogo } from '@/design/assets/logos/sword';
 import { cn } from '@/design/utils';
-import { Accessibility, Calendar, ChevronDown, ChevronLeft, Globe, Menu } from 'lucide-react';
+import { Select } from '@base-ui/react/select';
+import {
+  Accessibility,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  Globe,
+  Menu,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 type DayId = 'today' | 'tomorrow' | 'pick';
 type Period = 'best' | 'morning' | 'afternoon' | 'evening';
+type LanguageId = 'en' | 'es' | 'pt';
+
+const LANGUAGES: { id: LanguageId; label: string }[] = [
+  { id: 'en', label: 'English' },
+  { id: 'es', label: 'Spanish' },
+  { id: 'pt', label: 'Portuguese' },
+];
+
+const LANGUAGE_ITEMS: Record<LanguageId, string> = {
+  en: 'English',
+  es: 'Spanish',
+  pt: 'Portuguese',
+};
 
 const PERIODS: { id: Period; label: string }[] = [
   { id: 'best', label: 'Best times' },
@@ -16,14 +38,32 @@ const PERIODS: { id: Period; label: string }[] = [
 ];
 
 const TODAY: Record<Period, string[]> = {
-  best: ['10:45 AM', '11:15 AM', '12:30 PM', '1:00 PM', '2:45 PM', '3:45 PM', '4:15 PM', '4:30 PM'],
+  best: [
+    '10:45 AM',
+    '11:15 AM',
+    '12:30 PM',
+    '1:00 PM',
+    '2:45 PM',
+    '3:45 PM',
+    '4:15 PM',
+    '4:30 PM',
+  ],
   morning: ['8:45 AM', '9:30 AM', '10:30 AM', '11:30 AM'],
   afternoon: ['1:15 PM', '1:45 PM', '2:15 PM'],
   evening: ['5:15 PM', '6:00 PM', '6:45 PM'],
 };
 
 const LATER: Record<Period, string[]> = {
-  best: ['9:15 AM', '10:00 AM', '11:30 AM', '1:15 PM', '2:00 PM', '3:30 PM', '5:00 PM', '6:15 PM'],
+  best: [
+    '9:15 AM',
+    '10:00 AM',
+    '11:30 AM',
+    '1:15 PM',
+    '2:00 PM',
+    '3:30 PM',
+    '5:00 PM',
+    '6:15 PM',
+  ],
   morning: ['8:30 AM', '9:00 AM', '10:15 AM', '11:45 AM'],
   afternoon: ['12:45 PM', '2:30 PM', '4:00 PM'],
   evening: ['5:30 PM', '6:30 PM', '7:15 PM'],
@@ -41,6 +81,20 @@ const SPANISH_LATER: Record<Period, string[]> = {
   morning: ['8:45 AM', '10:00 AM', '11:30 AM'],
   afternoon: ['1:30 PM', '3:15 PM'],
   evening: ['5:15 PM', '6:45 PM', '7:30 PM'],
+};
+
+const PORTUGUESE_TODAY: Record<Period, string[]> = {
+  best: ['10:15 AM', '12:00 PM', '2:00 PM', '3:30 PM', '5:00 PM'],
+  morning: ['9:00 AM', '10:30 AM', '11:15 AM'],
+  afternoon: ['1:30 PM', '2:45 PM', '4:00 PM'],
+  evening: ['5:30 PM', '6:15 PM'],
+};
+
+const PORTUGUESE_LATER: Record<Period, string[]> = {
+  best: ['9:30 AM', '11:00 AM', '1:45 PM', '3:15 PM', '4:45 PM', '6:30 PM'],
+  morning: ['8:15 AM', '9:45 AM', '11:15 AM'],
+  afternoon: ['12:30 PM', '2:15 PM', '3:45 PM'],
+  evening: ['5:45 PM', '7:00 PM'],
 };
 
 function startOfDay(date: Date) {
@@ -89,14 +143,90 @@ function PeriodSkeleton() {
   return (
     <div className="flex flex-wrap gap-6" aria-hidden>
       {['w-20', 'w-16', 'w-[72px]', 'w-14'].map((width) => (
-        <div key={width} className={cn('h-5 animate-pulse rounded-full bg-[#f2f2f2]', width)} />
+        <div
+          key={width}
+          className={cn('h-5 animate-pulse rounded-full bg-[#f2f2f2]', width)}
+        />
       ))}
     </div>
   );
 }
 
 function TimeSkeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cn('h-[62px] animate-pulse rounded-2xl bg-[#f2f2f2]', className)} />;
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        'h-[62px] animate-pulse rounded-2xl bg-[#f2f2f2]',
+        className,
+      )}
+    />
+  );
+}
+
+function CallLanguage({
+  value,
+  onChange,
+  className,
+  align = 'start',
+}: {
+  value: LanguageId;
+  onChange: (next: LanguageId) => void;
+  className?: string;
+  align?: 'start' | 'center';
+}) {
+  return (
+    <p className={cn('text-[14px] leading-5 text-[#1f222c]', className)}>
+      This call will be in{' '}
+      <Select.Root
+        value={value}
+        items={LANGUAGE_ITEMS}
+        modal={false}
+        onValueChange={(next) => {
+          if (next === 'en' || next === 'es' || next === 'pt') onChange(next);
+        }}
+      >
+        <Select.Trigger
+          aria-label="Call language"
+          className="inline-flex cursor-pointer items-baseline gap-0.5 rounded-md px-1 font-medium text-[#1f222c] hover:bg-[#f2f2f2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414] data-popup-open:bg-[#f2f2f2]"
+        >
+          <Select.Value />
+          <Select.Icon className="self-center">
+            <ChevronDown
+              className="size-3.5 text-[#5e5e5e]"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+          </Select.Icon>
+        </Select.Trigger>
+        <Select.Portal>
+          <Select.Positioner
+            side="top"
+            align={align}
+            sideOffset={8}
+            alignItemWithTrigger={false}
+          >
+            <Select.Popup className="z-50 min-w-40 overflow-hidden rounded-xl border border-[#e8e8e8] bg-white p-1 shadow-[0_12px_40px_rgba(20,20,40,0.12)]">
+              {LANGUAGES.map((language) => (
+                <Select.Item
+                  key={language.id}
+                  value={language.id}
+                  className="group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-[14px] leading-5 text-[#0d0d0d] outline-none data-highlighted:bg-[#f2f2f2] data-selected:font-medium"
+                >
+                  <Select.ItemText>{language.label}</Select.ItemText>
+                  <Check
+                    className="ml-auto size-4 text-[#4a89e8] opacity-0 group-data-selected:opacity-100"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                </Select.Item>
+              ))}
+            </Select.Popup>
+          </Select.Positioner>
+        </Select.Portal>
+      </Select.Root>
+    </p>
+  );
 }
 
 function TimeChip({
@@ -120,7 +250,9 @@ function TimeChip({
       className={cn(
         'flex h-[62px] cursor-pointer items-center justify-center rounded-2xl border bg-white px-4 text-[14px] leading-5 text-[#0d0d0d] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]',
         now ? 'gap-3 font-semibold' : 'font-medium',
-        selected ? 'border-2 border-[#4a89e8]' : 'border-[#c2c2c2] hover:border-[#8d8d8d]',
+        selected
+          ? 'border-2 border-[#4a89e8]'
+          : 'border-[#c2c2c2] hover:border-[#8d8d8d]',
         className,
       )}
     >
@@ -141,7 +273,7 @@ export function Scheduler() {
   const [pickOpen, setPickOpen] = useState(false);
   const [period, setPeriod] = useState<Period>('best');
   const [selection, setSelection] = useState<string | null>(null);
-  const [spanish, setSpanish] = useState(false);
+  const [language, setLanguage] = useState<LanguageId>('en');
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [committed, setCommitted] = useState(false);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -152,10 +284,13 @@ export function Scheduler() {
     };
   }, []);
 
-  const englishSchedule = day === 'today' ? TODAY : LATER;
-  const spanishSchedule = day === 'today' ? SPANISH_TODAY : SPANISH_LATER;
-  const schedule = spanish ? spanishSchedule : englishSchedule;
-  const showNow = day === 'today' && !spanish;
+  const schedules: Record<LanguageId, Record<Period, string[]>> = {
+    en: day === 'today' ? TODAY : LATER,
+    es: day === 'today' ? SPANISH_TODAY : SPANISH_LATER,
+    pt: day === 'today' ? PORTUGUESE_TODAY : PORTUGUESE_LATER,
+  };
+  const schedule = schedules[language];
+  const showNow = day === 'today' && language === 'en';
 
   function chooseDay(next: DayId) {
     setDay(next);
@@ -172,8 +307,9 @@ export function Scheduler() {
     setPickOpen(false);
   }
 
-  function switchLanguage() {
-    setSpanish((value) => !value);
+  function chooseLanguage(next: LanguageId) {
+    if (next === language) return;
+    setLanguage(next);
     setSelection(null);
     setSlotsLoading(true);
     if (refreshTimer.current) clearTimeout(refreshTimer.current);
@@ -240,8 +376,12 @@ export function Scheduler() {
       <main className="mx-auto flex w-full flex-1 flex-col px-6 pt-6 pb-40 md:max-w-[560px] md:px-0 md:pt-8 md:pb-28">
         {committed && selection ? (
           <div className="pt-16 text-center">
-            <h1 className="font-serif text-[26px] leading-8 font-normal">You&apos;re booked.</h1>
-            <p className="mt-4 text-[16px] leading-[22px] text-[#1f222c]">{summary}</p>
+            <h1 className="font-serif text-[26px] leading-8 font-normal">
+              You&apos;re booked.
+            </h1>
+            <p className="mt-4 text-[16px] leading-[22px] text-[#1f222c]">
+              {summary}
+            </p>
             <button
               type="button"
               onClick={() => setCommitted(false)}
@@ -254,10 +394,12 @@ export function Scheduler() {
           <>
             <div className="flex flex-col gap-4">
               <h1 className="font-serif text-[26px] leading-8 font-normal text-[#0d0d0d]">
-                Pick a slot that works for you, or meet with your specialist now.
+                Pick a slot that works for you, or meet with your specialist
+                now.
               </h1>
               <p className="text-[16px] leading-[22px] text-[#1f222c]">
-                Your specialist will listen to your goals and build a plan together with you.
+                Your specialist will listen to your goals and build a plan
+                together with you.
               </p>
             </div>
 
@@ -272,10 +414,18 @@ export function Scheduler() {
                     onClick={() => chooseDay(option.id)}
                     className={cn(
                       'inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-[16px] leading-[22px] font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]',
-                      selected ? 'bg-[#0d0d0d] text-white' : 'bg-[#f2f2f2] text-[#0d0d0d] hover:bg-[#e8e8e8]',
+                      selected
+                        ? 'bg-[#0d0d0d] text-white'
+                        : 'bg-[#f2f2f2] text-[#0d0d0d] hover:bg-[#e8e8e8]',
                     )}
                   >
-                    {option.icon ? <Calendar className="size-5" strokeWidth={1.75} aria-hidden /> : null}
+                    {option.icon ? (
+                      <Calendar
+                        className="size-5"
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                    ) : null}
                     {option.label}
                   </button>
                 );
@@ -286,7 +436,8 @@ export function Scheduler() {
                     Choose a date
                   </p>
                   {PICK_DATES.map((date) => {
-                    const selected = picked?.toDateString() === date.toDateString();
+                    const selected =
+                      picked?.toDateString() === date.toDateString();
                     return (
                       <button
                         key={date.toISOString()}
@@ -294,7 +445,9 @@ export function Scheduler() {
                         onClick={() => chooseDate(date)}
                         className={cn(
                           'flex h-10 w-full cursor-pointer items-center rounded-xl px-2 text-left text-[14px] leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]',
-                          selected ? 'bg-[#0d0d0d] text-white' : 'hover:bg-[#f2f2f2]',
+                          selected
+                            ? 'bg-[#0d0d0d] text-white'
+                            : 'hover:bg-[#f2f2f2]',
                         )}
                       >
                         {formatPickOption(date)}
@@ -309,7 +462,11 @@ export function Scheduler() {
               {slotsLoading ? (
                 <PeriodSkeleton />
               ) : (
-                <div className="flex flex-wrap gap-6" role="group" aria-label="Time of day">
+                <div
+                  className="flex flex-wrap gap-6"
+                  role="group"
+                  aria-label="Time of day"
+                >
                   {PERIODS.map((item) => {
                     const selected = period === item.id;
                     return (
@@ -320,7 +477,9 @@ export function Scheduler() {
                         onClick={() => setPeriod(item.id)}
                         className={cn(
                           'cursor-pointer text-[14px] leading-5 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]',
-                          selected ? 'text-[#4a89e8]' : 'text-[#0d0d0d] hover:text-[#4a89e8]',
+                          selected
+                            ? 'text-[#4a89e8]'
+                            : 'text-[#0d0d0d] hover:text-[#4a89e8]',
                         )}
                       >
                         {item.label}
@@ -329,9 +488,14 @@ export function Scheduler() {
                   })}
                 </div>
               )}
-              <div className="mt-6 grid grid-cols-3 gap-4" aria-busy={slotsLoading}>
+              <div
+                className="mt-6 grid grid-cols-3 gap-4"
+                aria-busy={slotsLoading}
+              >
                 {slotsLoading ? (
-                  Array.from({ length: 9 }, (_, index) => <TimeSkeleton key={index} />)
+                  Array.from({ length: 9 }, (_, index) => (
+                    <TimeSkeleton key={index} />
+                  ))
                 ) : (
                   <>
                     {showNow && period === 'best' ? (
@@ -355,20 +519,11 @@ export function Scheduler() {
               </div>
               <p className="sr-only" aria-live="polite">
                 {slotsLoading
-                  ? `Loading times for a ${spanish ? 'Spanish' : 'English'} specialist.`
+                  ? `Loading times for a ${LANGUAGE_ITEMS[language]} specialist.`
                   : ''}
               </p>
               <div className="mt-6 flex items-center justify-between gap-4">
-                <p className="text-[14px] leading-5 text-[#1f222c]">
-                  {spanish ? 'This call will be in Spanish. ' : 'This call will be in English. '}
-                  <button
-                    type="button"
-                    onClick={switchLanguage}
-                    className="cursor-pointer font-semibold text-[#4a89e8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
-                  >
-                    {spanish ? 'Prefer English?' : 'Prefer Spanish?'}
-                  </button>
-                </p>
+                <CallLanguage value={language} onChange={chooseLanguage} />
                 <p className="inline-flex shrink-0 items-center gap-1.5 text-[12px] leading-[18px] text-[#5e5e5e]">
                   <Globe className="size-3.5" strokeWidth={1.5} aria-hidden />
                   Eastern Standard Time (EST)
@@ -376,13 +531,20 @@ export function Scheduler() {
               </div>
             </div>
 
-            <div className="mt-8 flex flex-col gap-6 md:hidden" aria-busy={slotsLoading}>
+            <div
+              className="mt-8 flex flex-col gap-6 md:hidden"
+              aria-busy={slotsLoading}
+            >
               {slotsLoading
                 ? PERIODS.map((item) => (
-                    <section key={item.id} className="flex flex-col gap-4" aria-hidden>
+                    <section
+                      key={item.id}
+                      className="flex flex-col gap-4"
+                      aria-hidden
+                    >
                       <div className="h-5 w-24 animate-pulse rounded-full bg-[#f2f2f2]" />
-                      <div className="@container -mx-6 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <div className="grid w-max grid-flow-col gap-3 auto-cols-[calc((100cqw-1.5rem)/3)]">
+                      <div className="@container -mx-6 [scrollbar-width:none] overflow-x-auto px-6 [&::-webkit-scrollbar]:hidden">
+                        <div className="grid w-max auto-cols-[calc((100cqw-1.5rem)/3)] grid-flow-col gap-3">
                           {Array.from({ length: 3 }, (_, index) => (
                             <TimeSkeleton key={index} />
                           ))}
@@ -396,9 +558,11 @@ export function Scheduler() {
                     if (times.length === 0 && !includeNow) return null;
                     return (
                       <section key={item.id} className="flex flex-col gap-4">
-                        <h2 className="text-[14px] leading-5 font-semibold text-[#0d0d0d]">{item.label}</h2>
-                        <div className="@container -mx-6 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                          <div className="grid w-max grid-flow-col gap-3 auto-cols-[calc((100cqw-1.5rem)/3)]">
+                        <h2 className="text-[14px] leading-5 font-semibold text-[#0d0d0d]">
+                          {item.label}
+                        </h2>
+                        <div className="@container -mx-6 [scrollbar-width:none] overflow-x-auto px-6 [&::-webkit-scrollbar]:hidden">
+                          <div className="grid w-max auto-cols-[calc((100cqw-1.5rem)/3)] grid-flow-col gap-3">
                             {includeNow ? (
                               <TimeChip
                                 label="Now"
@@ -435,16 +599,12 @@ export function Scheduler() {
             className="pointer-events-none absolute inset-0 border-t border-white bg-linear-to-b from-white/64 to-white/80 backdrop-blur-[3px] md:hidden"
           />
           <div className="relative mx-auto flex w-full flex-col gap-4 md:max-w-none md:items-center">
-            <p className="text-center text-[14px] leading-5 text-[#0d0d0d] md:hidden">
-              {spanish ? 'This call will be in Spanish. ' : 'This call will be in English. '}
-              <button
-                type="button"
-                onClick={switchLanguage}
-                className="cursor-pointer font-semibold text-[#4a89e8] underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
-              >
-                {spanish ? 'Prefer English?' : 'Prefer Spanish?'}
-              </button>
-            </p>
+            <CallLanguage
+              value={language}
+              onChange={chooseLanguage}
+              align="center"
+              className="text-center text-[#0d0d0d] md:hidden"
+            />
             <div className="flex items-center justify-center gap-4">
               <button
                 type="button"
