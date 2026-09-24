@@ -254,7 +254,7 @@ export function Scheduler() {
           <>
             <div className="flex flex-col gap-4">
               <h1 className="font-serif text-[26px] leading-8 font-normal text-[#0d0d0d]">
-                Let&apos;s schedule your [video] call.
+                Pick a slot that works for you, or meet with your specialist now.
               </h1>
               <p className="text-[16px] leading-[22px] text-[#1f222c]">
                 Your specialist will listen to your goals and build a plan together with you.
