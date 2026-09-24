@@ -237,7 +237,7 @@ export function Scheduler() {
         </button>
       </header>
 
-      <main className="mx-auto flex w-full max-w-[400px] flex-1 flex-col px-6 pt-6 pb-40 md:max-w-[560px] md:px-0 md:pt-8 md:pb-28">
+      <main className="mx-auto flex w-full flex-1 flex-col px-6 pt-6 pb-40 md:max-w-[560px] md:px-0 md:pt-8 md:pb-28">
         {committed && selection ? (
           <div className="pt-16 text-center">
             <h1 className="font-serif text-[26px] leading-8 font-normal">You&apos;re booked.</h1>
@@ -381,10 +381,12 @@ export function Scheduler() {
                 ? PERIODS.map((item) => (
                     <section key={item.id} className="flex flex-col gap-4" aria-hidden>
                       <div className="h-5 w-24 animate-pulse rounded-full bg-[#f2f2f2]" />
-                      <div className="-mx-6 flex gap-3 overflow-x-auto px-6">
-                        {Array.from({ length: 3 }, (_, index) => (
-                          <TimeSkeleton key={index} className="w-[120px] shrink-0" />
-                        ))}
+                      <div className="@container -mx-6 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <div className="grid w-max grid-flow-col gap-3 auto-cols-[calc((100cqw-1.5rem)/3)]">
+                          {Array.from({ length: 3 }, (_, index) => (
+                            <TimeSkeleton key={index} />
+                          ))}
+                        </div>
                       </div>
                     </section>
                   ))
@@ -395,25 +397,25 @@ export function Scheduler() {
                     return (
                       <section key={item.id} className="flex flex-col gap-4">
                         <h2 className="text-[14px] leading-5 font-semibold text-[#0d0d0d]">{item.label}</h2>
-                        <div className="-mx-6 flex gap-3 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                          {includeNow ? (
-                            <TimeChip
-                              label="Now"
-                              now
-                              selected={selection === 'now'}
-                              onClick={() => setSelection('now')}
-                              className="w-[120px] shrink-0"
-                            />
-                          ) : null}
-                          {times.map((time) => (
-                            <TimeChip
-                              key={time}
-                              label={time}
-                              selected={selection === time}
-                              onClick={() => setSelection(time)}
-                              className="w-[120px] shrink-0"
-                            />
-                          ))}
+                        <div className="@container -mx-6 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                          <div className="grid w-max grid-flow-col gap-3 auto-cols-[calc((100cqw-1.5rem)/3)]">
+                            {includeNow ? (
+                              <TimeChip
+                                label="Now"
+                                now
+                                selected={selection === 'now'}
+                                onClick={() => setSelection('now')}
+                              />
+                            ) : null}
+                            {times.map((time) => (
+                              <TimeChip
+                                key={time}
+                                label={time}
+                                selected={selection === time}
+                                onClick={() => setSelection(time)}
+                              />
+                            ))}
+                          </div>
                         </div>
                       </section>
                     );
@@ -432,7 +434,7 @@ export function Scheduler() {
             aria-hidden
             className="pointer-events-none absolute inset-0 border-t border-white bg-linear-to-b from-white/64 to-white/80 backdrop-blur-[3px] md:hidden"
           />
-          <div className="relative mx-auto flex w-full max-w-[400px] flex-col gap-4 md:max-w-none md:items-center">
+          <div className="relative mx-auto flex w-full flex-col gap-4 md:max-w-none md:items-center">
             <p className="text-center text-[14px] leading-5 text-[#0d0d0d] md:hidden">
               {spanish ? 'This call will be in Spanish. ' : 'This call will be in English. '}
               <button
