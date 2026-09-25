@@ -1165,10 +1165,8 @@ export function ChatIntroScene({
           <h1
             className={cn(
               'text-title-large-subtle text-foreground-neutral-default col-start-1 row-start-1 font-sans',
-              notify &&
-                (notifyMotion
-                  ? 'care-pitch-out'
-                  : 'pointer-events-none opacity-0'),
+              notify && 'pointer-events-none absolute inset-x-0 top-0',
+              notify && (notifyMotion ? 'care-pitch-out' : 'opacity-0'),
             )}
           >
             {CHAT_INTRO_TITLE}
@@ -1180,7 +1178,7 @@ export function ChatIntroScene({
                 ? notifyMotion
                   ? 'care-pitch-in'
                   : undefined
-                : 'pointer-events-none opacity-0',
+                : 'pointer-events-none absolute inset-x-0 top-0 opacity-0',
             )}
           >
             {NOTIFY_TITLE}

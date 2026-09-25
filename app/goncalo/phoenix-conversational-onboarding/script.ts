@@ -522,9 +522,9 @@ export const CHAT_INTRO_BUBBLES = [
   },
 ];
 
-export const NOTIFY_TITLE = 'Stay connected with your care team';
+export const NOTIFY_TITLE = 'Stay connected with us';
 export const NOTIFY_BODY =
-  'Get notified when Phoenix or Lauren sends guidance, updates your plan, or reminds you about your care.';
+  'Get notified when your care team sends guidance, updates your plan, or reminds you about your care.';
 export const NOTIFY_YES = 'Yes, notify me';
 export const NOTIFY_SKIP = 'Skip for now';
 export const NOTIFY_PREVIEW = 'Your next session is ready. You got this!';
