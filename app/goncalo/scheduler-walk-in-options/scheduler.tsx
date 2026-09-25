@@ -130,40 +130,14 @@ function dayLabel(day: DayId, picked: Date | null) {
   return 'the day you picked';
 }
 
-const NOW_BEAM =
-  'conic-gradient(from var(--beam-angle), rgba(74,137,232,0) 0deg, rgba(74,137,232,0) 160deg, #4a89e8 320deg, #4a89e8 360deg, rgba(74,137,232,0) 360deg)';
-
-const nowBeamMask = {
-  background: NOW_BEAM,
-  mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-  WebkitMask:
-    'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-  maskComposite: 'exclude',
-  WebkitMaskComposite: 'xor',
-} as const;
-
-function NowBorderBeam() {
+function SpecialistAvailable() {
   return (
-    <>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -inset-px -z-10 rounded-[inherit] p-px opacity-70 blur-[3px] motion-safe:animate-[border-beam_3.2s_linear_infinite]"
-        style={nowBeamMask}
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -inset-px -z-10 rounded-[inherit] p-px motion-safe:animate-[border-beam_3.2s_linear_infinite]"
-        style={nowBeamMask}
-      />
-    </>
-  );
-}
-
-function NowDot() {
-  return (
-    <span className="relative size-2 shrink-0" aria-hidden>
-      <span className="absolute inset-0 rounded-full bg-[#4a89e8] motion-safe:animate-[now-pulse_1.8s_ease-out_infinite]" />
-      <span className="relative block size-2 rounded-full bg-[#4a89e8] shadow-[0_0_0_3px_rgba(74,137,232,0.22)]" />
+    <span className="text-positive-800 text-body-small-subtle inline-flex items-center gap-2 leading-4 font-medium">
+      <span className="relative size-1.5 shrink-0" aria-hidden>
+        <span className="bg-positive-800 absolute inset-0 rounded-full motion-safe:animate-[now-pulse_1.8s_ease-out_infinite]" />
+        <span className="bg-positive-800 relative block size-1.5 rounded-full shadow-[0_0_0_3px_rgba(44,111,44,0.22)]" />
+      </span>
+      Specialist available
     </span>
   );
 }
@@ -277,22 +251,16 @@ function TimeChip({
       aria-pressed={selected}
       onClick={onClick}
       className={cn(
-        'flex h-[62px] cursor-pointer items-center justify-center rounded-2xl border bg-white px-4 text-[14px] leading-5 text-[#0d0d0d] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]',
-        now ? 'relative isolate gap-3 font-semibold' : 'font-medium',
+        'flex h-[62px] cursor-pointer items-center justify-center rounded-2xl border bg-white px-3 text-[14px] leading-5 text-[#0d0d0d] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]',
+        now ? 'flex-col gap-0.5 font-semibold' : 'font-medium',
         selected
           ? 'border-2 border-[#4a89e8]'
           : 'border-[#c2c2c2] hover:border-[#8d8d8d]',
         className,
       )}
     >
-      {now ? (
-        <>
-          {selected ? null : <NowBorderBeam />}
-          <NowDot />
-          <span className="sr-only">Start with a specialist now. </span>
-        </>
-      ) : null}
       {label}
+      {now ? <SpecialistAvailable /> : null}
     </button>
   );
 }
@@ -364,17 +332,9 @@ export function Scheduler() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col bg-white text-[#0d0d0d]">
       <style>{`
-        @property --beam-angle {
-          syntax: '<angle>';
-          initial-value: 0deg;
-          inherits: false;
-        }
         @keyframes now-pulse {
           0% { transform: scale(1); opacity: 0.55; }
           100% { transform: scale(2.75); opacity: 0; }
-        }
-        @keyframes border-beam {
-          to { --beam-angle: 360deg; }
         }
       `}</style>
       <div
