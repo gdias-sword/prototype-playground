@@ -329,7 +329,7 @@ export function welcomeKitLine() {
 }
 
 export function addressLine() {
-  return 'Where should we send your welcome kit?';
+  return 'Where should we send it?';
 }
 
 export function kitOnTheWayLine() {
