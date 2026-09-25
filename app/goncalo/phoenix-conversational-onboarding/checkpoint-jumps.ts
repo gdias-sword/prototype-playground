@@ -106,7 +106,7 @@ const DEMO_AREA = 'Shoulder';
 const DEMO_DURATION = '2–4 weeks ago';
 const DEMO_INTENSITY = 7;
 const DEMO_ACTIVITY: ActivityId = 'moderate';
-const DEMO_REGIONS = ['Shoulder blade', 'Upper arm'];
+const DEMO_REGIONS = ['Shoulder / Shoulder blade', 'Upper Arm'];
 const DEMO_IMPACTS = ['Carrying a bag or groceries'];
 
 const EMPTY_ANSWERS: Answers = {

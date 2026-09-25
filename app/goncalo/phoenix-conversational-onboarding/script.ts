@@ -15,14 +15,14 @@ export const BODY_AREAS = [
 export type BodyArea = (typeof BODY_AREAS)[number];
 
 export const AREA_REGIONS: Record<BodyArea, readonly string[]> = {
-  Neck: ['Base of skull', 'Side of neck', 'Front of neck'],
-  Shoulder: ['Upper chest', 'Shoulder blade', 'Upper arm'],
-  Elbow: ['Inner elbow', 'Outer elbow', 'Forearm'],
-  'Wrist/Hand': ['Wrist', 'Palm', 'Fingers'],
-  Back: ['Upper back', 'Mid-back', 'Lower back'],
-  Hip: ['Front of hip', 'Side of hip', 'Buttock'],
-  Knee: ['Front of knee', 'Inner knee', 'Back of knee'],
-  Ankle: ['Inner ankle', 'Outer ankle', 'Top of foot'],
+  Neck: ['Neck'],
+  Shoulder: ['Chest', 'Shoulder / Shoulder blade', 'Upper Arm'],
+  Elbow: ['Elbow', 'Forearm'],
+  'Wrist/Hand': ['Wrist', 'Hand / Fingers / Thumb'],
+  Back: ['Upper Back', 'Middle Back', 'Lower Back'],
+  Hip: ['Buttocks / Glutes', 'Hip', 'Groin'],
+  Knee: ['Thigh', 'Knee'],
+  Ankle: ['Shin', 'Calf', 'Ankle', 'Foot / Heel / Toes'],
 };
 
 export const AREA_IMPACTS: Record<BodyArea, readonly string[]> = {
