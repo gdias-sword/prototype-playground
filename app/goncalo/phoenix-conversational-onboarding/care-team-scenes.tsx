@@ -313,6 +313,138 @@ function applyPose(
   el.style.setProperty('--pt-ring', String(ring));
 }
 
+const AVATAR_PX = 80;
+const INTRO_RING_PX = 280;
+const INTRO_IN_MS = 700;
+const INTRO_OUT_MS = 420;
+
+/** Scale the PT reveal orbit so its outer edge matches the 280px intro ring. */
+export const PT_INTRO_ORBIT_FIT =
+  INTRO_RING_PX / (2 * (ORBIT_RADIUS + (AVATAR_PX / 2) * 1.02));
+
+function paintSpin(
+  nodes: Array<HTMLDivElement | null>,
+  angle: number,
+  intro: number,
+) {
+  RING.forEach((_, index) => {
+    const el = nodes[index];
+    if (!el) return;
+    const pose = orbitPose(index, angle);
+    applyPose(
+      el,
+      pose.x,
+      pose.y,
+      pose.scale * (0.72 + 0.28 * intro),
+      pose.opacity * intro,
+      pose.z,
+      0,
+    );
+  });
+}
+
+export function GuidePtOrbit({
+  active,
+  instant,
+  onExit,
+}: {
+  active: boolean;
+  instant: boolean;
+  onExit?: () => void;
+}) {
+  const nodeRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const angleRef = useRef(0);
+  const presenceRef = useRef(0);
+  const onExitRef = useRef(onExit);
+  onExitRef.current = onExit;
+  const [shown, setShown] = useState(active);
+
+  useEffect(() => {
+    if (active) setShown(true);
+  }, [active]);
+
+  useLayoutEffect(() => {
+    if (!shown) return;
+    const reduced = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    const snap = instant || reduced;
+
+    if (snap) {
+      const presence = active ? 1 : 0;
+      presenceRef.current = presence;
+      paintSpin(nodeRefs.current, 0, presence);
+      if (!active) {
+        setShown(false);
+        onExitRef.current?.();
+      }
+      return;
+    }
+
+    let frame = 0;
+    let last = performance.now();
+    let cancelled = false;
+    const from = presenceRef.current;
+    const to = active ? 1 : 0;
+    const start = performance.now();
+    const duration = to === 1 ? INTRO_IN_MS : INTRO_OUT_MS;
+
+    const tick = (now: number) => {
+      if (cancelled) return;
+      const dt = Math.min(34, now - last);
+      last = now;
+      const t = easeOutExpo(clamp01((now - start) / duration));
+      const presence = lerp(from, to, t);
+      presenceRef.current = presence;
+      angleRef.current += SPIN_DEG_PER_MS * dt;
+      paintSpin(nodeRefs.current, angleRef.current, presence);
+      if (t >= 1 && to === 0) {
+        setShown(false);
+        onExitRef.current?.();
+        return;
+      }
+      frame = window.requestAnimationFrame(tick);
+    };
+
+    paintSpin(nodeRefs.current, angleRef.current, from);
+    frame = window.requestAnimationFrame(tick);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [active, instant, shown]);
+
+  if (!shown) return null;
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute top-1/2 left-1/2 size-0"
+      style={{ transform: `scale(${PT_INTRO_ORBIT_FIT})` }}
+    >
+      {RING.map((avatar, index) => (
+        <div
+          key={assetSrc(avatar.src)}
+          ref={(node) => {
+            nodeRefs.current[index] = node;
+          }}
+          className="pt-orbit-avatar absolute top-0 left-0 size-0"
+        >
+          <div className="absolute top-0 left-0 size-20 -translate-x-1/2 -translate-y-1/2">
+            <div className="relative size-full overflow-hidden rounded-full">
+              <img
+                alt=""
+                src={assetSrc(avatar.src)}
+                className="size-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function RevealLine({ text, instant }: { text: string; instant: boolean }) {
   const [shown, setShown] = useState(text);
   const [phase, setPhase] = useState<'in' | 'out' | 'still'>('in');

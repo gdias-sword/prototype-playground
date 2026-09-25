@@ -14,6 +14,7 @@ import {
   CarePairFlight,
   ChatIntroScene,
   ChatTransitionScene,
+  GuidePtOrbit,
   OsPermissionDialog,
   PtRevealScene,
 } from './care-team-scenes';
@@ -119,6 +120,7 @@ function topStageClass(
   layout: Layout,
   step: PhoenixStep,
   reserveBackButton: boolean,
+  guideOrbitSpace: boolean,
 ) {
   if (layout === 'immersive' || isCareTeamStep(step)) {
     return 'h-0';
@@ -126,6 +128,7 @@ function topStageClass(
   if (layout === 'raised') {
     return reserveBackButton ? RAISED_BACK_CLEARANCE : 'h-0';
   }
+  if (guideOrbitSpace) return 'h-[308px]';
   return 'h-[108px]';
 }
 
@@ -351,6 +354,9 @@ export function Experience({
   const [sessionAfterReward, setSessionAfterReward] = useState(false);
   const [cameraPrompt, setCameraPrompt] = useState(false);
   const [promptReady, setPromptReady] = useState(false);
+  const [guideOrbitSpace, setGuideOrbitSpace] = useState(false);
+  const [guideOrbitLive, setGuideOrbitLive] = useState(false);
+  const guideOrbitShownRef = useRef(false);
   const answersRef = useRef(EMPTY_ANSWERS);
   const rushExperience = skipToolDelay || fastDemo;
   const toolReady = useDelayedTool(
@@ -949,6 +955,29 @@ export function Experience({
         : (phase === 'exiting' || phase === 'chat') && sessionAfterReward
           ? 'header'
           : null;
+  const showGuideOrbit =
+    phase === 'phoenix' && step.kind === 'guide' && step.index === 1;
+
+  useEffect(() => {
+    if (!showGuideOrbit) {
+      setGuideOrbitLive(false);
+      if (!guideOrbitShownRef.current) setGuideOrbitSpace(false);
+      return;
+    }
+    setGuideOrbitSpace(true);
+    const id = window.setTimeout(() => {
+      guideOrbitShownRef.current = true;
+      setGuideOrbitLive(true);
+    }, fastDemo ? 0 : 520);
+    return () => window.clearTimeout(id);
+  }, [showGuideOrbit, fastDemo]);
+
+  useEffect(() => {
+    if (phase === 'phoenix' && step.kind === 'guide') return;
+    guideOrbitShownRef.current = false;
+    setGuideOrbitSpace(false);
+  }, [phase, step]);
+
   const hideFloatingOrb =
     (phase === 'phoenix' &&
       (isImmersiveStep(step) || isCareTeamStep(step))) ||
@@ -1341,7 +1370,7 @@ export function Experience({
         <div
           className={cn(
             'shrink-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-            topStageClass(layout, step, showBackButton),
+            topStageClass(layout, step, showBackButton, guideOrbitSpace),
           )}
         />
         {showConversation ? (
@@ -1454,6 +1483,7 @@ export function Experience({
           'transition-[top,left,width,height,translate,opacity] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
           orbLayout === 'seed' && 'top-[42%] left-1/2 size-[60px]',
           orbLayout === 'hero' && 'top-[64px] left-1/2 size-[80px]',
+          guideOrbitSpace && 'top-[136px] left-1/2 size-[120px]',
           orbLayout === 'raised' &&
             'top-0 left-1/2 size-[120px] -translate-y-[80px]',
           (orbLayout === 'immersive' || hideFloatingOrb) &&
@@ -1463,6 +1493,20 @@ export function Experience({
             'top-[60px] left-[32px] size-[32px]',
         )}
       >
+        <GuidePtOrbit
+          active={guideOrbitLive}
+          instant={fastDemo}
+          onExit={() => {
+            guideOrbitShownRef.current = false;
+            if (
+              stepRef.current.kind === 'guide' &&
+              stepRef.current.index === 1
+            ) {
+              return;
+            }
+            setGuideOrbitSpace(false);
+          }}
+        />
         <button
           type="button"
           aria-hidden={phoenixTapLabel ? undefined : true}
@@ -1474,10 +1518,11 @@ export function Experience({
             handlePhoenixTap();
           }}
           className={cn(
-            'relative aspect-square shrink-0 appearance-none border-0 bg-transparent p-0 transition-[width,height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+            'relative z-10 aspect-square shrink-0 appearance-none border-0 bg-transparent p-0 transition-[width,height] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
             phoenixTapLabel && 'pointer-events-auto cursor-pointer',
             orbLayout === 'seed' && 'size-[60px]',
             orbLayout === 'hero' && 'size-[80px]',
+            guideOrbitSpace && 'size-[120px]',
             orbLayout === 'raised' && 'size-[120px]',
             (orbLayout === 'immersive' || hideFloatingOrb) && 'size-0',
             orbLayout === 'avatar' && !hideFloatingOrb && 'size-[32px]',
