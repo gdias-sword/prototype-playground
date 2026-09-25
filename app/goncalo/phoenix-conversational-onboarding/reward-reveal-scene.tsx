@@ -19,7 +19,7 @@ export function RewardRevealScene({ onContinue }: { onContinue: () => void }) {
           Welcome Kit
         </span>
       </h1>
-      <div className="mt-6 flex min-h-0 flex-1 items-start justify-center">
+      <div className="flex min-h-0 flex-1 items-start justify-center">
         <img
           alt="Welcome kit with resistance bands"
           src={assetSrc(welcomeKitBox)}
