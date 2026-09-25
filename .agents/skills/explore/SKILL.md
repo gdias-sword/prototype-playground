@@ -69,21 +69,34 @@ Variants can share trivial primitives (a `Button` component, an icon set) but sh
 
 Prefer extending the parent experience over copying it. Fork files only when the exploration truly needs a different structure; do not clone the whole orchestration layer as a new prototype.
 
-### 4. Wire the switcher
+### 4. Wire the shared switcher
 
-A single switcher at the route level reads `?variant=` from the URL and renders the matching component:
+Import `VariantSwitcher` from `@/components/variant-switcher`. Do not build a local bar, URL handler, or keyboard shortcut — the platform component should apply globally.
 
-```jsx
-const variant =
-  new URLSearchParams(window.location.search).get('variant') ?? 'A';
-return (
-  <>
-    {variant === 'A' && <VariantA {...data} />}
-    {variant === 'B' && <VariantB {...data} />}
-    {variant === 'C' && <VariantC {...data} />}
-    <VariantSwitcher variants={['A', 'B', 'C']} current={variant} />
-  </>
-);
+Wire it at the route level so each variant is a clean component export:
+
+```tsx
+import { VariantSwitcher } from '@/components/variant-switcher';
+
+export default function Page() {
+  return (
+    <VariantSwitcher
+      variants={[
+        { id: 'A', label: 'Sidebar nav, dense table' },
+        { id: 'B', label: 'Top tabs, card grid' },
+        { id: 'C', label: 'Command palette' },
+      ]}
+    >
+      {(variant) => (
+        <>
+          {variant === 'A' && <VariantA {...data} />}
+          {variant === 'B' && <VariantB {...data} />}
+          {variant === 'C' && <VariantC {...data} />}
+        </>
+      )}
+    </VariantSwitcher>
+  );
+}
 ```
 
 Using `?variant=` (rather than React state) means the URL is shareable and reload-stable — the designer can paste a link to "the version with the sidebar."
@@ -96,21 +109,9 @@ The shareable link is:
 
 Not `...?explore=…&variant=C`. The preview host already denotes the exploration; `variant` only picks which option inside it.
 
-### 5. Build the floating switcher bar
+Labels in the `variants` array should match the short names written in step 2 so the bar reads e.g. `B — Top tabs, card grid`.
 
-A small fixed-position bar at bottom-center with three pieces:
-
-- **Left arrow** — cycles to the previous variant (wraps around)
-- **Label** — shows the current variant key plus its short name, e.g. `B — Top tabs, card grid`
-- **Right arrow** — cycles forward (wraps around)
-
-Behavior:
-
-- Clicking an arrow updates the URL search param and re-renders. Use `history.replaceState` (or the artifact's router equivalent) so back-button history doesn't fill up with variant flips.
-- Keyboard: `←` and `→` arrow keys also cycle. Don't intercept arrow keys when an `<input>`, `<textarea>`, or `[contenteditable]` element is focused — the designer might be typing in a form inside a variant.
-- Visually distinct from the design being evaluated — high-contrast pill, subtle shadow, clearly "chrome" rather than "content." It should be obvious that the bar is not part of any variant.
-
-### 6. Share and hand off
+### 5. Share and hand off
 
 - Isolation is the **preview deployment**, not a branch, PR, or new prototype. Leave production on the last promoted deployment; do not promote the exploration.
 - Branches and PRs are optional and only when the user explicitly asks for them.
@@ -126,6 +127,7 @@ When an approach wins, fold it into the parent experience. Do not leave a perman
 ## Anti-patterns
 
 - **New gallery prototype per exploration.** Do not create `app/<user>/<parent>-<topic>/` (or `*-diverge`) to get a distinct URL. The preview deployment already has one.
+- **Reimplementing the switcher locally.** Always import `VariantSwitcher` from `@/components/variant-switcher`. Do not copy the floating bar, `?variant=` handling, or keyboard cycling into the prototype.
 - `?explore=` **or** `/explorations/` **routes.** Unnecessary. The deployment hash identifies the exploration; `?variant=` identifies the option.
 - **Promoting the exploration to production.** Prod stays on the last promoted deployment until something is ready to keep.
 - **Recoloring as "variants."** Three takes that differ only in palette, spacing, or copy are not variants — they're a tweak. Real variants disagree about structure.
