@@ -131,7 +131,7 @@ function dayLabel(day: DayId, picked: Date | null) {
 }
 
 const NOW_BEAM =
-  'conic-gradient(from var(--beam-angle), rgba(74,137,232,0) 0deg, rgba(74,137,232,0) 308deg, #4a89e8 320deg, #4a89e8 350deg, rgba(74,137,232,0) 360deg)';
+  'conic-gradient(from var(--beam-angle), rgba(74,137,232,0) 0deg, rgba(74,137,232,0) 160deg, #4a89e8 320deg, #4a89e8 360deg, rgba(74,137,232,0) 360deg)';
 
 const nowBeamMask = {
   background: NOW_BEAM,
