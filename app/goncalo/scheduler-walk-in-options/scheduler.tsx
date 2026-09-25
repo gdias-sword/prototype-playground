@@ -132,10 +132,10 @@ function dayLabel(day: DayId, picked: Date | null) {
 
 function SpecialistAvailable() {
   return (
-    <span className="text-positive-800 text-body-small-subtle inline-flex items-center gap-2 leading-4 font-medium">
+    <span className="text-green-800 text-body-small-subtle inline-flex items-center gap-2 leading-4 font-medium">
       <span className="relative size-1.5 shrink-0" aria-hidden>
-        <span className="bg-positive-800 absolute inset-0 rounded-full motion-safe:animate-[now-pulse_1.8s_ease-out_infinite]" />
-        <span className="bg-positive-800 relative block size-1.5 rounded-full shadow-[0_0_0_3px_rgba(44,111,44,0.22)]" />
+        <span className="bg-green-800 absolute inset-0 rounded-full motion-safe:animate-[now-pulse_1.8s_ease-out_infinite]" />
+        <span className="bg-green-800 relative block size-1.5 rounded-full shadow-[0_0_0_3px_rgba(44,111,44,0.22)]" />
       </span>
       Specialist available
     </span>
