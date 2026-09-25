@@ -184,7 +184,7 @@ export const GUIDE_LINES = [
   `Hi ${MEMBER}, I’m Phoenix.`,
   'I’ll be guiding your care, alongside a dedicated physical therapist.',
   'Let’s start with a few questions to understand what you’re feeling.',
-  'It takes about 2 minutes. Ready?',
+  'It takes about 5 minutes. Ready?',
 ] as const;
 
 export const DISCLAIMER = 'Your answers are confidential and won’t be shared';
