@@ -962,7 +962,7 @@ function IntroBubble({
 function SessionCardBubble() {
   return (
     <div className="chat-intro-bubble chat-intro-bubble-care flex items-end gap-2">
-      <IntroAvatar from="Lauren" />
+      <IntroAvatar from="Phoenix" />
       <div className="w-[240px] rounded-xl bg-white p-2 shadow-[0_6px_17px_rgba(31,34,44,0.07)]">
         <p className="px-1 text-left text-[16px] leading-[22px] font-medium text-[#1f222c]">
           Ready to start your next session?
