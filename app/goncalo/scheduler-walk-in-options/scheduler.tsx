@@ -130,6 +130,35 @@ function dayLabel(day: DayId, picked: Date | null) {
   return 'the day you picked';
 }
 
+const NOW_BEAM =
+  'conic-gradient(from var(--beam-angle), rgba(74,137,232,0) 0deg, rgba(74,137,232,0) 308deg, #4a89e8 320deg, #4a89e8 350deg, rgba(74,137,232,0) 360deg)';
+
+const nowBeamMask = {
+  background: NOW_BEAM,
+  mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+  WebkitMask:
+    'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+  maskComposite: 'exclude',
+  WebkitMaskComposite: 'xor',
+} as const;
+
+function NowBorderBeam() {
+  return (
+    <>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -inset-px -z-10 rounded-[inherit] p-px opacity-70 blur-[3px] motion-safe:animate-[border-beam_3.2s_linear_infinite]"
+        style={nowBeamMask}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -inset-px -z-10 rounded-[inherit] p-px motion-safe:animate-[border-beam_3.2s_linear_infinite]"
+        style={nowBeamMask}
+      />
+    </>
+  );
+}
+
 function NowDot() {
   return (
     <span className="relative size-2 shrink-0" aria-hidden>
@@ -249,7 +278,7 @@ function TimeChip({
       onClick={onClick}
       className={cn(
         'flex h-[62px] cursor-pointer items-center justify-center rounded-2xl border bg-white px-4 text-[14px] leading-5 text-[#0d0d0d] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]',
-        now ? 'gap-3 font-semibold' : 'font-medium',
+        now ? 'relative isolate gap-3 font-semibold' : 'font-medium',
         selected
           ? 'border-2 border-[#4a89e8]'
           : 'border-[#c2c2c2] hover:border-[#8d8d8d]',
@@ -258,6 +287,7 @@ function TimeChip({
     >
       {now ? (
         <>
+          {selected ? null : <NowBorderBeam />}
           <NowDot />
           <span className="sr-only">Start with a specialist now. </span>
         </>
@@ -334,9 +364,17 @@ export function Scheduler() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col bg-white text-[#0d0d0d]">
       <style>{`
+        @property --beam-angle {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
         @keyframes now-pulse {
           0% { transform: scale(1); opacity: 0.55; }
           100% { transform: scale(2.75); opacity: 0; }
+        }
+        @keyframes border-beam {
+          to { --beam-angle: 360deg; }
         }
       `}</style>
       <div
