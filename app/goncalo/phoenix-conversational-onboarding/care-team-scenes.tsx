@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/design/utils';
+import { AnimatePresence, easeOut, motion } from 'framer-motion';
 import {
   useEffect,
   useLayoutEffect,
@@ -11,7 +12,6 @@ import {
 import arrowRight from './assets/ic-arrow-narrow-right.svg';
 import notifyLauren from './assets/notify-lauren.png';
 import phoneChrome from './assets/phone-chrome.svg';
-import swordMark from './assets/sword-mark.svg';
 import pt1 from './assets/pts/pt-1.png';
 import pt2 from './assets/pts/pt-2.png';
 import pt3 from './assets/pts/pt-3.png';
@@ -21,6 +21,7 @@ import pt6 from './assets/pts/pt-6.png';
 import pt7 from './assets/pts/pt-7.png';
 import pt8 from './assets/pts/pt-8.png';
 import sessionCard from './assets/session-card.png';
+import swordMark from './assets/sword-mark.svg';
 import { PrimaryAction } from './extended-scenes';
 import { LaurenPortrait } from './lauren-portrait';
 import { PhoenixOrb } from './phoenix-orb';
@@ -58,8 +59,27 @@ const RING = [
 const ORBIT_RADIUS = 198;
 const SPIN_DEG_PER_MS = 0.05;
 const SEARCH_BEAT_MS = 2000;
-const PT_LINE_SWAP_MS = 200;
 const GATHER_MS = 920;
+const COAST_MS = 1680;
+const RELEASE_MS = 1560;
+const INHALE_MS = 1280;
+const LIFT_MS = 760;
+
+// Variants — how the searching orbit becomes the portrait:
+// A — burst stop: the ring speeds up, brakes onto a slot, then the hero flies to the portrait
+// B — coast: speed matches the search and decays while the hero travels to the portrait
+// C — release: speed never changes; the hero peels off and the ring keeps turning as it fades
+// D — inhale: speed coasts as the hero is drawn into the search center, then lifts into the meet layout
+export const PT_HANDOFF_VARIANTS = [
+  { id: 'A', label: 'Burst stop' },
+  { id: 'B', label: 'Coast into portrait' },
+  { id: 'C', label: 'Release, ring keeps turning' },
+  { id: 'D', label: 'Inhale, then lift' },
+] as const;
+
+export type PtHandoffId = (typeof PT_HANDOFF_VARIANTS)[number]['id'];
+const SEARCH_PULSE_MS = 1680;
+const SEARCH_PULSE_FLOOR = 0.62;
 
 const MEET_WORDS = [
   [
@@ -286,6 +306,18 @@ function easeOutExpo(t: number) {
   return t >= 1 ? 1 : 1 - 2 ** (-10 * t);
 }
 
+function smoothstep(t: number) {
+  const x = clamp01(t);
+  return x * x * (3 - 2 * x);
+}
+
+/** Angle travelled if speed starts at the search spin and decays with (1 − u)². */
+function coastAngle(from: number, elapsed: number, duration: number) {
+  const u = clamp01(elapsed / Math.max(1, duration));
+  const travelled = (SPIN_DEG_PER_MS * duration * (1 - (1 - u) ** 3)) / 3;
+  return from + travelled;
+}
+
 function orbitPose(index: number, angle: number): OrbitPose {
   const theta = ((index / RING.length) * 360 + angle) * (Math.PI / 180);
   const front = (Math.sin(theta) + 1) / 2;
@@ -296,6 +328,24 @@ function orbitPose(index: number, angle: number): OrbitPose {
     opacity: 0.22 + front * 0.78,
     z: Math.round(front * 6),
   };
+}
+
+function searchOpacity(index: number, now: number) {
+  const turn = now / SEARCH_PULSE_MS - index / RING.length;
+  const wave = (Math.sin(turn * Math.PI * 2) + 1) / 2;
+  const peak = wave ** 4;
+  return SEARCH_PULSE_FLOOR + (1 - SEARCH_PULSE_FLOOR) * peak;
+}
+
+function revealOpacity(
+  index: number,
+  now: number,
+  hero: boolean,
+  heroBoost: number,
+) {
+  const pulsed = searchOpacity(index, now);
+  if (hero) return Math.min(1, pulsed + heroBoost * (1 - pulsed));
+  return lerp(pulsed, SEARCH_PULSE_FLOOR, heroBoost);
 }
 
 function applyPose(
@@ -317,6 +367,21 @@ const AVATAR_PX = 80;
 const INTRO_RING_PX = 280;
 const INTRO_IN_MS = 700;
 const INTRO_OUT_MS = 420;
+const ORBIT_ENTRY_STAGGER_MS = 160;
+const ORBIT_ENTRY_DURATION_MS = 1600;
+const ORBIT_ENTRY_START_SCALE = 0.4;
+
+function ringIntro(
+  born: number,
+  now: number,
+  index: number,
+  staggerMs: number,
+  durationMs: number,
+) {
+  return easeOutExpo(
+    clamp01((now - born - index * staggerMs) / Math.max(1, durationMs)),
+  );
+}
 
 /** Scale the PT reveal orbit so its outer edge matches the 280px intro ring. */
 export const PT_INTRO_ORBIT_FIT =
@@ -445,49 +510,44 @@ export function GuidePtOrbit({
   );
 }
 
+function lineCopy(line: string) {
+  if (line !== 'Finding your perfect match') return line;
+  return (
+    <>
+      Finding your
+      <br />
+      perfect match
+    </>
+  );
+}
+
 function RevealLine({ text, instant }: { text: string; instant: boolean }) {
-  const [shown, setShown] = useState(text);
-  const [phase, setPhase] = useState<'in' | 'out' | 'still'>('in');
-
-  useEffect(() => {
-    if (instant) {
-      setShown(text);
-      setPhase('still');
-      return;
-    }
-    if (text === shown) return;
-    setPhase('out');
-    const id = window.setTimeout(() => {
-      setShown(text);
-      setPhase('in');
-    }, PT_LINE_SWAP_MS);
-    return () => window.clearTimeout(id);
-  }, [instant, shown, text]);
-
-  const copy = (line: string) =>
-    line === 'Finding your perfect match' ? (
-      <>
-        Finding your
-        <br />
-        perfect match
-      </>
-    ) : (
-      line
-    );
+  const className =
+    'text-title-large-subtle text-foreground-neutral-default origin-center font-sans';
 
   return (
     <div className="pt-cycle" aria-live="polite">
-      <p
-        className={
-          phase === 'still'
-            ? 'text-title-large-subtle text-foreground-neutral-default font-sans'
-            : phase === 'out'
-              ? 'text-title-large-subtle text-foreground-neutral-default pt-cycle-out font-sans'
-              : 'text-title-large-subtle text-foreground-neutral-default pt-cycle-in font-sans'
-        }
-      >
-        {copy(shown)}
-      </p>
+      {instant ? (
+        <p className={className}>{lineCopy(text)}</p>
+      ) : (
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={text}
+            className={className}
+            initial={{ opacity: 0, scale: 0.92, filter: 'blur(2px)' }}
+            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+            exit={{
+              opacity: 0,
+              scale: 0.92,
+              filter: 'blur(2px)',
+              transition: { duration: 0.24, ease: easeOut },
+            }}
+            transition={{ duration: 0.24, ease: easeOut }}
+          >
+            {lineCopy(text)}
+          </motion.p>
+        </AnimatePresence>
+      )}
     </div>
   );
 }
@@ -577,11 +637,13 @@ function Portrait({ alt = '' }: { alt?: string }) {
 export function PtRevealScene({
   beat,
   fastDemo,
+  handoff = 'A',
   onAdvance,
   onContinue,
 }: {
   beat: 0 | 1 | 2;
   fastDemo: boolean;
+  handoff?: PtHandoffId;
   onAdvance: () => void;
   onContinue: () => void;
 }) {
@@ -593,7 +655,7 @@ export function PtRevealScene({
   const nodeRefs = useRef<Array<HTMLDivElement | null>>([]);
   const bornRef = useRef(0);
   const motionRef = useRef({
-    mode: 'spin' as 'spin' | 'decel' | 'gather' | 'done',
+    mode: 'spin' as 'spin' | 'decel' | 'gather' | 'handoff' | 'done',
     angle: 0,
     decel: null as null | {
       from: number;
@@ -601,12 +663,22 @@ export function PtRevealScene({
       start: number;
       duration: number;
     },
+    handoff: null as null | {
+      kind: Exclude<PtHandoffId, 'A'>;
+      start: number;
+      angle: number;
+      phase: 'primary' | 'lift';
+      liftStart: number;
+    },
     gatherStart: 0,
     from: [] as OrbitPose[],
     target: { x: 0, y: -160 },
   });
+  const copyShownRef = useRef(false);
+  const searchLeftRef = useRef(false);
   const [live, setLive] = useState(beat < 2);
   const [showCopy, setShowCopy] = useState(false);
+  const [searchLeaving, setSearchLeaving] = useState(false);
   const [searchGone, setSearchGone] = useState(false);
   const [reduced, setReduced] = useState(false);
 
@@ -623,6 +695,9 @@ export function PtRevealScene({
       setLive(true);
       setSearchGone(false);
       setShowCopy(false);
+      setSearchLeaving(false);
+      copyShownRef.current = false;
+      searchLeftRef.current = false;
     }
   }, [beat]);
 
@@ -644,19 +719,35 @@ export function PtRevealScene({
     const motion = motionRef.current;
     const nodes = () => nodeRefs.current;
 
-    const paintOrbit = (angle: number, intro: number, heroBoost: number) => {
+    const paintOrbit = (
+      angle: number,
+      now: number,
+      heroBoost: number,
+      settled: boolean,
+      pulse: boolean,
+    ) => {
       RING.forEach((avatar, index) => {
         const el = nodes()[index];
         if (!el) return;
         const pose = orbitPose(index, angle);
-        const opacity = avatar.hero
-          ? Math.min(1, pose.opacity + heroBoost * (1 - pose.opacity))
-          : pose.opacity;
+        const intro = settled
+          ? 1
+          : ringIntro(
+              bornRef.current,
+              now,
+              index,
+              ORBIT_ENTRY_STAGGER_MS,
+              ORBIT_ENTRY_DURATION_MS,
+            );
+        const opacity = pulse
+          ? revealOpacity(index, now, avatar.hero, heroBoost)
+          : 1;
         applyPose(
           el,
           pose.x,
           pose.y,
-          pose.scale * (0.72 + 0.28 * intro),
+          pose.scale *
+            (ORBIT_ENTRY_START_SCALE + (1 - ORBIT_ENTRY_START_SCALE) * intro),
           opacity * intro,
           pose.z,
           0,
@@ -696,28 +787,180 @@ export function PtRevealScene({
     };
 
     if (instant) {
-      paintOrbit(0, 1, 0);
+      paintOrbit(0, 0, 0, true, false);
       return;
     }
 
-    if (bornRef.current === 0) bornRef.current = performance.now();
+    const readTarget = () => {
+      const scene = sceneRef.current;
+      const origin = originRef.current;
+      const pad = padRef.current;
+      if (!scene || !origin || !pad) return motion.target;
+      const sceneBox = scene.getBoundingClientRect();
+      const scale = scene.offsetWidth ? sceneBox.width / scene.offsetWidth : 1;
+      const originBox = origin.getBoundingClientRect();
+      const padBox = pad.getBoundingClientRect();
+      return {
+        x:
+          (padBox.left +
+            padBox.width / 2 -
+            (originBox.left + originBox.width / 2)) /
+          scale,
+        y:
+          (padBox.top +
+            padBox.height / 2 -
+            (originBox.top + originBox.height / 2)) /
+          scale,
+      };
+    };
+
+    const markSearchLeaving = () => {
+      if (searchLeftRef.current) return;
+      searchLeftRef.current = true;
+      setSearchLeaving(true);
+    };
+
+    const markCopy = () => {
+      if (copyShownRef.current) return;
+      copyShownRef.current = true;
+      setShowCopy(true);
+    };
+
+    const paintHandoff = (now: number) => {
+      const run = motion.handoff;
+      if (!run) return false;
+
+      if (run.kind === 'D' && run.phase === 'lift') {
+        const t = smoothstep(clamp01((now - run.liftStart) / LIFT_MS));
+        RING.forEach((avatar, index) => {
+          const el = nodes()[index];
+          if (!el) return;
+          if (!avatar.hero) {
+            applyPose(el, 0, 0, 0.8, 0, 1, 0);
+            return;
+          }
+          applyPose(
+            el,
+            lerp(0, motion.target.x, t),
+            lerp(0, motion.target.y, t),
+            1.5,
+            1,
+            20,
+            0,
+          );
+        });
+        if (t >= 0.28) markCopy();
+        if (t >= 1) {
+          motion.mode = 'done';
+          return true;
+        }
+        return false;
+      }
+
+      const duration =
+        run.kind === 'C' ? RELEASE_MS : run.kind === 'D' ? INHALE_MS : COAST_MS;
+      const elapsed = now - run.start;
+      const u = clamp01(elapsed / duration);
+      const leave = smoothstep(u);
+      const angle =
+        run.kind === 'C'
+          ? run.angle + SPIN_DEG_PER_MS * elapsed
+          : coastAngle(run.angle, elapsed, duration);
+      motion.angle = angle;
+
+      RING.forEach((avatar, index) => {
+        const el = nodes()[index];
+        if (!el) return;
+        const pose = orbitPose(index, angle);
+        const pulsed = revealOpacity(index, now, avatar.hero, 0);
+        if (avatar.hero) {
+          const radius = run.kind === 'D' ? 1 - leave : 1;
+          const x =
+            run.kind === 'D'
+              ? pose.x * radius
+              : lerp(pose.x, motion.target.x, leave);
+          const y =
+            run.kind === 'D'
+              ? pose.y * radius
+              : lerp(pose.y, motion.target.y, leave);
+          applyPose(
+            el,
+            x,
+            y,
+            lerp(pose.scale, 1.5, leave),
+            lerp(pulsed, 1, leave),
+            20,
+            0,
+          );
+          return;
+        }
+
+        const fade = run.kind === 'D' ? smoothstep(clamp01(u * 1.35)) : leave;
+        const spread = run.kind === 'D' ? 1 + 0.16 * leave : 1;
+        applyPose(
+          el,
+          pose.x * spread,
+          pose.y * spread,
+          pose.scale * lerp(1, 0.94, leave),
+          pulsed * (1 - fade),
+          pose.z,
+          0,
+        );
+      });
+
+      if (run.kind === 'B' && u >= 0.18) markSearchLeaving();
+      if (run.kind === 'C' && u >= 0.12) markSearchLeaving();
+      if (run.kind === 'D' && u >= 0.32) markSearchLeaving();
+      if (run.kind === 'B' && u >= 0.46) markCopy();
+      if (run.kind === 'C' && u >= 0.38) markCopy();
+
+      if (u < 1) return false;
+      if (run.kind === 'D') {
+        run.phase = 'lift';
+        run.liftStart = now;
+        return false;
+      }
+      motion.mode = 'done';
+      return true;
+    };
+
+    if (bornRef.current === 0) {
+      bornRef.current = performance.now();
+      motion.angle = 0;
+      motion.mode = 'spin';
+      motion.decel = null;
+      motion.handoff = null;
+    }
 
     if (beat >= 2 && motion.mode === 'spin') {
-      const mod = ((motion.angle % 360) + 360) % 360;
-      let delta = (360 - mod) % 360;
-      if (delta < 12) delta += 360;
-      motion.mode = 'decel';
-      motion.decel = {
-        from: motion.angle,
-        to: motion.angle + delta,
-        start: performance.now(),
-        duration: 520 + delta * 6.5,
-      };
+      if (handoff === 'A') {
+        const mod = ((motion.angle % 360) + 360) % 360;
+        let delta = (360 - mod) % 360;
+        if (delta < 12) delta += 360;
+        motion.mode = 'decel';
+        motion.decel = {
+          from: motion.angle,
+          to: motion.angle + delta,
+          start: performance.now(),
+          duration: 520 + delta * 6.5,
+        };
+      } else {
+        motion.target = readTarget();
+        motion.mode = 'handoff';
+        motion.handoff = {
+          kind: handoff,
+          start: performance.now(),
+          angle: motion.angle,
+          phase: 'primary',
+          liftStart: 0,
+        };
+      }
     }
 
     if (beat < 2) {
       motion.mode = 'spin';
       motion.decel = null;
+      motion.handoff = null;
     }
 
     let frame = 0;
@@ -727,22 +970,22 @@ export function PtRevealScene({
     const tick = (now: number) => {
       const dt = Math.min(34, now - last);
       last = now;
-      const intro = easeOutExpo(clamp01((now - bornRef.current) / 700));
 
       if (motion.mode === 'spin') {
         motion.angle += SPIN_DEG_PER_MS * dt;
-        paintOrbit(motion.angle, intro, 0);
+        paintOrbit(motion.angle, now, 0, false, true);
       } else if (motion.mode === 'decel' && motion.decel) {
         const t = clamp01((now - motion.decel.start) / motion.decel.duration);
         const eased = easeOutExpo(t);
         motion.angle = lerp(motion.decel.from, motion.decel.to, eased);
-        paintOrbit(motion.angle, 1, eased);
+        paintOrbit(motion.angle, now, eased, true, true);
         if (t >= 1) {
           motion.from = RING.map((avatar, index) => {
             const pose = orbitPose(index, motion.angle);
-            return avatar.hero
-              ? { ...pose, opacity: 1, scale: pose.scale }
-              : pose;
+            return {
+              ...pose,
+              opacity: revealOpacity(index, now, avatar.hero, 1),
+            };
           });
           const scene = sceneRef.current;
           const origin = originRef.current;
@@ -779,22 +1022,21 @@ export function PtRevealScene({
           paintGather(1);
           return;
         }
+      } else if (motion.mode === 'handoff') {
+        if (paintHandoff(now)) return;
       }
 
       if (motion.mode !== 'done') frame = window.requestAnimationFrame(tick);
     };
 
-    const introNow =
-      beat >= 2
-        ? 1
-        : easeOutExpo(clamp01((performance.now() - bornRef.current) / 700));
-    paintOrbit(motion.angle, introNow, 0);
+    if (motion.mode === 'handoff') paintHandoff(performance.now());
+    else paintOrbit(motion.angle, performance.now(), 0, beat >= 2, true);
     frame = window.requestAnimationFrame(tick);
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(frame);
     };
-  }, [beat, instant, showOrbit]);
+  }, [beat, handoff, instant, showOrbit]);
 
   return (
     <div
@@ -830,15 +1072,19 @@ export function PtRevealScene({
         {beat < 2 || (!instant && !searchGone) ? (
           <div className="absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
             <div
-              className={showCopy ? 'pt-search-out' : 'pt-search-in'}
+              className={
+                (handoff === 'A' ? showCopy : searchLeaving)
+                  ? 'pt-search-out'
+                  : 'pt-search-in'
+              }
               onAnimationEnd={(event) => {
                 if (event.animationName === 'pt-search-out')
                   setSearchGone(true);
               }}
             >
-              <div className="flex w-[280px] flex-col items-center gap-6 text-center">
+              <div className="flex w-[280px] flex-col items-center gap-4 text-center">
                 <div className="size-10">
-                  <PhoenixOrb mood="breath" className="size-full" />
+                  <PhoenixOrb mood="search" className="size-full" />
                 </div>
                 <RevealLine
                   text={PT_REVEAL_LINES[beat === 2 ? 1 : beat]}

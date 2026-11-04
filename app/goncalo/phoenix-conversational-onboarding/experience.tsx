@@ -17,6 +17,7 @@ import {
   GuidePtOrbit,
   OsPermissionDialog,
   PtRevealScene,
+  type PtHandoffId,
 } from './care-team-scenes';
 import { RewardConfirmationScene } from './reward-confirmation-scene';
 import { RewardRevealScene } from './reward-reveal-scene';
@@ -319,10 +320,12 @@ export function Experience({
   navigatorRef,
   onControlsChange,
   fastDemo = false,
+  handoff = 'A',
 }: {
   navigatorRef?: Ref<ExperienceHandle | null>;
   onControlsChange?: (state: ExperienceControls) => void;
   fastDemo?: boolean;
+  handoff?: PtHandoffId;
 } = {}) {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
@@ -338,6 +341,7 @@ export function Experience({
   const rewindLockRef = useRef(false);
   const fastDemoRef = useRef(fastDemo);
   fastDemoRef.current = fastDemo;
+  const handoffSeenRef = useRef(handoff);
   const stageRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<Phase>('entering');
   const [isHero, setIsHero] = useState(false);
@@ -380,6 +384,15 @@ export function Experience({
   turnsRef.current = turns;
   answersRef.current = answers;
 
+  let ptBeat: 0 | 1 | 2 = step.kind === 'pt-reveal' ? step.beat : 0;
+  if (handoffSeenRef.current !== handoff) {
+    handoffSeenRef.current = handoff;
+    if (step.kind === 'pt-reveal') {
+      ptBeat = 0;
+      if (step.beat !== 0) setStep({ kind: 'pt-reveal', beat: 0 });
+    }
+  }
+
   function nextTurnId() {
     turnIdRef.current += 1;
     return `turn-${turnIdRef.current}`;
@@ -418,10 +431,13 @@ export function Experience({
       if (revealGenerationRef.current !== generation) return;
       pushTurns({ role: 'phoenix', text: care, kind: 'care' });
       setMood('speak');
-      later(() => {
-        if (revealGenerationRef.current !== generation) return;
-        revealPending();
-      }, delay(streamDurationMs(care) + CARE_HOLD_MS + STREAM_FALLBACK_MS));
+      later(
+        () => {
+          if (revealGenerationRef.current !== generation) return;
+          revealPending();
+        },
+        delay(streamDurationMs(care) + CARE_HOLD_MS + STREAM_FALLBACK_MS),
+      );
     }, delay(leadMs));
   }
 
@@ -502,9 +518,7 @@ export function Experience({
     if (!options.force && checkpointIndexRef.current === index) return;
 
     const answered = checkpointsRef.current[index + 1];
-    const answersForHighlight = answered
-      ? answered.answers
-      : snapshot.answers;
+    const answersForHighlight = answered ? answered.answers : snapshot.answers;
 
     clearTimers();
     cancelPendingReveal();
@@ -965,10 +979,13 @@ export function Experience({
       return;
     }
     setGuideOrbitSpace(true);
-    const id = window.setTimeout(() => {
-      guideOrbitShownRef.current = true;
-      setGuideOrbitLive(true);
-    }, fastDemo ? 0 : 520);
+    const id = window.setTimeout(
+      () => {
+        guideOrbitShownRef.current = true;
+        setGuideOrbitLive(true);
+      },
+      fastDemo ? 0 : 520,
+    );
     return () => window.clearTimeout(id);
   }, [showGuideOrbit, fastDemo]);
 
@@ -979,8 +996,7 @@ export function Experience({
   }, [phase, step]);
 
   const hideFloatingOrb =
-    (phase === 'phoenix' &&
-      (isImmersiveStep(step) || isCareTeamStep(step))) ||
+    (phase === 'phoenix' && (isImmersiveStep(step) || isCareTeamStep(step))) ||
     carePose === 'header';
   const orbLayout: Layout = layout;
 
@@ -1136,7 +1152,10 @@ export function Experience({
         label,
         atMax ? { kind: 'activity' } : { kind: 'more' },
         nextAnswers,
-        care ?? (atMax ? activityIntroLine() : conditionWrapLine(currentArea(nextAnswers))),
+        care ??
+          (atMax
+            ? activityIntroLine()
+            : conditionWrapLine(currentArea(nextAnswers))),
       );
     },
     onMore: (wantsMore: boolean) => {
@@ -1206,7 +1225,9 @@ export function Experience({
         ) : null}
         {step.kind === 'camera' ? (
           <CameraPanel
-            onEnable={() => goToQuestion({ kind: 'kit-teaser' }, kitTeaserLine())}
+            onEnable={() =>
+              goToQuestion({ kind: 'kit-teaser' }, kitTeaserLine())
+            }
           />
         ) : null}
         {step.kind === 'offer' ? (
@@ -1301,16 +1322,16 @@ export function Experience({
   const currentTurn = turns.at(-1);
   const canSkipStream = Boolean(
     showConversation &&
-      phase === 'phoenix' &&
-      mood === 'speak' &&
-      currentTurn?.role === 'phoenix',
+    phase === 'phoenix' &&
+    mood === 'speak' &&
+    currentTurn?.role === 'phoenix',
   );
   const canContinueWithPhoenix = Boolean(
     showConversation &&
-      phase === 'phoenix' &&
-      ((step.kind === 'guide' && mood === 'breath') ||
-        ((step.kind === 'session' || step.kind === 'placement-intro') &&
-          mood === 'listen')),
+    phase === 'phoenix' &&
+    ((step.kind === 'guide' && mood === 'breath') ||
+      ((step.kind === 'session' || step.kind === 'placement-intro') &&
+        mood === 'listen')),
   );
   const phoenixTapLabel = canSkipStream
     ? 'Skip to end of message'
@@ -1323,8 +1344,8 @@ export function Experience({
       step.kind === 'reward-reveal' ||
       step.kind === 'reward-confirmation' ||
       (step.kind === 'pt-reveal' && step.beat === 2)) &&
-      phase === 'phoenix' &&
-      conversation.canRewind,
+    phase === 'phoenix' &&
+    conversation.canRewind,
   );
 
   function handlePhoenixTap() {
@@ -1351,7 +1372,7 @@ export function Experience({
         className={cn(
           'pointer-events-none absolute inset-0 bg-[#f4f7ff] transition-opacity',
           showChat
-            ? 'duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] opacity-100'
+            ? 'opacity-100 duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]'
             : 'opacity-0 duration-1000',
         )}
       />
@@ -1373,9 +1394,7 @@ export function Experience({
             topStageClass(layout, step, showBackButton, guideOrbitSpace),
           )}
         />
-        {showConversation ? (
-          <ConversationShell {...conversation} />
-        ) : null}
+        {showConversation ? <ConversationShell {...conversation} /> : null}
         {phase === 'phoenix' &&
         (step.kind === 'placement' || step.kind === 'exercise') ? (
           <AssessmentScene
@@ -1400,8 +1419,10 @@ export function Experience({
         ) : null}
         {phase === 'phoenix' && step.kind === 'pt-reveal' ? (
           <PtRevealScene
-            beat={step.beat}
+            key={handoff}
+            beat={ptBeat}
             fastDemo={fastDemo}
+            handoff={handoff}
             onAdvance={advancePtReveal}
             onContinue={() => goToPanel({ kind: 'chat-intro', beat: 0 })}
           />
@@ -1430,7 +1451,7 @@ export function Experience({
         className={cn(
           'absolute inset-0 transition-opacity',
           showChat
-            ? 'duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] opacity-100'
+            ? 'opacity-100 duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]'
             : 'opacity-0 duration-700',
           phase !== 'chat' && 'pointer-events-none',
         )}
@@ -1471,11 +1492,7 @@ export function Experience({
         />
       ) : null}
 
-      <CarePairFlight
-        pose={carePose}
-        instant={fastDemo}
-        stageRef={stageRef}
-      />
+      <CarePairFlight pose={carePose} instant={fastDemo} stageRef={stageRef} />
 
       <div
         className={cn(

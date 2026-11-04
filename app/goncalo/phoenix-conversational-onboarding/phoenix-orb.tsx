@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export type PhoenixMood = 'breath' | 'speak' | 'listen' | 'think';
+export type PhoenixMood = 'breath' | 'speak' | 'listen' | 'think' | 'search';
 
 const VERTEX_SHADER = `
 attribute vec2 aPosition;
@@ -22,6 +22,7 @@ uniform float uTime;
 uniform float uSpeak;
 uniform float uListen;
 uniform float uThink;
+uniform float uSearch;
 
 float hash(vec2 point) {
   return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453123);
@@ -71,40 +72,42 @@ void main() {
   vec2 uv = vUv * 2.0 - 1.0;
   float time = uTime;
 
+  float motion = 1.0 + uSearch * 2.6;
   float idleBreath = sin(time * 1.35) * 0.012;
+  float searchBreath = sin(time * 3.2) * 0.026 * uSearch;
   float phrase = 0.5 + 0.5 * sin(time * 2.15 + sin(time * 0.61));
   float syllable = 0.5 + 0.5 * sin(time * 9.2 + sin(time * 3.7) * 0.8);
   float texture = 0.5 + 0.5 * sin(time * 16.7 + 1.4);
   float voiceEnvelope =
     0.18 + phrase * 0.22 + pow(syllable, 1.8) * 0.48 + texture * 0.12;
   float voiceScale = uSpeak * voiceEnvelope * 0.075;
-  float radius = 0.70 + idleBreath + voiceScale - uThink * 0.018;
+  float radius = 0.70 + idleBreath + searchBreath + voiceScale - uThink * 0.018;
   float distanceToCenter = length(uv);
   float bodyAlpha = 1.0 - smoothstep(radius - 0.009, radius + 0.009, distanceToCenter);
 
-  vec2 gradientUv = rotate(-0.72 + sin(time * 0.16) * 0.06) * uv;
+  vec2 gradientUv = rotate(-0.72 + sin(time * 0.16 * motion) * (0.06 + uSearch * 0.1)) * uv;
   float gradientMix = smoothstep(-0.68, 0.68, gradientUv.x + gradientUv.y * 0.42);
   vec3 coral = vec3(1.0, 0.56, 0.46);
   vec3 blue = vec3(0.308, 0.549, 0.912);
   vec3 color = mix(coral, blue, gradientMix);
 
-  vec2 cloudUv = rotate(-0.38 + sin(time * 0.22) * 0.15) * uv;
-  float broadFlow = fbm(cloudUv * 1.55 + vec2(time * 0.105, -time * 0.072));
-  float fineFlow = fbm(cloudUv * 2.7 - vec2(time * 0.082, time * 0.096));
-  cloudUv += vec2(broadFlow - 0.5, fineFlow - 0.5) * 0.26;
-  cloudUv += vec2(sin(time * 0.43), cos(time * 0.36)) * 0.055;
+  vec2 cloudUv = rotate(-0.38 + sin(time * 0.22 * motion) * 0.15) * uv;
+  float broadFlow = fbm(cloudUv * 1.55 + vec2(time * 0.105 * motion, -time * 0.072 * motion));
+  float fineFlow = fbm(cloudUv * 2.7 - vec2(time * 0.082 * motion, time * 0.096 * motion));
+  cloudUv += vec2(broadFlow - 0.5, fineFlow - 0.5) * (0.26 + uSearch * 0.12);
+  cloudUv += vec2(sin(time * 0.43 * motion), cos(time * 0.36 * motion)) * 0.055;
 
   vec2 cloudOne = vec2(
-    -0.22 + sin(time * 0.52) * 0.075,
-    -0.08 + cos(time * 0.41) * 0.055
+    -0.22 + sin(time * 0.52 * motion) * 0.075,
+    -0.08 + cos(time * 0.41 * motion) * 0.055
   );
   vec2 cloudTwo = vec2(
-    0.08 + cos(time * 0.37) * 0.065,
-    0.12 + sin(time * 0.47) * 0.07
+    0.08 + cos(time * 0.37 * motion) * 0.065,
+    0.12 + sin(time * 0.47 * motion) * 0.07
   );
   vec2 cloudThree = vec2(
-    0.26 + sin(time * 0.33 + 1.7) * 0.07,
-    -0.18 + cos(time * 0.49 + 0.8) * 0.055
+    0.26 + sin(time * 0.33 * motion + 1.7) * 0.07,
+    -0.18 + cos(time * 0.49 * motion + 0.8) * 0.055
   );
 
   float cloud =
@@ -210,6 +213,7 @@ export function PhoenixOrb({
     const speakUniform = gl.getUniformLocation(program, 'uSpeak');
     const listenUniform = gl.getUniformLocation(program, 'uListen');
     const thinkUniform = gl.getUniformLocation(program, 'uThink');
+    const searchUniform = gl.getUniformLocation(program, 'uSearch');
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -218,6 +222,7 @@ export function PhoenixOrb({
     let speak = 0;
     let listen = 0;
     let think = 0;
+    let search = 0;
     let animationFrame = 0;
     let isRunning = true;
     const startedAt = performance.now();
@@ -250,11 +255,13 @@ export function PhoenixOrb({
       speak += ((currentMood === 'speak' ? 1 : 0) - speak) * 0.075;
       listen += ((currentMood === 'listen' ? 1 : 0) - listen) * 0.075;
       think += ((currentMood === 'think' ? 1 : 0) - think) * 0.075;
+      search += ((currentMood === 'search' ? 1 : 0) - search) * 0.075;
 
       renderingContext.uniform1f(timeUniform, (now - startedAt) / 1000);
       renderingContext.uniform1f(speakUniform, speak);
       renderingContext.uniform1f(listenUniform, listen);
       renderingContext.uniform1f(thinkUniform, think);
+      renderingContext.uniform1f(searchUniform, search);
       renderingContext.drawArrays(renderingContext.TRIANGLES, 0, 6);
 
       animationFrame = requestAnimationFrame(render);
