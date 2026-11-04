@@ -14,8 +14,6 @@ import {
   jumpDestinationForShortcut,
   type JumpDestinationId,
 } from './checkpoint-jumps';
-import { VariantSwitcher } from '@/components/variant-switcher';
-import { PT_HANDOFF_VARIANTS, type PtHandoffId } from './care-team-scenes';
 import { DeviceFrame } from './device-frame';
 import {
   Experience,
@@ -110,15 +108,12 @@ export default function PhoenixConversationalOnboarding() {
   }, []);
 
   return (
-    <VariantSwitcher variants={[...PT_HANDOFF_VARIANTS]}>
-      {(variant) => (
-        <div className="relative flex min-h-dvh w-full min-w-0 flex-1 items-center justify-center overflow-auto p-6">
+    <div className="relative flex min-h-dvh w-full min-w-0 flex-1 items-center justify-center overflow-auto p-6">
           <div className="phoenix-device-stage">
             <DeviceFrame>
               <Experience
                 key={replayKey}
                 fastDemo={fastDemo}
-                handoff={variant as PtHandoffId}
                 navigatorRef={navigatorRef}
                 onControlsChange={setControls}
               />
@@ -216,8 +211,6 @@ export default function PhoenixConversationalOnboarding() {
               <Settings2 className="size-4" />
             </button>
           )}
-        </div>
-      )}
-    </VariantSwitcher>
+    </div>
   );
 }

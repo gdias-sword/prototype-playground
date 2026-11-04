@@ -17,7 +17,6 @@ import {
   GuidePtOrbit,
   OsPermissionDialog,
   PtRevealScene,
-  type PtHandoffId,
 } from './care-team-scenes';
 import { RewardConfirmationScene } from './reward-confirmation-scene';
 import { RewardRevealScene } from './reward-reveal-scene';
@@ -320,12 +319,10 @@ export function Experience({
   navigatorRef,
   onControlsChange,
   fastDemo = false,
-  handoff = 'A',
 }: {
   navigatorRef?: Ref<ExperienceHandle | null>;
   onControlsChange?: (state: ExperienceControls) => void;
   fastDemo?: boolean;
-  handoff?: PtHandoffId;
 } = {}) {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
@@ -341,7 +338,6 @@ export function Experience({
   const rewindLockRef = useRef(false);
   const fastDemoRef = useRef(fastDemo);
   fastDemoRef.current = fastDemo;
-  const handoffSeenRef = useRef(handoff);
   const stageRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<Phase>('entering');
   const [isHero, setIsHero] = useState(false);
@@ -384,14 +380,7 @@ export function Experience({
   turnsRef.current = turns;
   answersRef.current = answers;
 
-  let ptBeat: 0 | 1 | 2 = step.kind === 'pt-reveal' ? step.beat : 0;
-  if (handoffSeenRef.current !== handoff) {
-    handoffSeenRef.current = handoff;
-    if (step.kind === 'pt-reveal') {
-      ptBeat = 0;
-      if (step.beat !== 0) setStep({ kind: 'pt-reveal', beat: 0 });
-    }
-  }
+  const ptBeat: 0 | 1 | 2 = step.kind === 'pt-reveal' ? step.beat : 0;
 
   function nextTurnId() {
     turnIdRef.current += 1;
@@ -1419,10 +1408,8 @@ export function Experience({
         ) : null}
         {phase === 'phoenix' && step.kind === 'pt-reveal' ? (
           <PtRevealScene
-            key={handoff}
             beat={ptBeat}
             fastDemo={fastDemo}
-            handoff={handoff}
             onAdvance={advancePtReveal}
             onContinue={() => goToPanel({ kind: 'chat-intro', beat: 0 })}
           />
