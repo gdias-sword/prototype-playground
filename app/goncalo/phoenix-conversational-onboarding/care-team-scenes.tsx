@@ -2,6 +2,7 @@
 
 import { cn } from '@/design/utils';
 import { AnimatePresence, easeOut, motion } from 'framer-motion';
+import { ChevronLeft } from 'lucide-react';
 import {
   useEffect,
   useLayoutEffect,
@@ -22,6 +23,7 @@ import pt7 from './assets/pts/pt-7.png';
 import pt8 from './assets/pts/pt-8.png';
 import sessionCard from './assets/session-card.png';
 import swordMark from './assets/sword-mark.svg';
+import { HomeIndicator, StatusBar } from './device-frame';
 import { PrimaryAction } from './extended-scenes';
 import { LaurenPortrait } from './lauren-portrait';
 import { PhoenixOrb } from './phoenix-orb';
@@ -114,6 +116,90 @@ export function OsPermissionDialog({
         </div>
       </div>
     </div>
+  );
+}
+
+export function IosCameraSettings({
+  enabled,
+  onEnabledChange,
+  onBack,
+}: {
+  enabled: boolean;
+  onEnabledChange: (enabled: boolean) => void;
+  onBack: () => void;
+}) {
+  return (
+    <motion.div
+      className="absolute inset-0 z-50 flex flex-col bg-[#f2f2f7] text-black"
+      initial={{ y: '100%' }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.42, ease: easeOut }}
+    >
+      <StatusBar />
+      <div className="relative flex h-11 items-center px-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="relative z-10 flex cursor-pointer items-center text-[17px] text-[#007aff]"
+        >
+          <ChevronLeft className="-mr-0.5 size-6" strokeWidth={2.25} />
+          Sword
+        </button>
+        <p className="pointer-events-none absolute inset-x-0 text-center text-[17px] font-semibold">
+          Sword Health
+        </p>
+      </div>
+      <p className="px-8 pt-6 pb-2 text-[13px] text-black/45">
+        Allow Sword Health to Access
+      </p>
+      <div className="mx-4 overflow-hidden rounded-[10px] bg-white">
+        <div className="flex h-11 items-center justify-between px-4">
+          <span className="text-[17px]">Camera</span>
+          <IosSwitch
+            checked={enabled}
+            label="Camera"
+            onChange={onEnabledChange}
+          />
+        </div>
+      </div>
+      <p className="px-8 pt-2 text-[13px] leading-snug text-black/45">
+        Phoenix uses the camera to guide each movement. Video is never
+        recorded or stored.
+      </p>
+      <HomeIndicator />
+    </motion.div>
+  );
+}
+
+function IosSwitch({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative h-[31px] w-[51px] shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-out',
+        checked ? 'bg-[#34c759]' : 'bg-[#e9e9ea]',
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'absolute top-[2px] left-[2px] size-[27px] rounded-full bg-white shadow-[0_3px_8px_rgba(0,0,0,0.15)] transition-transform duration-200 ease-out',
+          checked && 'translate-x-5',
+        )}
+      />
+    </button>
   );
 }
 

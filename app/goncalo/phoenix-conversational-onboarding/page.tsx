@@ -1,5 +1,12 @@
 'use client';
 
+// Variants — where the exclusive “none” answer lives:
+// A — the button reads “None of the above” until a limitation is chosen, then Continue
+// B — exclusive none stays above the fold, separated from the list by “or”
+// C — none is the last checkbox in the scrolling list
+// D — none is the same list row, stuck to the bottom of the list
+
+import { VariantSwitcher } from '@/components/variant-switcher';
 import { Popover } from '@base-ui/react/popover';
 import {
   ChevronLeft,
@@ -11,7 +18,6 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import {
   JUMP_DESTINATIONS,
-  jumpDestinationForShortcut,
   type JumpDestinationId,
 } from './checkpoint-jumps';
 import { DeviceFrame } from './device-frame';
@@ -20,6 +26,7 @@ import {
   type ExperienceControls,
   type ExperienceHandle,
 } from './experience';
+import { type ImpactLayout } from './script';
 import './motion.css';
 import './reward-motion.css';
 
@@ -28,8 +35,33 @@ const EMPTY_CONTROLS: ExperienceControls = {
   canNext: false,
 };
 
+const variants = [
+  { id: 'A', label: 'None of the above, then Continue', layout: 'action' },
+  { id: 'B', label: 'None first, with or', layout: 'first' },
+  { id: 'C', label: 'None in the list', layout: 'list' },
+  { id: 'D', label: 'None stuck to the list', layout: 'sticky' },
+] as const satisfies ReadonlyArray<{
+  id: string;
+  label: string;
+  layout: ImpactLayout;
+}>;
+
+function layoutFor(variant: string): ImpactLayout {
+  return variants.find((item) => item.id === variant)?.layout ?? 'action';
+}
+
 export default function PhoenixConversationalOnboarding() {
+  return (
+    <VariantSwitcher variants={variants.map(({ id, label }) => ({ id, label }))}>
+      {(variant) => <Onboarding impactLayout={layoutFor(variant)} />}
+    </VariantSwitcher>
+  );
+}
+
+function Onboarding({ impactLayout }: { impactLayout: ImpactLayout }) {
   const navigatorRef = useRef<ExperienceHandle | null>(null);
+  const jumpsRef = useRef(JUMP_DESTINATIONS);
+  jumpsRef.current = JUMP_DESTINATIONS;
   const [replayKey, setReplayKey] = useState(0);
   const [fastDemo, setFastDemo] = useState(false);
   const [controls, setControls] = useState(EMPTY_CONTROLS);
@@ -96,7 +128,9 @@ export default function PhoenixConversationalOnboarding() {
         return;
       }
 
-      const destination = jumpDestinationForShortcut(event.key);
+      const destination = jumpsRef.current.find(
+        (item) => item.shortcut === event.key,
+      );
       if (destination) {
         event.preventDefault();
         handleJump(destination.id);
@@ -114,6 +148,7 @@ export default function PhoenixConversationalOnboarding() {
               <Experience
                 key={replayKey}
                 fastDemo={fastDemo}
+                impactLayout={impactLayout}
                 navigatorRef={navigatorRef}
                 onControlsChange={setControls}
               />

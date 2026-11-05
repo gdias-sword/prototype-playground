@@ -15,6 +15,7 @@ import {
   ChatIntroScene,
   ChatTransitionScene,
   GuidePtOrbit,
+  IosCameraSettings,
   OsPermissionDialog,
   PtRevealScene,
 } from './care-team-scenes';
@@ -25,6 +26,7 @@ import { ConversationShell } from './conversation-variants';
 import { HomeIndicatorSpace, StatusBar } from './device-frame';
 import {
   AddressPanel,
+  CameraBlockedPanel,
   CameraPanel,
   ConfirmPanel,
   KitTeaserPanel,
@@ -49,12 +51,14 @@ import {
   type ActivityId,
   type Answers,
   type DoorId,
+  type ImpactLayout,
   type ScheduleDay,
   type StackTurn,
   CALL_NO_LABEL,
   CALL_YES_LABEL,
   GUIDE_LINES,
   LATER_LABEL,
+  SESSION_LATER_LABEL,
   READY_LABEL,
   MAX_BODY_AREAS,
   MORE_NO_LABEL,
@@ -72,6 +76,8 @@ import {
   addressLine,
   callCareLine,
   callQuestion,
+  cameraBlockedLine,
+  cameraLaterCareLine,
   cameraLine,
   CARE_TEAM_CHAT,
   chatIntro,
@@ -189,6 +195,7 @@ function lineFor(step: PhoenixStep, answers: Answers) {
   if (step.kind === 'safety') return safetyLine();
   if (step.kind === 'placement-intro') return placementIntroLine();
   if (step.kind === 'camera') return cameraLine();
+  if (step.kind === 'camera-blocked') return cameraBlockedLine();
   if (step.kind === 'call') return callQuestion();
   if (step.kind === 'schedule') return scheduleLine();
   if (step.kind === 'confirm') return confirmLine();
@@ -275,6 +282,7 @@ function checkpointLabel(
   if (step.kind === 'session') return 'Session';
   if (step.kind === 'kit-teaser') return 'Welcome kit';
   if (step.kind === 'camera') return 'Camera';
+  if (step.kind === 'camera-blocked') return 'Camera off';
   if (step.kind === 'offer') return 'Session';
   if (step.kind === 'safety') return 'Safety';
   if (step.kind === 'placement-intro') return 'Setup';
@@ -319,10 +327,12 @@ export function Experience({
   navigatorRef,
   onControlsChange,
   fastDemo = false,
+  impactLayout = 'list',
 }: {
   navigatorRef?: Ref<ExperienceHandle | null>;
   onControlsChange?: (state: ExperienceControls) => void;
   fastDemo?: boolean;
+  impactLayout?: ImpactLayout;
 } = {}) {
   const turnIdRef = useRef(0);
   const timersRef = useRef<number[]>([]);
@@ -353,6 +363,8 @@ export function Experience({
   const [checkpointIndex, setCheckpointIndex] = useState(-1);
   const [sessionAfterReward, setSessionAfterReward] = useState(false);
   const [cameraPrompt, setCameraPrompt] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
   const [promptReady, setPromptReady] = useState(false);
   const [guideOrbitSpace, setGuideOrbitSpace] = useState(false);
   const [guideOrbitLive, setGuideOrbitLive] = useState(false);
@@ -528,6 +540,7 @@ export function Experience({
     setChatCount(snapshot.chatCount);
     setSessionAfterReward(snapshot.sessionAfterReward);
     setCameraPrompt(false);
+    setSettingsOpen(false);
     const latestTurn = snapshot.turns.at(-1);
     setPromptReady(
       latestTurn?.role !== 'phoenix' ||
@@ -584,6 +597,7 @@ export function Experience({
       jump.checkpoints[jump.targetIndex]?.sessionAfterReward ?? false,
     );
     setCameraPrompt(false);
+    setSettingsOpen(false);
     const latestJumpTurn = jump.turns.at(-1);
     setPromptReady(
       latestJumpTurn?.role !== 'phoenix' ||
@@ -913,6 +927,49 @@ export function Experience({
     goToPanel({ kind: 'placement' });
   }
 
+  function denyCamera() {
+    setCameraPrompt(false);
+    setCameraEnabled(false);
+    setSettingsOpen(false);
+    if (stepRef.current.kind === 'offer') {
+      pushTurns({
+        role: 'member',
+        text: START_SESSION_LABEL,
+        kind: 'answer',
+      });
+    }
+    goToQuestion({ kind: 'camera-blocked' }, cameraBlockedLine());
+  }
+
+  function closeCameraSettings() {
+    setSettingsOpen(false);
+    if (cameraEnabled) goToPanel({ kind: 'placement' });
+  }
+
+  function deferSession(care: string, label = LATER_LABEL) {
+    discardFutureCheckpoints();
+    setSkipToolDelay(false);
+    setSettingsOpen(false);
+    pushTurns({
+      role: 'member',
+      text: label,
+      kind: 'answer',
+    });
+    setStep({ kind: 'call' });
+    setMood('think');
+    speakCareThen(
+      care,
+      () => {
+        pushTurns({
+          role: 'phoenix',
+          text: callQuestion(),
+          kind: 'question',
+        });
+      },
+      LATER_CARE_LEAD_MS,
+    );
+  }
+
   function goToQuestion(next: PhoenixStep, line: string) {
     discardFutureCheckpoints();
     setSkipToolDelay(false);
@@ -1022,6 +1079,7 @@ export function Experience({
     selectedAnswer,
     selectedRegions,
     selectedImpacts,
+    impactLayout,
     canRewind:
       phase === 'exiting' ||
       canRewindFrom(checkpoints[checkpointIndex - 1]?.step),
@@ -1219,32 +1277,19 @@ export function Experience({
             }
           />
         ) : null}
+        {step.kind === 'camera-blocked' ? (
+          <CameraBlockedPanel
+            onOpenSettings={() => setSettingsOpen(true)}
+            onLater={() =>
+              deferSession(cameraLaterCareLine(), SESSION_LATER_LABEL)
+            }
+          />
+        ) : null}
         {step.kind === 'offer' ? (
           <OfferPanel
             area={currentArea(answers)}
             onStart={() => setCameraPrompt(true)}
-            onLater={() => {
-              discardFutureCheckpoints();
-              setSkipToolDelay(false);
-              pushTurns({
-                role: 'member',
-                text: LATER_LABEL,
-                kind: 'answer',
-              });
-              setStep({ kind: 'call' });
-              setMood('think');
-              speakCareThen(
-                callCareLine(),
-                () => {
-                  pushTurns({
-                    role: 'phoenix',
-                    text: callQuestion(),
-                    kind: 'question',
-                  });
-                },
-                LATER_CARE_LEAD_MS,
-              );
-            }}
+            onLater={() => deferSession(callCareLine())}
           />
         ) : null}
         {step.kind === 'safety' ? (
@@ -1475,7 +1520,14 @@ export function Experience({
           title="Sword Health would like to access the camera"
           body="This lets Phoenix guide each movement in real time. You can change this later in Settings."
           onAllow={finishCameraPrompt}
-          onDeny={finishCameraPrompt}
+          onDeny={denyCamera}
+        />
+      ) : null}
+      {settingsOpen ? (
+        <IosCameraSettings
+          enabled={cameraEnabled}
+          onEnabledChange={setCameraEnabled}
+          onBack={closeCameraSettings}
         />
       ) : null}
       {phase === 'phoenix' && step.kind === 'notify' && step.dialog ? (

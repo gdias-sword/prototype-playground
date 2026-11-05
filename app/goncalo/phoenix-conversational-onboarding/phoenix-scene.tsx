@@ -33,6 +33,7 @@ import {
   DURATIONS,
   IMPACT_MAX,
   IMPACT_NONE_LABEL,
+  IMPACT_NONE_PINNED_LABEL,
   MORE_NO_LABEL,
   MORE_YES_LABEL,
   READY_LABEL,
@@ -40,6 +41,7 @@ import {
   impactsFor,
   regionsFor,
   type ActivityId,
+  type ImpactLayout,
   type StackTurn,
 } from './script';
 import { useScrollFade } from './use-scroll-fade';
@@ -53,6 +55,7 @@ export type PhoenixStep =
   | { kind: 'session' }
   | { kind: 'kit-teaser' }
   | { kind: 'camera' }
+  | { kind: 'camera-blocked' }
   | { kind: 'offer' }
   | { kind: 'safety' }
   | { kind: 'placement-intro' }
@@ -105,6 +108,7 @@ export function hasConversationTools(step: PhoenixStep) {
     step.kind === 'remind' ||
     step.kind === 'kit-teaser' ||
     step.kind === 'camera' ||
+    step.kind === 'camera-blocked' ||
     step.kind === 'offer' ||
     step.kind === 'safety' ||
     step.kind === 'schedule' ||
@@ -337,13 +341,15 @@ function RegionTool({
   );
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="relative flex min-h-0 flex-1 flex-col">
       {usePhotos ? (
-        photoGrid
+        <div className="phoenix-chip-scroller -mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-5">
+          {photoGrid}
+        </div>
       ) : (
         <div
           ref={scrollerRef}
-          className="phoenix-chip-scroller -mx-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-5"
+          className="phoenix-chip-scroller -mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-5"
           data-fade-top={fadeTop || undefined}
           data-fade-bottom={fadeBottom || undefined}
           onScroll={onScroll}
@@ -377,11 +383,13 @@ function RegionTool({
 
 function ImpactTool({
   area,
+  layout,
   initialSelected,
   initialNone = false,
   onCommit,
 }: {
   area: string | null;
+  layout: ImpactLayout;
   initialSelected?: string[];
   initialNone?: boolean;
   onCommit: (impacts: string[]) => void;
@@ -413,11 +421,31 @@ function ImpactTool({
     setSelected([]);
   }
 
+  const mode =
+    layout === 'list' || layout === 'first' || layout === 'sticky'
+      ? layout
+      : 'action';
   const hasSelection = isNone || selected.length > 0;
+  const emptyMeansNone = mode === 'action' && selected.length === 0 && !isNone;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {mode === 'first' ? (
+        <div className="flex shrink-0 flex-col gap-3">
+          <GlassCheckRow selected={isNone} onClick={toggleNone}>
+            {IMPACT_NONE_PINNED_LABEL}
+          </GlassCheckRow>
+          <div className="text-body-small-default text-foreground-neutral-faded flex items-center gap-3">
+            <span className="border-border-neutral-default h-px flex-1 border-t" />
+            or
+            <span className="border-border-neutral-default h-px flex-1 border-t" />
+          </div>
+        </div>
+      ) : null}
+      <div
+        className="phoenix-chip-scroller -mx-4 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-2"
+        data-fade-bottom={mode === 'sticky' ? '' : undefined}
+      >
         {options.map((option) => (
           <GlassCheckRow
             key={option}
@@ -428,16 +456,25 @@ function ImpactTool({
             {option}
           </GlassCheckRow>
         ))}
-        <GlassCheckRow selected={isNone} onClick={toggleNone}>
-          {IMPACT_NONE_LABEL}
-        </GlassCheckRow>
+        {mode === 'list' ? (
+          <GlassCheckRow selected={isNone} onClick={toggleNone}>
+            {IMPACT_NONE_LABEL}
+          </GlassCheckRow>
+        ) : null}
       </div>
+      {mode === 'sticky' ? (
+        <div className="-mx-4 shrink-0 px-4">
+          <GlassCheckRow selected={isNone} onClick={toggleNone}>
+            {IMPACT_NONE_LABEL}
+          </GlassCheckRow>
+        </div>
+      ) : null}
       <FooterActions>
         <PrimaryAction
-          disabled={!hasSelection}
-          onClick={() => onCommit(isNone ? [] : selected)}
+          disabled={mode === 'action' ? false : !hasSelection}
+          onClick={() => onCommit(isNone || emptyMeansNone ? [] : selected)}
         >
-          Continue
+          {emptyMeansNone ? IMPACT_NONE_LABEL : 'Continue'}
         </PrimaryAction>
       </FooterActions>
     </div>
@@ -455,7 +492,7 @@ function DurationTool({
 
   return (
     <div className="flex flex-col">
-      <div className="flex flex-col gap-2">
+      <div className="-mx-4 flex flex-col gap-2 px-4">
         {DURATIONS.map((item) => (
           <GlassChip
             key={item}
@@ -684,6 +721,7 @@ export function PhoenixTools({
   selectedRegions,
   selectedImpacts,
   area,
+  impactLayout = 'list',
   onReady,
   onArea,
   onRegions,
@@ -705,6 +743,7 @@ export function PhoenixTools({
   selectedRegions?: string[];
   selectedImpacts?: string[];
   area?: string | null;
+  impactLayout?: ImpactLayout;
   onReady: () => void;
   onArea: (area: string) => void;
   onRegions?: (regions: string[]) => void;
@@ -754,6 +793,7 @@ export function PhoenixTools({
         <ImpactTool
           key={area ?? 'impact'}
           area={area ?? null}
+          layout={impactLayout}
           initialSelected={selectedImpacts}
           initialNone={
             (selectedImpacts?.length ?? 0) === 0 &&
@@ -831,6 +871,7 @@ export function isFormQuestion(step: PhoenixStep) {
     step.kind === 'remind' ||
     step.kind === 'kit-teaser' ||
     step.kind === 'camera' ||
+    step.kind === 'camera-blocked' ||
     step.kind === 'offer' ||
     step.kind === 'safety' ||
     step.kind === 'schedule' ||
@@ -853,6 +894,7 @@ export function optionCount(step: PhoenixStep, excludedAreas: string[]) {
   if (
     step.kind === 'kit-teaser' ||
     step.kind === 'camera' ||
+    step.kind === 'camera-blocked' ||
     step.kind === 'offer' ||
     step.kind === 'safety' ||
     step.kind === 'schedule' ||
@@ -1034,6 +1076,7 @@ export interface ConversationProps {
   selectedAnswer?: string | null;
   selectedRegions?: string[];
   selectedImpacts?: string[];
+  impactLayout?: ImpactLayout;
   canRewind?: boolean;
   isAtFrontier?: boolean;
   mood?: PhoenixMood;

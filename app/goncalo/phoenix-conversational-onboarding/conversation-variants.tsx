@@ -18,8 +18,11 @@ import {
 } from './phoenix-scene';
 import { impactHint, kitTeaserHint, safetyHint } from './script';
 
-function questionSubtitle(step: PhoenixStep) {
-  if (step.kind === 'impact') return impactHint();
+function questionSubtitle(props: ConversationProps) {
+  const { step } = props;
+  if (step.kind === 'impact') {
+    return impactHint();
+  }
   if (step.kind === 'kit-teaser') return kitTeaserHint();
   if (step.kind === 'safety') return safetyHint();
   return null;
@@ -111,6 +114,7 @@ function Tools(props: ConversationProps) {
       selectedRegions={props.selectedRegions}
       selectedImpacts={props.selectedImpacts}
       area={props.area}
+      impactLayout={props.impactLayout}
       onReady={props.onReady}
       onArea={props.onArea}
       onRegions={props.onRegions}
@@ -231,9 +235,9 @@ export function ConversationShell(props: ConversationProps) {
             })}
           </div>
         </StackFrame>
-        {isCompact && questionSubtitle(step) ? (
+        {isCompact && questionSubtitle(props) ? (
           <p className="text-body-large-default text-foreground-neutral-default mt-4 shrink-0">
-            {questionSubtitle(step)}
+            {questionSubtitle(props)}
           </p>
         ) : null}
         <Tools {...props} />

@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/design/utils';
+import { ChevronDown } from 'lucide-react';
 import {
   useEffect,
   useRef,
@@ -15,7 +16,7 @@ import icTagClock from './assets/ic-tag-clock.svg';
 import icWorld from './assets/ic-world.svg';
 import sessionCard from './assets/session-card.png';
 import welcomeKitBox from './assets/welcome-kit-box.png';
-import { ChevronDown } from 'lucide-react';
+import { GlassCheckRow, GlassChip, glassSurfaceClasses } from './glass';
 import {
   ACTIVITIES,
   CALL_NO_LABEL,
@@ -23,14 +24,16 @@ import {
   CAMERA_PRIVACY,
   ENABLE_CAMERA_LABEL,
   LATER_LABEL,
+  OPEN_SETTINGS_LABEL,
   REMIND_NO_LABEL,
   REMIND_YES_LABEL,
   SAFETY_FLAGS,
   SAFETY_NONE_LABEL,
-  SEND_KIT_LABEL,
   SCHEDULE_DAYS,
   SCHEDULE_MONTH,
   SCHEDULE_ZONE,
+  SEND_KIT_LABEL,
+  SESSION_LATER_LABEL,
   START_SESSION_LABEL,
   appointmentDayLabel,
   checkupTitle,
@@ -38,7 +41,6 @@ import {
   type ActivityId,
   type ScheduleDay,
 } from './script';
-import { GlassCheckRow, GlassChip, glassSurfaceClasses } from './glass';
 import { useScrollFade } from './use-scroll-fade';
 
 function assetSrc(asset: string | { src: string }) {
@@ -352,6 +354,65 @@ export function CameraPanel({ onEnable }: { onEnable: () => void }) {
   );
 }
 
+const CAMERA_SETTINGS_STEPS = [
+  'Open Settings',
+  'Turn on Camera',
+  'Come back to Sword',
+] as const;
+
+export function CameraBlockedPanel({
+  onOpenSettings,
+  onLater,
+}: {
+  onOpenSettings: () => void;
+  onLater: () => void;
+}) {
+  return (
+    <div className="mt-8 flex min-h-0 flex-1 flex-col">
+      <div className="overflow-hidden rounded-3xl bg-white">
+        {CAMERA_SETTINGS_STEPS.map((title, index) => (
+          <div
+            key={title}
+            className="flex items-center gap-4 border-black/[0.06] px-4 py-3.5 [&+&]:border-t"
+          >
+            <span className="text-foreground-neutral-default flex size-7 shrink-0 items-center justify-center rounded-full bg-[#f2f2f7] text-[15px] font-semibold">
+              {index + 1}
+            </span>
+            <span className="text-body-medium-subtle text-foreground-neutral-default">
+              {title}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-1.5 px-1 pt-4">
+        <span className="relative size-4 shrink-0 overflow-clip">
+          <img
+            alt=""
+            aria-hidden
+            src={assetSrc(icSecurity)}
+            className="absolute inset-0 size-full"
+          />
+        </span>
+        <p className="text-body-small-default text-foreground-neutral-default">
+          {CAMERA_PRIVACY}
+        </p>
+      </div>
+      <FooterActions>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="text-body-large-strong bg-background-neutral-inverse text-foreground-neutral-inverse flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl"
+        >
+          {OPEN_SETTINGS_LABEL}
+        </button>
+        <SecondaryAction onClick={onLater}>
+          {SESSION_LATER_LABEL}
+        </SecondaryAction>
+      </FooterActions>
+    </div>
+  );
+}
+
 function OfferPiece({
   index,
   ready,
@@ -648,7 +709,11 @@ export function SafetyPanel({
           </GlassCheckRow>
         </div>
       </OfferPiece>
-      <OfferPiece index={1} ready={headlineReady} className="mt-auto w-full pb-2">
+      <OfferPiece
+        index={1}
+        ready={headlineReady}
+        className="mt-auto w-full pb-2"
+      >
         <PrimaryAction
           disabled={!hasSelection}
           onClick={() => onContinue(isNone ? [] : selected)}
@@ -828,12 +893,7 @@ export function ConfirmPanel({
           label="Day"
           value={appointmentDayLabel(day)}
         />
-        <SummaryRow
-          ready
-          icon={icClock}
-          label="Time"
-          value={time}
-        />
+        <SummaryRow ready icon={icClock} label="Time" value={time} />
         <SummaryRow
           ready
           icon={icWorld}
@@ -907,16 +967,14 @@ export function ActivityTool({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-col gap-2">
+      <div className="-mx-4 flex flex-col gap-2 px-4">
         {ACTIVITIES.map((activity) => {
           const isSelected = selected === activity.id;
           return (
             <GlassChip
               key={activity.id}
               selected={isSelected}
-              rewindSelected={
-                rewind.isRewind && !rewind.isDirty && isSelected
-              }
+              rewindSelected={rewind.isRewind && !rewind.isDirty && isSelected}
               onClick={() => rewind.choose(activity.id, onCommit)}
               className={cn(
                 'grid justify-items-center overflow-hidden text-center',

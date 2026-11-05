@@ -93,6 +93,16 @@ export const DURATIONS = [
 
 export const IMPACT_MAX = 2;
 export const IMPACT_NONE_LABEL = 'None of the above';
+export const IMPACT_NONE_PINNED_LABEL = 'None of these limit me';
+
+export const IMPACT_LAYOUTS = [
+  { id: 'action', label: 'None of the above, then Continue' },
+  { id: 'first', label: 'None first, with “or”' },
+  { id: 'list', label: 'In the list' },
+  { id: 'sticky', label: 'Stuck to the list' },
+] as const;
+
+export type ImpactLayout = (typeof IMPACT_LAYOUTS)[number]['id'];
 
 export type DoorId = 'session' | 'scheduled' | 'later';
 
@@ -135,7 +145,9 @@ export const SAFETY_NONE_LABEL = 'None of the above';
 
 export const START_SESSION_LABEL = "I'm ready";
 export const ENABLE_CAMERA_LABEL = 'Continue';
+export const OPEN_SETTINGS_LABEL = 'Open Settings';
 export const LATER_LABEL = 'I can’t right now';
+export const SESSION_LATER_LABEL = 'I will do my session later';
 export const CALL_YES_LABEL = 'Yes, let’s talk';
 export const CALL_NO_LABEL = 'Not right now';
 export const REMIND_YES_LABEL = 'Yes, remind me';
@@ -307,6 +319,14 @@ export function sessionIntroLine(area: string) {
 
 export function cameraLine() {
   return 'We’ll use your camera to guide each movement and give you real-time feedback.';
+}
+
+export function cameraBlockedLine() {
+  return 'This session needs your camera, so we can’t start just yet.';
+}
+
+export function cameraLaterCareLine() {
+  return 'No problem. We’ll keep your place — turn the camera on whenever you’re ready.';
 }
 
 export const CAMERA_PRIVACY =
@@ -503,7 +523,8 @@ export const PT_MEET_STAT = 'Helped 340 members recover from pain';
 export const PT_MEET_QUOTE =
   'I’m looking forward to helping you get back to living without pain.';
 
-export const CHAT_INTRO_TITLE = 'Me and Lauren will be your dedicated care team';
+export const CHAT_INTRO_TITLE =
+  'Me and Lauren will be your dedicated care team';
 export const CHAT_INTRO_HINT =
   'Available 24/7 to support you during the program.';
 
