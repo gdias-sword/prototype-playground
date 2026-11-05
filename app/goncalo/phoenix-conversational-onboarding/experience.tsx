@@ -1249,6 +1249,14 @@ export function Experience({
         ) : null}
         {step.kind === 'safety' ? (
           <SafetyPanel
+            initialSelected={
+              !isAtFrontier ? answers.safetyFlags : undefined
+            }
+            initialNone={
+              !isAtFrontier &&
+              answers.safetyFlags.length === 0 &&
+              selectedAnswer === SAFETY_NONE_LABEL
+            }
             onContinue={(flags) => {
               const nextAnswers = { ...answers, safetyFlags: flags };
               setAnswers(nextAnswers);

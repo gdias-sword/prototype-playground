@@ -14,7 +14,16 @@ import {
   useStackWindow,
   windowedTurns,
   type ConversationProps,
+  type PhoenixStep,
 } from './phoenix-scene';
+import { impactHint, kitTeaserHint, safetyHint } from './script';
+
+function questionSubtitle(step: PhoenixStep) {
+  if (step.kind === 'impact') return impactHint();
+  if (step.kind === 'kit-teaser') return kitTeaserHint();
+  if (step.kind === 'safety') return safetyHint();
+  return null;
+}
 
 const LIST_CLASS = 'flex w-full shrink-0 flex-col items-stretch gap-2.5';
 const STACK_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
@@ -222,6 +231,11 @@ export function ConversationShell(props: ConversationProps) {
             })}
           </div>
         </StackFrame>
+        {isCompact && questionSubtitle(step) ? (
+          <p className="text-body-large-default text-foreground-neutral-default mt-4 shrink-0">
+            {questionSubtitle(step)}
+          </p>
+        ) : null}
         <Tools {...props} />
       </div>
     </div>

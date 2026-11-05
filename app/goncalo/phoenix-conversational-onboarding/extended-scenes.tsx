@@ -22,7 +22,6 @@ import {
   CALL_YES_LABEL,
   CAMERA_PRIVACY,
   ENABLE_CAMERA_LABEL,
-  kitTeaserHint,
   LATER_LABEL,
   REMIND_NO_LABEL,
   REMIND_YES_LABEL,
@@ -35,7 +34,6 @@ import {
   START_SESSION_LABEL,
   appointmentDayLabel,
   checkupTitle,
-  safetyHint,
   scheduleTimesForDay,
   type ActivityId,
   type ScheduleDay,
@@ -472,10 +470,7 @@ export function KitTeaserPanel({ onContinue }: { onContinue: () => void }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <p className="text-body-large-default text-foreground-neutral-default">
-        {kitTeaserHint()}
-      </p>
-      <div className="relative mt-8 min-h-0 w-full flex-1 overflow-hidden">
+      <div className="relative mt-2 min-h-0 w-full flex-1 overflow-hidden">
         <video
           ref={videoRef}
           muted
@@ -581,17 +576,30 @@ export function OfferPanel({
 }
 
 export function SafetyPanel({
+  initialSelected,
+  initialNone = false,
   onContinue,
 }: {
+  initialSelected?: string[];
+  initialNone?: boolean;
   onContinue: (flags: string[]) => void;
 }) {
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(() =>
+    initialNone ? [] : (initialSelected ?? []),
+  );
+  const [isNone, setIsNone] = useState(initialNone);
   const [headlineReady] = useState(true);
   const { scrollerRef, fadeTop, fadeBottom, onScroll } = useScrollFade([
     headlineReady,
   ]);
 
+  useEffect(() => {
+    setSelected(initialNone ? [] : (initialSelected ?? []));
+    setIsNone(initialNone);
+  }, [initialNone, initialSelected]);
+
   function toggle(flag: string) {
+    if (isNone) return;
     setSelected((current) =>
       current.includes(flag)
         ? current.filter((item) => item !== flag)
@@ -599,20 +607,22 @@ export function SafetyPanel({
     );
   }
 
+  function toggleNone() {
+    setIsNone((current) => !current);
+    setSelected([]);
+  }
+
+  const hasSelection = isNone || selected.length > 0;
+
   return (
     <div
       className="flex min-h-0 flex-1 flex-col"
       inert={!headlineReady || undefined}
     >
-      <OfferPiece index={0} ready={headlineReady}>
-        <p className="text-body-large-default text-foreground-neutral-default">
-          {safetyHint()}
-        </p>
-      </OfferPiece>
       <OfferPiece
-        index={1}
+        index={0}
         ready={headlineReady}
-        className="mt-4 flex min-h-0 flex-1 flex-col pb-4"
+        className="flex min-h-0 flex-1 flex-col pb-4"
       >
         <div
           ref={scrollerRef}
@@ -627,20 +637,23 @@ export function SafetyPanel({
             <GlassCheckRow
               key={flag}
               selected={selected.includes(flag)}
+              disabled={isNone}
               onClick={() => toggle(flag)}
             >
               {flag}
             </GlassCheckRow>
           ))}
+          <GlassCheckRow selected={isNone} onClick={toggleNone}>
+            {SAFETY_NONE_LABEL}
+          </GlassCheckRow>
         </div>
       </OfferPiece>
-      <OfferPiece
-        index={2}
-        ready={headlineReady}
-        className="mt-auto w-full pb-2"
-      >
-        <PrimaryAction onClick={() => onContinue(selected)}>
-          {selected.length > 0 ? 'Continue' : SAFETY_NONE_LABEL}
+      <OfferPiece index={1} ready={headlineReady} className="mt-auto w-full pb-2">
+        <PrimaryAction
+          disabled={!hasSelection}
+          onClick={() => onContinue(isNone ? [] : selected)}
+        >
+          Continue
         </PrimaryAction>
       </OfferPiece>
     </div>

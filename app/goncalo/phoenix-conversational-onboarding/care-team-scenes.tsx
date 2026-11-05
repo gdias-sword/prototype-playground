@@ -56,15 +56,15 @@ const RING = [
   { src: pt2, hero: false },
 ] as const;
 
-const ORBIT_RADIUS = 198;
+const ORBIT_RADIUS = 200;
 const SPIN_DEG_PER_MS = 0.05;
 const SEARCH_BEAT_MS = 2000;
 const RELEASE_MS = 1560;
 
 // Release: spin speed never changes. Lauren peels off to the portrait
 // while the rest of the ring keeps turning and fades.
-const SEARCH_PULSE_MS = 1680;
-const SEARCH_PULSE_FLOOR = 0.62;
+const SEARCH_PULSE_MS = 2000;
+const SEARCH_PULSE_FLOOR = 0.5;
 
 const MEET_WORDS = [
   [
@@ -916,8 +916,8 @@ export function PtRevealScene({
             <p
               className={
                 instant
-                  ? 'text-body-large-default text-foreground-neutral-default mt-3'
-                  : 'text-body-large-default text-foreground-neutral-default pt-meet-stat mt-3'
+                  ? 'text-body-large-default text-foreground-neutral-default mt-4'
+                  : 'text-body-large-default text-foreground-neutral-default pt-meet-stat mt-4'
               }
             >
               Helped{' '}
@@ -1238,7 +1238,7 @@ export function ChatIntroScene({
         </div>
         <div
           className={cn(
-            'mt-3 grid w-full max-w-[300px]',
+            'mt-4 grid w-full max-w-[300px]',
             !instant && 'chat-intro-enter chat-intro-enter-late',
           )}
         >

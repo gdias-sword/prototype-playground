@@ -67,6 +67,7 @@ export function GlassCheckRow({
   children,
   className,
   selected,
+  disabled,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   selected?: boolean;
@@ -77,10 +78,13 @@ export function GlassCheckRow({
       type="button"
       role="checkbox"
       aria-checked={selected}
+      disabled={disabled}
       className={glassSurfaceClasses({
         selected,
+        interactive: !disabled,
         className: cn(
-          'flex w-full cursor-pointer items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left',
+          'flex w-full items-center justify-between gap-4 rounded-2xl px-5 py-4 text-left',
+          disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer',
           className,
         ),
       })}

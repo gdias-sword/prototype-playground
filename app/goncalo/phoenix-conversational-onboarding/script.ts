@@ -34,11 +34,11 @@ export const AREA_IMPACTS: Record<BodyArea, readonly string[]> = {
     'Turning your head quickly',
   ],
   Shoulder: [
-    'Reaching overhead',
-    'Carrying a bag or groceries',
-    'Lying comfortably on that side',
-    'Doing recreational activities',
-    'Using both arms equally',
+    'Reaching overhead (a shelf, a cabinet, putting on a shirt) without sharp pain',
+    'Carrying a bag or groceries on that side without it aching or giving out',
+    'Sleeping on that side or lying comfortably without being woken by pain',
+    'Doing recreational activities I enjoy (sport, gardening, swimming) without holding back',
+    'Using both arms equally for everyday tasks without protecting the sore side',
   ],
   Elbow: [
     'Lifting everyday objects',

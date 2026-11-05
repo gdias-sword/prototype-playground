@@ -33,7 +33,6 @@ import {
   DURATIONS,
   IMPACT_MAX,
   IMPACT_NONE_LABEL,
-  impactHint,
   MORE_NO_LABEL,
   MORE_YES_LABEL,
   READY_LABEL,
@@ -379,20 +378,27 @@ function RegionTool({
 function ImpactTool({
   area,
   initialSelected,
+  initialNone = false,
   onCommit,
 }: {
   area: string | null;
   initialSelected?: string[];
+  initialNone?: boolean;
   onCommit: (impacts: string[]) => void;
 }) {
   const options = impactsFor(area);
-  const [selected, setSelected] = useState<string[]>(() => initialSelected ?? []);
+  const [selected, setSelected] = useState<string[]>(() =>
+    initialNone ? [] : (initialSelected ?? []),
+  );
+  const [isNone, setIsNone] = useState(initialNone);
 
   useEffect(() => {
-    setSelected(initialSelected ?? []);
-  }, [initialSelected]);
+    setSelected(initialNone ? [] : (initialSelected ?? []));
+    setIsNone(initialNone);
+  }, [initialNone, initialSelected]);
 
   function toggle(option: string) {
+    if (isNone) return;
     setSelected((current) => {
       if (current.includes(option)) {
         return current.filter((item) => item !== option);
@@ -402,26 +408,37 @@ function ImpactTool({
     });
   }
 
-  const label = selected.length > 0 ? 'Continue' : IMPACT_NONE_LABEL;
+  function toggleNone() {
+    setIsNone((current) => !current);
+    setSelected([]);
+  }
+
+  const hasSelection = isNone || selected.length > 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <p className="text-body-large-default text-foreground-neutral-default mb-4 shrink-0">
-        {impactHint()}
-      </p>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {options.map((option) => (
           <GlassCheckRow
             key={option}
             selected={selected.includes(option)}
+            disabled={isNone}
             onClick={() => toggle(option)}
           >
             {option}
           </GlassCheckRow>
         ))}
+        <GlassCheckRow selected={isNone} onClick={toggleNone}>
+          {IMPACT_NONE_LABEL}
+        </GlassCheckRow>
       </div>
       <FooterActions>
-        <PrimaryAction onClick={() => onCommit(selected)}>{label}</PrimaryAction>
+        <PrimaryAction
+          disabled={!hasSelection}
+          onClick={() => onCommit(isNone ? [] : selected)}
+        >
+          Continue
+        </PrimaryAction>
       </FooterActions>
     </div>
   );
@@ -738,6 +755,10 @@ export function PhoenixTools({
           key={area ?? 'impact'}
           area={area ?? null}
           initialSelected={selectedImpacts}
+          initialNone={
+            (selectedImpacts?.length ?? 0) === 0 &&
+            selectedAnswer === IMPACT_NONE_LABEL
+          }
           onCommit={onImpact}
         />
       ) : null}
