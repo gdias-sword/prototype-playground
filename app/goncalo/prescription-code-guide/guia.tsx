@@ -151,7 +151,7 @@ function pixelFrame(
 }
 
 const zoomFrames: Record<CodeId, CodeRegion> = {
-  requisicao: pixelFrame(1456, 51, 598, 171),
+  requisicao: pixelFrame(1464, 56, 624, 166),
   acesso: pixelFrame(55, 562, 457, 60),
   prestacao: pixelFrame(664, 562, 492, 60),
 };
