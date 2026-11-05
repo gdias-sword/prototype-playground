@@ -29,8 +29,8 @@ export const codes: PrescriptionCode[] = [
     id: 'acesso',
     label: 'Código de acesso',
     placeholder: 'ex.: 314321',
-    cue: 'Na linha de informação, do lado esquerdo,abaixo do número SNS.',
-    sheet: 'Na linha de informação, do lado esquerdo,abaixo do número SNS.',
+    cue: 'Na linha de informação, abaixo do número SNS.',
+    sheet: 'Na linha de informação, abaixo do número SNS.',
     region: { left: 1.6, top: 44.6, width: 31, height: 4.8 },
   },
   {

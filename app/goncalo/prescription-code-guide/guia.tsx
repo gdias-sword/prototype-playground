@@ -24,6 +24,28 @@ function padded(region: CodeRegion, amount: number): CodeRegion {
   };
 }
 
+const source = { width: 2148, height: 1234 };
+
+function pixelFrame(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): CodeRegion {
+  return {
+    left: (x / source.width) * 100,
+    top: (y / source.height) * 100,
+    width: (width / source.width) * 100,
+    height: (height / source.height) * 100,
+  };
+}
+
+const zoomFrames: Record<CodeId, CodeRegion> = {
+  requisicao: pixelFrame(1464, 56, 624, 166),
+  acesso: pixelFrame(55, 562, 457, 60),
+  prestacao: pixelFrame(664, 562, 492, 60),
+};
+
 export function GuiaCrop({
   id,
   className,
@@ -72,12 +94,7 @@ export function GuiaFigure({
   mode: 'marks' | 'spot';
   onSelect?: (id: CodeId) => void;
 }) {
-  const spot =
-    mode === 'spot'
-      ? active
-        ? codes.find((item) => item.id === active)
-        : null
-      : null;
+  const spot = mode === 'spot' && active ? zoomFrames[active] : null;
 
   return (
     <figure className="flex flex-col gap-3">
@@ -92,16 +109,17 @@ export function GuiaFigure({
             aria-hidden
             className="pointer-events-none absolute rounded-md ring-2 ring-[#4a89e8]"
             style={{
-              left: `${spot.region.left}%`,
-              top: `${spot.region.top}%`,
-              width: `${spot.region.width}%`,
-              height: `${spot.region.height}%`,
+              left: `${spot.left}%`,
+              top: `${spot.top}%`,
+              width: `${spot.width}%`,
+              height: `${spot.height}%`,
               boxShadow: '0 0 0 9999px rgba(13, 13, 13, 0.55)',
             }}
           />
         ) : null}
         {mode === 'marks'
           ? codes.map((code) => {
+              const frame = zoomFrames[code.id];
               const isActive = code.id === active;
               return (
                 <button
@@ -117,10 +135,10 @@ export function GuiaFigure({
                       : 'ring-transparent hover:ring-[#4a89e8]/70',
                   )}
                   style={{
-                    left: `${code.region.left}%`,
-                    top: `${code.region.top}%`,
-                    width: `${code.region.width}%`,
-                    height: `${code.region.height}%`,
+                    left: `${frame.left}%`,
+                    top: `${frame.top}%`,
+                    width: `${frame.width}%`,
+                    height: `${frame.height}%`,
                   }}
                 />
               );
@@ -133,28 +151,6 @@ export function GuiaFigure({
     </figure>
   );
 }
-
-const source = { width: 2148, height: 1234 };
-
-function pixelFrame(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): CodeRegion {
-  return {
-    left: (x / source.width) * 100,
-    top: (y / source.height) * 100,
-    width: (width / source.width) * 100,
-    height: (height / source.height) * 100,
-  };
-}
-
-const zoomFrames: Record<CodeId, CodeRegion> = {
-  requisicao: pixelFrame(1464, 56, 624, 166),
-  acesso: pixelFrame(55, 562, 457, 60),
-  prestacao: pixelFrame(664, 562, 492, 60),
-};
 
 function useElementSize(ref: RefObject<HTMLElement | null>) {
   const [size, setSize] = useState({ width: 0, height: 0 });

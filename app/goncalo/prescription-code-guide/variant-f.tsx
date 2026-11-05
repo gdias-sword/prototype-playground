@@ -3,7 +3,7 @@
 import { Dialog } from '@base-ui/react/dialog';
 import { Info } from 'lucide-react';
 import { useState } from 'react';
-import { codeById, codes, type CodeId } from './codes';
+import { codeById, codes, type CodeId, type PrescriptionCode } from './codes';
 import { GuiaSheetZoom } from './guia';
 import {
   Actions,
@@ -22,6 +22,35 @@ export function VariantF() {
   const [openCount, setOpenCount] = useState(0);
   const code = codeById(sheet);
 
+  function field(item: PrescriptionCode) {
+    return (
+      <div key={item.id} className="flex min-w-0 flex-col">
+        <CodeInput
+          code={item}
+          value={values[item.id]}
+          active={active === item.id}
+          onActivate={() => setActive(item.id)}
+          onValue={(value) =>
+            setValues((current) => ({ ...current, [item.id]: value }))
+          }
+          labelAction={
+            <Dialog.Trigger
+              type="button"
+              aria-label={`Como encontrar ${item.label}`}
+              onClick={() => setSheet(item.id)}
+              className="grid size-5 cursor-pointer place-items-center rounded-full text-[#5e5e5e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
+            >
+              <Info className="size-4" strokeWidth={2} aria-hidden />
+            </Dialog.Trigger>
+          }
+        />
+        <p id={`${item.id}-cue`} className="sr-only">
+          {item.cue}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <Dialog.Root
       onOpenChange={(open) => {
@@ -33,32 +62,10 @@ export function VariantF() {
           <Progress />
           <ScreenTitle>Introduza os dados da sua prescrição</ScreenTitle>
           <div className="flex flex-col gap-10">
-            {codes.map((item) => (
-              <div key={item.id} className="flex flex-col">
-                <CodeInput
-                  code={item}
-                  value={values[item.id]}
-                  active={active === item.id}
-                  onActivate={() => setActive(item.id)}
-                  onValue={(value) =>
-                    setValues((current) => ({ ...current, [item.id]: value }))
-                  }
-                  labelAction={
-                    <Dialog.Trigger
-                      type="button"
-                      aria-label={`Como encontrar ${item.label}`}
-                      onClick={() => setSheet(item.id)}
-                      className="grid size-5 cursor-pointer place-items-center rounded-full text-[#5e5e5e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
-                    >
-                      <Info className="size-4" strokeWidth={2} aria-hidden />
-                    </Dialog.Trigger>
-                  }
-                />
-                <p id={`${item.id}-cue`} className="sr-only">
-                  {item.cue}
-                </p>
-              </div>
-            ))}
+            {field(codes[0])}
+            <div className="grid gap-x-4 gap-y-10 [grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))]">
+              {codes.slice(1).map(field)}
+            </div>
           </div>
         </main>
         <Actions />
