@@ -40,22 +40,12 @@ export function VariantE() {
     <EnrollmentScreen>
       <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-8 px-6 pt-6 pb-48 md:px-10 md:pt-8">
         <Progress />
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:grid-rows-[auto_auto] lg:items-stretch lg:gap-x-10 lg:gap-y-8">
-          <div className="order-1 flex flex-col gap-4 lg:col-start-1 lg:row-start-1">
-            <ScreenTitle>Introduza os dados da sua prescrição</ScreenTitle>
-            <ExampleNote />
-          </div>
-          <div className="relative order-2 h-[300px] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:h-auto">
-            <div className="h-full lg:absolute lg:inset-0">
-              <GuiaZoom
-                active={active}
-                zoomed={zoomed}
-                onZoomedChange={setZoomed}
-                onSelect={focusField}
-              />
-            </div>
-          </div>
-          <div className="order-3 flex flex-col gap-10 lg:col-start-1 lg:row-start-2">
+        <div className="flex flex-col gap-4">
+          <ScreenTitle>Introduza os dados da sua prescrição</ScreenTitle>
+          <ExampleNote />
+        </div>
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:items-stretch lg:gap-10">
+          <div className="order-2 flex flex-col gap-10 lg:order-1">
             {codes.map((code) => (
               <div key={code.id} className="flex flex-col gap-2">
                 <CodeInput
@@ -86,6 +76,16 @@ export function VariantE() {
                 </p>
               </div>
             ))}
+          </div>
+          <div className="relative order-1 h-[300px] lg:order-2 lg:h-full lg:min-h-[320px]">
+            <div className="h-full lg:absolute lg:inset-0">
+              <GuiaZoom
+                active={active}
+                zoomed={zoomed}
+                onZoomedChange={setZoomed}
+                onSelect={focusField}
+              />
+            </div>
           </div>
         </div>
       </main>

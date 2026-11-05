@@ -28,15 +28,12 @@ export function VariantA() {
     <EnrollmentScreen>
       <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-8 px-6 pt-6 pb-48 md:px-10 md:pt-8">
         <Progress />
+        <div className="flex flex-col gap-4">
+          <ScreenTitle>Introduza os dados da sua prescrição</ScreenTitle>
+          <ExampleNote />
+        </div>
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-10">
-          <div className="flex flex-col gap-4 lg:col-start-1 lg:row-start-1">
-            <ScreenTitle>Introduza os dados da sua prescrição</ScreenTitle>
-            <ExampleNote />
-          </div>
-          <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:sticky lg:top-6">
-            <GuiaFigure active={active} mode="marks" onSelect={focus} />
-          </div>
-          <div className="flex flex-col gap-10 lg:col-start-1 lg:row-start-2">
+          <div className="order-2 flex flex-col gap-10 lg:order-1">
             {codes.map((code) => (
               <div key={code.id} className="flex flex-col gap-2">
                 <CodeInput
@@ -63,6 +60,9 @@ export function VariantA() {
                 </p>
               </div>
             ))}
+          </div>
+          <div className="order-1 lg:sticky lg:top-6 lg:order-2">
+            <GuiaFigure active={active} mode="marks" onSelect={focus} />
           </div>
         </div>
       </main>
