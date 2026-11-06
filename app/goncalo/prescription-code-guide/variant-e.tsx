@@ -38,7 +38,7 @@ export function VariantE() {
 
   return (
     <EnrollmentScreen>
-      <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-8 px-6 pt-6 pb-48 md:px-10 md:pt-8">
+      <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-8 px-6 pt-6 pb-28 md:px-10 md:pt-8">
         <Progress />
         <div className="flex flex-col gap-4">
           <ScreenTitle>Introduza os dados da sua prescrição</ScreenTitle>
@@ -82,7 +82,6 @@ export function VariantE() {
               <GuiaZoom
                 active={active}
                 zoomed={zoomed}
-                onZoomedChange={setZoomed}
                 onSelect={focusField}
               />
             </div>

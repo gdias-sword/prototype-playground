@@ -371,13 +371,11 @@ export function GuiaSheetZoom({
 export function GuiaZoom({
   active,
   zoomed,
-  onZoomedChange,
   onSelect,
   className,
 }: {
   active: CodeId | null;
   zoomed: boolean;
-  onZoomedChange: (zoomed: boolean) => void;
   onSelect: (id: CodeId) => void;
   className?: string;
 }) {
@@ -388,7 +386,7 @@ export function GuiaZoom({
   const ready = scale > 0;
 
   return (
-    <figure className={cn('flex h-full min-h-0 flex-col gap-3', className)}>
+    <figure className={cn('flex h-full min-h-0 flex-col', className)}>
       <div
         ref={frameRef}
         className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-[#e8e8e8] bg-white"
@@ -440,21 +438,6 @@ export function GuiaZoom({
             );
           })}
         </div>
-      </div>
-      <div className="flex items-center justify-between gap-3">
-        <figcaption className="text-[13px] leading-5 text-[#5e5e5e]">
-          Exemplo de guia. Não use estes números.
-        </figcaption>
-        {active ? (
-          <button
-            type="button"
-            aria-pressed={zoomed}
-            onClick={() => onZoomedChange(!zoomed)}
-            className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full bg-[#e8e8e8] px-3 text-[13px] leading-5 font-semibold text-[#0d0d0d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
-          >
-            {zoomed ? 'Ver tudo' : 'Aproximar'}
-          </button>
-        ) : null}
       </div>
     </figure>
   );

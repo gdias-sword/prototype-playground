@@ -108,7 +108,7 @@ export function CodeInput({
         onBlur={onBlur}
         onChange={(event) => onValue(event.target.value)}
         className={cn(
-          'h-16 w-full rounded-2xl border bg-white px-4 text-[14px] leading-5 font-medium text-[#0d0d0d] placeholder:text-[#5e5e5e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]',
+          'h-16 w-full rounded-2xl border bg-white px-4 text-[16px] leading-5 font-medium text-[#0d0d0d] placeholder:text-[#5e5e5e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414] md:text-[14px]',
           active ? 'border-[#4a89e8]' : 'border-[#c2c2c2]',
         )}
       />
@@ -126,7 +126,7 @@ export function Actions({
   continueLabel?: string;
 }) {
   return (
-    <div className="fixed inset-x-0 bottom-24 z-30 flex justify-center px-6">
+    <div className="fixed inset-x-0 bottom-0 z-30 flex justify-center px-6 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <div className="flex w-full max-w-[400px] items-center gap-4 md:w-auto">
         <button
           type="button"
