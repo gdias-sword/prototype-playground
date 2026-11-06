@@ -1,7 +1,13 @@
 'use client';
 
 import { cn } from '@/design/utils';
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import guia from './assets/guia.png';
 import { codes, type CodeId, type CodeRegion } from './codes';
 
@@ -10,6 +16,8 @@ function imageSrc(asset: string | { src: string }) {
 }
 
 const guiaSrc = imageSrc(guia);
+const source = { width: 2148, height: 1234 };
+const dim = 'rgba(13, 13, 13, 0.28)';
 
 function padded(region: CodeRegion, amount: number): CodeRegion {
   const left = Math.max(0, region.left - amount);
@@ -23,8 +31,6 @@ function padded(region: CodeRegion, amount: number): CodeRegion {
     height: bottom - top,
   };
 }
-
-const source = { width: 2148, height: 1234 };
 
 function pixelFrame(
   x: number,
@@ -46,114 +52,46 @@ const zoomFrames: Record<CodeId, CodeRegion> = {
   prestacao: pixelFrame(664, 562, 492, 60),
 };
 
-export function GuiaCrop({
-  id,
+function frameStyle(frame: CodeRegion) {
+  return {
+    left: `${frame.left}%`,
+    top: `${frame.top}%`,
+    width: `${frame.width}%`,
+    height: `${frame.height}%`,
+  };
+}
+
+function Spot({
+  frame,
+  shade = dim,
   className,
 }: {
-  id: CodeId;
+  frame: CodeRegion;
+  shade?: string;
   className?: string;
 }) {
-  const code = codes.find((item) => item.id === id)!;
-  const box = padded(code.region, 2.4);
-  const source =
-    typeof guia === 'string'
-      ? { width: 2148, height: 1234 }
-      : { width: guia.width, height: guia.height };
-  const aspect = (box.width / box.height) * (source.width / source.height);
-
   return (
     <div
-      className={cn(
-        'overflow-hidden rounded-2xl border border-[#c2c2c2] bg-white',
-        className,
-      )}
-    >
-      <div className="relative overflow-hidden" style={{ aspectRatio: aspect }}>
-        <img
-          alt=""
-          src={guiaSrc}
-          className="absolute max-w-none"
-          style={{
-            width: `${10000 / box.width}%`,
-            height: `${10000 / box.height}%`,
-            left: `${(-box.left / box.width) * 100}%`,
-            top: `${(-box.top / box.height) * 100}%`,
-          }}
-        />
-      </div>
-    </div>
+      aria-hidden
+      className={cn('pointer-events-none absolute rounded-md', className)}
+      style={{ ...frameStyle(frame), boxShadow: `0 0 0 9999px ${shade}` }}
+    />
   );
 }
 
-export function GuiaFigure({
-  active,
-  mode,
-  onSelect,
-}: {
-  active: CodeId | null;
-  mode: 'marks' | 'spot';
-  onSelect?: (id: CodeId) => void;
-}) {
-  const spot = mode === 'spot' && active ? zoomFrames[active] : null;
+interface Size {
+  width: number;
+  height: number;
+}
 
-  return (
-    <figure className="flex flex-col gap-3">
-      <div className="relative overflow-hidden rounded-2xl border border-[#e8e8e8] bg-white">
-        <img
-          src={guiaSrc}
-          alt="Exemplo de uma guia de prestação SNS, com o número da requisição, o código de acesso e o código de prestação assinalados."
-          className="block h-auto w-full"
-        />
-        {spot ? (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute rounded-md ring-2 ring-[#4a89e8]"
-            style={{
-              left: `${spot.left}%`,
-              top: `${spot.top}%`,
-              width: `${spot.width}%`,
-              height: `${spot.height}%`,
-              boxShadow: '0 0 0 9999px rgba(13, 13, 13, 0.55)',
-            }}
-          />
-        ) : null}
-        {mode === 'marks'
-          ? codes.map((code) => {
-              const frame = zoomFrames[code.id];
-              const isActive = code.id === active;
-              return (
-                <button
-                  key={code.id}
-                  type="button"
-                  aria-label={`${code.label}. ${code.cue}`}
-                  aria-pressed={isActive}
-                  onClick={() => onSelect?.(code.id)}
-                  className={cn(
-                    'absolute rounded-md ring-2 transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]',
-                    isActive
-                      ? 'z-10 shadow-[0_0_0_4px_rgba(74,137,232,0.28)] ring-[#4a89e8]'
-                      : 'ring-transparent hover:ring-[#4a89e8]/70',
-                  )}
-                  style={{
-                    left: `${frame.left}%`,
-                    top: `${frame.top}%`,
-                    width: `${frame.width}%`,
-                    height: `${frame.height}%`,
-                  }}
-                />
-              );
-            })
-          : null}
-      </div>
-      <figcaption className="text-[13px] leading-5 text-[#5e5e5e]">
-        Exemplo de guia. Não use estes números.
-      </figcaption>
-    </figure>
-  );
+interface Camera {
+  x: number;
+  y: number;
+  scale: number;
 }
 
 function useElementSize(ref: RefObject<HTMLElement | null>) {
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [size, setSize] = useState<Size>({ width: 0, height: 0 });
 
   useEffect(() => {
     const element = ref.current;
@@ -179,100 +117,198 @@ function useElementSize(ref: RefObject<HTMLElement | null>) {
   return size;
 }
 
-function viewTransform(
-  viewport: { width: number; height: number },
-  frame: CodeRegion | null,
-  fill = 0.55,
-) {
-  const { width: viewWidth, height: viewHeight } = viewport;
-  if (viewWidth === 0 || viewHeight === 0) {
-    return { x: 0, y: 0, scale: 0 };
-  }
+function useAfterPaint(ready: boolean) {
+  const [canAnimate, setCanAnimate] = useState(false);
 
-  if (!frame) {
-    const scale = Math.min(
-      viewWidth / source.width,
-      viewHeight / source.height,
-    );
-    return {
-      scale,
-      x: (viewWidth - source.width * scale) / 2,
-      y: (viewHeight - source.height * scale) / 2,
-    };
-  }
+  useEffect(() => {
+    if (!ready) return;
+    const frame = window.requestAnimationFrame(() => setCanAnimate(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [ready]);
+
+  return canAnimate;
+}
+
+function fitSheet(view: Size, mode: 'contain' | 'width'): Camera {
+  if (view.width === 0 || view.height === 0) return { x: 0, y: 0, scale: 0 };
+  if (mode === 'width') return { scale: view.width / source.width, x: 0, y: 0 };
+
+  const scale = Math.min(
+    view.width / source.width,
+    view.height / source.height,
+  );
+  return {
+    scale,
+    x: (view.width - source.width * scale) / 2,
+    y: (view.height - source.height * scale) / 2,
+  };
+}
+
+function focusRegion(
+  view: Size,
+  frame: CodeRegion,
+  fillX: number,
+  fillY: number,
+  atLeastContain = false,
+): Camera {
+  if (view.width === 0 || view.height === 0) return { x: 0, y: 0, scale: 0 };
 
   const frameX = (frame.left / 100) * source.width;
   const frameY = (frame.top / 100) * source.height;
   const frameWidth = (frame.width / 100) * source.width;
   const frameHeight = (frame.height / 100) * source.height;
-  const contain = Math.min(
-    viewWidth / source.width,
-    viewHeight / source.height,
+  let scale = Math.min(
+    (view.width * fillX) / frameWidth,
+    (view.height * fillY) / frameHeight,
   );
-  const scale = Math.max(
-    contain,
-    Math.min(
-      (viewWidth * fill) / frameWidth,
-      (viewHeight * fill) / frameHeight,
-    ),
-  );
+  if (atLeastContain) {
+    scale = Math.max(
+      Math.min(view.width / source.width, view.height / source.height),
+      scale,
+    );
+  }
 
-  let x = viewWidth / 2 - (frameX + frameWidth / 2) * scale;
-  let y = viewHeight / 2 - (frameY + frameHeight / 2) * scale;
+  let x = view.width / 2 - (frameX + frameWidth / 2) * scale;
+  let y = view.height / 2 - (frameY + frameHeight / 2) * scale;
   const scaledWidth = source.width * scale;
   const scaledHeight = source.height * scale;
 
-  if (scaledWidth <= viewWidth) x = (viewWidth - scaledWidth) / 2;
-  else x = Math.min(0, Math.max(viewWidth - scaledWidth, x));
+  if (scaledWidth <= view.width) x = (view.width - scaledWidth) / 2;
+  else x = Math.min(0, Math.max(view.width - scaledWidth, x));
 
-  if (scaledHeight <= viewHeight) y = (viewHeight - scaledHeight) / 2;
-  else y = Math.min(0, Math.max(viewHeight - scaledHeight, y));
+  if (scaledHeight <= view.height) y = (view.height - scaledHeight) / 2;
+  else y = Math.min(0, Math.max(view.height - scaledHeight, y));
 
   return { x, y, scale };
 }
 
-function stageTransform(
-  viewport: { width: number; height: number },
-  frame: CodeRegion | null,
-) {
-  const { width: viewWidth, height: viewHeight } = viewport;
-  if (viewWidth === 0 || viewHeight === 0) {
-    return { x: 0, y: 0, scale: 0 };
-  }
-
-  const contain = Math.min(
-    viewWidth / source.width,
-    viewHeight / source.height,
+function Sheet({
+  camera,
+  alt,
+  className,
+  transition,
+  children,
+}: {
+  camera: Camera;
+  alt: string;
+  className?: string;
+  transition?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      className={cn('absolute top-0 left-0', className)}
+      style={{
+        width: source.width,
+        height: source.height,
+        transformOrigin: '0 0',
+        transform: `translate3d(${camera.x}px, ${camera.y}px, 0) scale(${camera.scale})`,
+        transition,
+        visibility: camera.scale > 0 ? 'visible' : 'hidden',
+      }}
+    >
+      <img
+        src={guiaSrc}
+        alt={alt}
+        width={source.width}
+        height={source.height}
+        draggable={false}
+        className="block h-full w-full max-w-none select-none"
+      />
+      {children}
+    </div>
   );
-  if (!frame) {
-    return {
-      scale: contain,
-      x: (viewWidth - source.width * contain) / 2,
-      y: (viewHeight - source.height * contain) / 2,
-    };
-  }
+}
 
-  const frameX = (frame.left / 100) * source.width;
-  const frameY = (frame.top / 100) * source.height;
-  const frameWidth = (frame.width / 100) * source.width;
-  const frameHeight = (frame.height / 100) * source.height;
-  const scale = Math.min(
-    (viewWidth * 0.94) / frameWidth,
-    (viewHeight * 0.94) / frameHeight,
+interface GuiaCropProps {
+  id: CodeId;
+  className?: string;
+}
+
+export function GuiaCrop({ id, className }: GuiaCropProps) {
+  const code = codes.find((item) => item.id === id)!;
+  const box = padded(code.region, 2.4);
+  const bitmap =
+    typeof guia === 'string'
+      ? { width: 2148, height: 1234 }
+      : { width: guia.width, height: guia.height };
+  const aspect = (box.width / box.height) * (bitmap.width / bitmap.height);
+
+  return (
+    <div
+      className={cn(
+        'overflow-hidden rounded-2xl border border-[#c2c2c2] bg-white',
+        className,
+      )}
+    >
+      <div className="relative overflow-hidden" style={{ aspectRatio: aspect }}>
+        <img
+          alt=""
+          src={guiaSrc}
+          className="absolute max-w-none"
+          style={{
+            width: `${10000 / box.width}%`,
+            height: `${10000 / box.height}%`,
+            left: `${(-box.left / box.width) * 100}%`,
+            top: `${(-box.top / box.height) * 100}%`,
+          }}
+        />
+      </div>
+    </div>
   );
+}
 
-  let x = viewWidth / 2 - (frameX + frameWidth / 2) * scale;
-  let y = viewHeight / 2 - (frameY + frameHeight / 2) * scale;
-  const scaledWidth = source.width * scale;
-  const scaledHeight = source.height * scale;
+interface GuiaFigureProps {
+  active: CodeId | null;
+  mode: 'marks' | 'spot';
+  onSelect?: (id: CodeId) => void;
+}
 
-  if (scaledWidth <= viewWidth) x = (viewWidth - scaledWidth) / 2;
-  else x = Math.min(0, Math.max(viewWidth - scaledWidth, x));
+export function GuiaFigure({ active, mode, onSelect }: GuiaFigureProps) {
+  const spot = mode === 'spot' && active ? zoomFrames[active] : null;
 
-  if (scaledHeight <= viewHeight) y = (viewHeight - scaledHeight) / 2;
-  else y = Math.min(0, Math.max(viewHeight - scaledHeight, y));
-
-  return { x, y, scale };
+  return (
+    <figure className="flex flex-col gap-3">
+      <div className="relative overflow-hidden rounded-2xl border border-[#e8e8e8] bg-white">
+        <img
+          src={guiaSrc}
+          alt="Exemplo de uma guia de prestação SNS, com o número da requisição, o código de acesso e o código de prestação assinalados."
+          className="block h-auto w-full"
+        />
+        {spot ? (
+          <Spot
+            frame={spot}
+            shade="rgba(13, 13, 13, 0.55)"
+            className="ring-2 ring-[#4a89e8]"
+          />
+        ) : null}
+        {mode === 'marks'
+          ? codes.map((code) => {
+              const isActive = code.id === active;
+              return (
+                <button
+                  key={code.id}
+                  type="button"
+                  aria-label={`${code.label}. ${code.cue}`}
+                  aria-pressed={isActive}
+                  onClick={() => onSelect?.(code.id)}
+                  className={cn(
+                    'absolute rounded-md ring-2 transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]',
+                    isActive
+                      ? 'z-10 shadow-[0_0_0_4px_rgba(74,137,232,0.28)] ring-[#4a89e8]'
+                      : 'ring-transparent hover:ring-[#4a89e8]/70',
+                  )}
+                  style={frameStyle(zoomFrames[code.id])}
+                />
+              );
+            })
+          : null}
+      </div>
+      <figcaption className="text-[13px] leading-5 text-[#5e5e5e]">
+        Exemplo de guia. Não use estes números.
+      </figcaption>
+    </figure>
+  );
 }
 
 const sheetZoom = {
@@ -282,27 +318,21 @@ const sheetZoom = {
   easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
 };
 
-export function GuiaSheetZoom({
-  id,
-  className,
-}: {
+interface GuiaSheetZoomProps {
   id: CodeId;
   className?: string;
-}) {
+}
+
+export function GuiaSheetZoom({ id, className }: GuiaSheetZoomProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const viewport = useElementSize(frameRef);
   const [zoomed, setZoomed] = useState(false);
-  const [canAnimate, setCanAnimate] = useState(false);
-  const spot = padded(zoomFrames[id], 0.45);
-  const camera = padded(spot, 1.4);
   const measured = viewport.width > 0;
-  const { x, y, scale } = stageTransform(viewport, zoomed ? camera : null);
-
-  useEffect(() => {
-    if (!measured) return;
-    const frame = window.requestAnimationFrame(() => setCanAnimate(true));
-    return () => window.cancelAnimationFrame(frame);
-  }, [measured]);
+  const canAnimate = useAfterPaint(measured);
+  const spot = padded(zoomFrames[id], 0.45);
+  const shot = zoomed
+    ? focusRegion(viewport, padded(spot, 1.4), 0.94, 0.94)
+    : fitSheet(viewport, 'contain');
 
   useEffect(() => {
     if (!canAnimate) return;
@@ -332,136 +362,62 @@ export function GuiaSheetZoom({
       )}
       style={{ aspectRatio: `${source.width} / ${source.height}` }}
     >
-      <div
-        className="absolute top-0 left-0 motion-reduce:transition-none"
-        style={{
-          width: source.width,
-          height: source.height,
-          transformOrigin: '0 0',
-          transform: `translate3d(${x}px, ${y}px, 0) scale(${scale})`,
-          transition: canAnimate
+      <Sheet
+        camera={shot}
+        alt="Exemplo de uma guia de prestação SNS. A vista começa na página inteira, aproxima o código e volta à página inteira."
+        className="motion-reduce:transition-none"
+        transition={
+          canAnimate
             ? `transform ${sheetZoom.duration}ms ${sheetZoom.easing}`
-            : undefined,
-          visibility: scale > 0 ? 'visible' : 'hidden',
-        }}
+            : undefined
+        }
       >
-        <img
-          src={guiaSrc}
-          alt="Exemplo de uma guia de prestação SNS. A vista começa na página inteira, aproxima o código e volta à página inteira."
-          width={source.width}
-          height={source.height}
-          draggable={false}
-          className="block h-full w-full max-w-none select-none"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute rounded-md"
-          style={{
-            left: `${spot.left}%`,
-            top: `${spot.top}%`,
-            width: `${spot.width}%`,
-            height: `${spot.height}%`,
-            boxShadow: '0 0 0 9999px rgba(13, 13, 13, 0.28)',
-          }}
-        />
-      </div>
+        <Spot frame={spot} />
+      </Sheet>
     </div>
   );
 }
 
-function sheetPreviewTransform(
-  viewport: { width: number; height: number },
-  frame: CodeRegion | null,
-) {
-  const { width: viewWidth, height: viewHeight } = viewport;
-  if (viewWidth === 0 || viewHeight === 0) {
-    return { x: 0, y: 0, scale: 0 };
-  }
-
-  if (!frame) {
-    return { scale: viewWidth / source.width, x: 0, y: 0 };
-  }
-
-  const frameX = (frame.left / 100) * source.width;
-  const frameY = (frame.top / 100) * source.height;
-  const frameWidth = (frame.width / 100) * source.width;
-  const frameHeight = (frame.height / 100) * source.height;
-  const scale = Math.min(
-    (viewWidth * 0.88) / frameWidth,
-    (viewHeight * 0.5) / frameHeight,
-  );
-
-  let x = viewWidth / 2 - (frameX + frameWidth / 2) * scale;
-  let y = viewHeight / 2 - (frameY + frameHeight / 2) * scale;
-  const scaledWidth = source.width * scale;
-  const scaledHeight = source.height * scale;
-
-  if (scaledWidth <= viewWidth) x = (viewWidth - scaledWidth) / 2;
-  else x = Math.min(0, Math.max(viewWidth - scaledWidth, x));
-
-  if (scaledHeight <= viewHeight) y = (viewHeight - scaledHeight) / 2;
-  else y = Math.min(0, Math.max(viewHeight - scaledHeight, y));
-
-  return { x, y, scale };
+interface GuiaSheetPreviewProps {
+  active: CodeId | null;
 }
 
-export function GuiaSheetPreview({ active }: { active: CodeId | null }) {
+export function GuiaSheetPreview({ active }: GuiaSheetPreviewProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const viewport = useElementSize(frameRef);
   const frame = active ? zoomFrames[active] : null;
-  const { x, y, scale } = sheetPreviewTransform(viewport, frame);
-  const ready = scale > 0;
-  const [canAnimate, setCanAnimate] = useState(false);
-
-  useEffect(() => {
-    if (!ready) return;
-    const frameId = window.requestAnimationFrame(() => setCanAnimate(true));
-    return () => window.cancelAnimationFrame(frameId);
-  }, [ready]);
+  const shot = frame
+    ? focusRegion(viewport, frame, 0.88, 0.5)
+    : fitSheet(viewport, 'width');
+  const canAnimate = useAfterPaint(shot.scale > 0);
 
   return (
     <div
       ref={frameRef}
       className="relative h-40 w-full overflow-hidden rounded-xl bg-white"
     >
-      <div
-        className={cn(
-          'absolute top-0 left-0',
-          canAnimate &&
-            'transition-transform duration-500 ease-out motion-reduce:transition-none',
-        )}
-        style={{
-          width: source.width,
-          height: source.height,
-          transformOrigin: '0 0',
-          transform: `translate3d(${x}px, ${y}px, 0) scale(${scale})`,
-          visibility: ready ? 'visible' : 'hidden',
-        }}
+      <Sheet
+        camera={shot}
+        alt="Exemplo de uma guia de prestação SNS."
+        className={
+          canAnimate
+            ? 'transition-transform duration-500 ease-out motion-reduce:transition-none'
+            : undefined
+        }
       >
-        <img
-          src={guiaSrc}
-          alt="Exemplo de uma guia de prestação SNS."
-          width={source.width}
-          height={source.height}
-          draggable={false}
-          className="block h-full w-full max-w-none select-none"
-        />
-        {frame ? (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute rounded-md"
-            style={{
-              left: `${frame.left}%`,
-              top: `${frame.top}%`,
-              width: `${frame.width}%`,
-              height: `${frame.height}%`,
-              boxShadow: '0 0 0 9999px rgba(13, 13, 13, 0.28)',
-            }}
-          />
-        ) : null}
-      </div>
+        {frame ? <Spot frame={frame} /> : null}
+      </Sheet>
     </div>
   );
+}
+
+interface GuiaZoomProps {
+  active: CodeId | null;
+  zoomed: boolean;
+  onSelect: (id: CodeId) => void;
+  fill?: number;
+  interactive?: boolean;
+  className?: string;
 }
 
 export function GuiaZoom({
@@ -471,19 +427,13 @@ export function GuiaZoom({
   fill = 0.55,
   interactive = true,
   className,
-}: {
-  active: CodeId | null;
-  zoomed: boolean;
-  onSelect: (id: CodeId) => void;
-  fill?: number;
-  interactive?: boolean;
-  className?: string;
-}) {
+}: GuiaZoomProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const viewport = useElementSize(frameRef);
   const frame = zoomed && active ? zoomFrames[active] : null;
-  const { x, y, scale } = viewTransform(viewport, frame, fill);
-  const ready = scale > 0;
+  const shot = frame
+    ? focusRegion(viewport, frame, fill, fill, true)
+    : fitSheet(viewport, 'contain');
 
   return (
     <figure className={cn('flex h-full min-h-0 flex-col', className)}>
@@ -491,31 +441,17 @@ export function GuiaZoom({
         ref={frameRef}
         className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-[#e8e8e8] bg-white"
       >
-        <div
-          className={cn(
-            'absolute top-0 left-0',
-            ready &&
-              'transition-[transform] duration-500 ease-out motion-reduce:transition-none',
-          )}
-          style={{
-            width: source.width,
-            height: source.height,
-            transformOrigin: '0 0',
-            transform: `translate3d(${x}px, ${y}px, 0) scale(${scale})`,
-            visibility: ready ? 'visible' : 'hidden',
-          }}
+        <Sheet
+          camera={shot}
+          alt="Exemplo de uma guia de prestação SNS. O código do campo selecionado está assinalado."
+          className={
+            shot.scale > 0
+              ? 'transition-[transform] duration-500 ease-out motion-reduce:transition-none'
+              : undefined
+          }
         >
-          <img
-            src={guiaSrc}
-            alt="Exemplo de uma guia de prestação SNS. O código do campo selecionado está assinalado."
-            width={source.width}
-            height={source.height}
-            draggable={false}
-            className="block h-full w-full max-w-none select-none"
-          />
           {interactive ? (
             codes.map((code) => {
-              const spot = zoomFrames[code.id];
               const isActive = code.id === active;
               return (
                 <button
@@ -527,31 +463,16 @@ export function GuiaZoom({
                   onClick={() => onSelect(code.id)}
                   className="absolute z-10 cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
                   style={{
-                    left: `${spot.left}%`,
-                    top: `${spot.top}%`,
-                    width: `${spot.width}%`,
-                    height: `${spot.height}%`,
-                    boxShadow: isActive
-                      ? '0 0 0 9999px rgba(13, 13, 13, 0.28)'
-                      : undefined,
+                    ...frameStyle(zoomFrames[code.id]),
+                    boxShadow: isActive ? `0 0 0 9999px ${dim}` : undefined,
                   }}
                 />
               );
             })
           ) : active ? (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute rounded-md"
-              style={{
-                left: `${zoomFrames[active].left}%`,
-                top: `${zoomFrames[active].top}%`,
-                width: `${zoomFrames[active].width}%`,
-                height: `${zoomFrames[active].height}%`,
-                boxShadow: '0 0 0 9999px rgba(13, 13, 13, 0.28)',
-              }}
-            />
+            <Spot frame={zoomFrames[active]} />
           ) : null}
-        </div>
+        </Sheet>
       </div>
     </figure>
   );

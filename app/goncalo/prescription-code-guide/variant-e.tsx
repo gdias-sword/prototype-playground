@@ -1,6 +1,15 @@
 'use client';
 
-import { Dialog } from '@base-ui/react/dialog';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/design/components/drawer';
 import { useEffect, useRef, useState, type FocusEvent } from 'react';
 import { codes, type CodeId } from './codes';
 import { GuiaSheetPreview, GuiaZoom } from './guia';
@@ -58,7 +67,7 @@ export function VariantE() {
         <Progress />
         <div className="flex flex-col gap-4">
           <ScreenTitle>Introduza os dados da sua prescrição</ScreenTitle>
-          <Dialog.Root
+          <Drawer
             open={sheetOpen}
             onOpenChange={(open) => {
               setSheetOpen(open);
@@ -68,64 +77,65 @@ export function VariantE() {
             <p className="text-[16px] leading-[22px] text-[#0d0d0d] lg:text-[14px] lg:leading-5 lg:text-[#5e5e5e]">
               <span className="lg:hidden">
                 Pode consultar onde se encontram os códigos{' '}
-                <Dialog.Trigger className="cursor-pointer font-semibold text-[#4a89e8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]">
+                <DrawerTrigger className="cursor-pointer font-semibold text-[#4a89e8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]">
                   no exemplo de guia
-                </Dialog.Trigger>.
+                </DrawerTrigger>.
               </span>
               <span className="hidden lg:inline">
                 Pode consultar os códigos no exemplo de guia. Os números são
                 ilustrativos.
               </span>
             </p>
-            <Dialog.Portal>
-              <Dialog.Backdrop className="fixed inset-0 z-50 bg-[#0d0d0d]/50" />
-              <Dialog.Viewport className="fixed inset-0 z-50 flex items-end">
-                <Dialog.Popup className="flex max-h-[min(760px,calc(100dvh-4.5rem))] w-full flex-col gap-6 overflow-y-auto rounded-t-3xl bg-white px-4 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-                  <Dialog.Title className="font-serif text-[22px] leading-7 font-normal text-[#0d0d0d]">
-                    Encontre os códigos da sua prescrição
-                  </Dialog.Title>
-                  <Dialog.Description className="sr-only">
-                    Escolha um código para ver onde aparece no exemplo de guia.
-                    Os números são ilustrativos.
-                  </Dialog.Description>
-                  <GuiaSheetPreview active={sheetCode} />
-                  <div
-                    role="radiogroup"
-                    aria-label="Códigos da prescrição"
-                    className="flex flex-col gap-4"
-                  >
-                    {codes.map((item) => {
-                      const selected = sheetCode === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={selected}
-                          onClick={() => setSheetCode(item.id)}
-                          className={
-                            selected
-                              ? 'rounded-2xl border border-[#4a89e8] bg-[#e0ecfd] p-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]'
-                              : 'rounded-2xl border border-[#c2c2c2] bg-white p-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]'
-                          }
-                        >
-                          <span className="block text-[16px] leading-[22px] font-medium text-[#0d0d0d]">
-                            {item.label}
-                          </span>
-                          <span className="mt-1 block text-[12px] leading-[18px] text-[#0d0d0d]">
-                            {item.sheet}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <Dialog.Close className="inline-flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl bg-[#4a89e8] px-8 text-[14px] leading-5 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]">
-                    Compreendi
-                  </Dialog.Close>
-                </Dialog.Popup>
-              </Dialog.Viewport>
-            </Dialog.Portal>
-          </Dialog.Root>
+            <DrawerContent className="[--drawer-content-max-height:min(760px,calc(100dvh-4.5rem))]">
+              <DrawerHeader className="px-4">
+                <DrawerTitle className="font-serif text-[22px] leading-7 font-normal">
+                  Encontre os códigos da sua prescrição
+                </DrawerTitle>
+                <DrawerDescription className="sr-only">
+                  Escolha um código para ver onde aparece no exemplo de guia.
+                  Os números são ilustrativos.
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pt-6">
+                <GuiaSheetPreview active={sheetCode} />
+                <div
+                  role="radiogroup"
+                  aria-label="Códigos da prescrição"
+                  className="flex flex-col gap-4"
+                >
+                  {codes.map((item) => {
+                    const selected = sheetCode === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => setSheetCode(item.id)}
+                        className={
+                          selected
+                            ? 'rounded-2xl border border-[#4a89e8] bg-[#e0ecfd] p-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]'
+                            : 'rounded-2xl border border-[#c2c2c2] bg-white p-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]'
+                        }
+                      >
+                        <span className="block text-[16px] leading-[22px] font-medium text-[#0d0d0d]">
+                          {item.label}
+                        </span>
+                        <span className="mt-1 block text-[12px] leading-[18px] text-[#0d0d0d]">
+                          {item.sheet}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <DrawerFooter className="px-4">
+                <DrawerClose className="inline-flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl bg-[#4a89e8] px-8 text-[14px] leading-5 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]">
+                  Compreendi
+                </DrawerClose>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
         </div>
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:items-stretch lg:gap-10">
           <div className="order-2 flex flex-col gap-10 lg:order-1">
