@@ -1,10 +1,9 @@
 'use client';
 
 import { Dialog } from '@base-ui/react/dialog';
-import { X } from 'lucide-react';
-import { useRef, useState, type FocusEvent } from 'react';
+import { useEffect, useRef, useState, type FocusEvent } from 'react';
 import { codes, type CodeId } from './codes';
-import { GuiaZoom } from './guia';
+import { GuiaSheetPreview, GuiaZoom } from './guia';
 import {
   Actions,
   CodeInput,
@@ -20,9 +19,22 @@ export function VariantE() {
   const [active, setActive] = useState<CodeId | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [sheetCode, setSheetCode] = useState<CodeId | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const inputs = useRef<Partial<Record<CodeId, HTMLInputElement | null>>>({});
-  const activeCode = useRef(active);
-  activeCode.current = active;
+
+  useEffect(() => {
+    const width =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--breakpoint-lg')
+        .trim() || '960px';
+    const desktop = window.matchMedia(`(min-width: ${width})`);
+    const closeSheet = () => {
+      if (desktop.matches) setSheetOpen(false);
+    };
+    closeSheet();
+    desktop.addEventListener('change', closeSheet);
+    return () => desktop.removeEventListener('change', closeSheet);
+  }, []);
 
   function focusField(id: CodeId) {
     setActive(id);
@@ -42,58 +54,81 @@ export function VariantE() {
 
   return (
     <EnrollmentScreen>
-      <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-8 px-6 pt-6 pb-28 md:px-10 md:pt-8">
+      <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-8 px-6 pt-6 pb-28 lg:px-10 lg:pt-8">
         <Progress />
         <div className="flex flex-col gap-4">
           <ScreenTitle>Introduza os dados da sua prescrição</ScreenTitle>
-          <Dialog.Root>
-            <div className="text-[14px] leading-5 text-[#5e5e5e]">
-              Pode consultar os códigos{' '}
-              <Dialog.Trigger
-                className="cursor-pointer font-semibold text-[#4a89e8] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414] lg:hidden"
-                onPointerDown={() => setSheetCode(activeCode.current)}
-              >
-                no exemplo de guia
-              </Dialog.Trigger>
-              <span className="hidden lg:inline">no exemplo de guia</span>. Os
-              números são ilustrativos.
-            </div>
+          <Dialog.Root
+            open={sheetOpen}
+            onOpenChange={(open) => {
+              setSheetOpen(open);
+              if (open) setSheetCode(null);
+            }}
+          >
+            <p className="text-[16px] leading-[22px] text-[#0d0d0d] lg:text-[14px] lg:leading-5 lg:text-[#5e5e5e]">
+              <span className="lg:hidden">
+                Pode consultar onde se encontram os códigos{' '}
+                <Dialog.Trigger className="cursor-pointer font-semibold text-[#4a89e8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]">
+                  no exemplo de guia
+                </Dialog.Trigger>.
+              </span>
+              <span className="hidden lg:inline">
+                Pode consultar os códigos no exemplo de guia. Os números são
+                ilustrativos.
+              </span>
+            </p>
             <Dialog.Portal>
-              <Dialog.Backdrop className="fixed inset-0 z-50 bg-[#0d0d0d]/40 backdrop-blur-[2px]" />
-              <Dialog.Viewport className="fixed inset-0 z-50 flex items-end justify-center p-3">
-                <Dialog.Popup className="flex max-h-[min(720px,calc(100dvh-1.5rem))] w-full flex-col gap-5 overflow-y-auto rounded-3xl bg-white p-5 shadow-lg">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex flex-col gap-2">
-                      <Dialog.Title className="font-serif text-[26px] leading-8 font-normal text-[#0d0d0d]">
-                        Exemplo de guia
-                      </Dialog.Title>
-                      <Dialog.Description className="text-[14px] leading-5 text-[#5e5e5e]">
-                        Os números são ilustrativos.
-                      </Dialog.Description>
-                    </div>
-                    <Dialog.Close
-                      aria-label="Fechar"
-                      className="grid size-10 shrink-0 cursor-pointer place-items-center rounded-full bg-[#f2f2f2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
-                    >
-                      <X className="size-5" aria-hidden />
-                    </Dialog.Close>
+              <Dialog.Backdrop className="fixed inset-0 z-50 bg-[#0d0d0d]/50" />
+              <Dialog.Viewport className="fixed inset-0 z-50 flex items-end">
+                <Dialog.Popup className="flex max-h-[min(760px,calc(100dvh-4.5rem))] w-full flex-col gap-6 overflow-y-auto rounded-t-3xl bg-white px-4 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+                  <Dialog.Title className="font-serif text-[22px] leading-7 font-normal text-[#0d0d0d]">
+                    Encontre os códigos da sua prescrição
+                  </Dialog.Title>
+                  <Dialog.Description className="sr-only">
+                    Escolha um código para ver onde aparece no exemplo de guia.
+                    Os números são ilustrativos.
+                  </Dialog.Description>
+                  <GuiaSheetPreview active={sheetCode} />
+                  <div
+                    role="radiogroup"
+                    aria-label="Códigos da prescrição"
+                    className="flex flex-col gap-4"
+                  >
+                    {codes.map((item) => {
+                      const selected = sheetCode === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => setSheetCode(item.id)}
+                          className={
+                            selected
+                              ? 'rounded-2xl border border-[#4a89e8] bg-[#e0ecfd] p-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]'
+                              : 'rounded-2xl border border-[#c2c2c2] bg-white p-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]'
+                          }
+                        >
+                          <span className="block text-[16px] leading-[22px] font-medium text-[#0d0d0d]">
+                            {item.label}
+                          </span>
+                          <span className="mt-1 block text-[12px] leading-[18px] text-[#0d0d0d]">
+                            {item.sheet}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <div className="relative h-64 w-full">
-                    <div className="absolute inset-0">
-                      <GuiaZoom
-                        active={sheetCode}
-                        zoomed={sheetCode !== null}
-                        onSelect={setSheetCode}
-                      />
-                    </div>
-                  </div>
+                  <Dialog.Close className="inline-flex h-12 w-full cursor-pointer items-center justify-center rounded-2xl bg-[#4a89e8] px-8 text-[14px] leading-5 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]">
+                    Compreendi
+                  </Dialog.Close>
                 </Dialog.Popup>
               </Dialog.Viewport>
             </Dialog.Portal>
           </Dialog.Root>
         </div>
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:items-stretch lg:gap-10">
-          <div className="order-2 flex flex-col gap-6 lg:order-1 lg:gap-10">
+          <div className="order-2 flex flex-col gap-10 lg:order-1">
             {codes.map((item) => (
               <div key={item.id} className="flex flex-col gap-2">
                 <CodeInput
@@ -116,8 +151,8 @@ export function VariantE() {
                   id={`${item.id}-cue`}
                   className={
                     active === item.id
-                      ? 'text-[14px] leading-5 text-[#2e2e2e]'
-                      : 'text-[14px] leading-5 text-[#5e5e5e]'
+                      ? 'hidden text-[14px] leading-5 text-[#2e2e2e] lg:block'
+                      : 'hidden text-[14px] leading-5 text-[#5e5e5e] lg:block'
                   }
                 >
                   {item.cue}

@@ -369,6 +369,101 @@ export function GuiaSheetZoom({
   );
 }
 
+function sheetPreviewTransform(
+  viewport: { width: number; height: number },
+  frame: CodeRegion | null,
+) {
+  const { width: viewWidth, height: viewHeight } = viewport;
+  if (viewWidth === 0 || viewHeight === 0) {
+    return { x: 0, y: 0, scale: 0 };
+  }
+
+  if (!frame) {
+    return { scale: viewWidth / source.width, x: 0, y: 0 };
+  }
+
+  const frameX = (frame.left / 100) * source.width;
+  const frameY = (frame.top / 100) * source.height;
+  const frameWidth = (frame.width / 100) * source.width;
+  const frameHeight = (frame.height / 100) * source.height;
+  const scale = Math.min(
+    (viewWidth * 0.88) / frameWidth,
+    (viewHeight * 0.5) / frameHeight,
+  );
+
+  let x = viewWidth / 2 - (frameX + frameWidth / 2) * scale;
+  let y = viewHeight / 2 - (frameY + frameHeight / 2) * scale;
+  const scaledWidth = source.width * scale;
+  const scaledHeight = source.height * scale;
+
+  if (scaledWidth <= viewWidth) x = (viewWidth - scaledWidth) / 2;
+  else x = Math.min(0, Math.max(viewWidth - scaledWidth, x));
+
+  if (scaledHeight <= viewHeight) y = (viewHeight - scaledHeight) / 2;
+  else y = Math.min(0, Math.max(viewHeight - scaledHeight, y));
+
+  return { x, y, scale };
+}
+
+export function GuiaSheetPreview({ active }: { active: CodeId | null }) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const viewport = useElementSize(frameRef);
+  const frame = active ? zoomFrames[active] : null;
+  const { x, y, scale } = sheetPreviewTransform(viewport, frame);
+  const ready = scale > 0;
+  const [canAnimate, setCanAnimate] = useState(false);
+
+  useEffect(() => {
+    if (!ready) return;
+    const frameId = window.requestAnimationFrame(() => setCanAnimate(true));
+    return () => window.cancelAnimationFrame(frameId);
+  }, [ready]);
+
+  return (
+    <div
+      ref={frameRef}
+      className="relative h-40 w-full overflow-hidden rounded-xl bg-white"
+    >
+      <div
+        className={cn(
+          'absolute top-0 left-0',
+          canAnimate &&
+            'transition-transform duration-500 ease-out motion-reduce:transition-none',
+        )}
+        style={{
+          width: source.width,
+          height: source.height,
+          transformOrigin: '0 0',
+          transform: `translate3d(${x}px, ${y}px, 0) scale(${scale})`,
+          visibility: ready ? 'visible' : 'hidden',
+        }}
+      >
+        <img
+          src={guiaSrc}
+          alt="Exemplo de uma guia de prestação SNS."
+          width={source.width}
+          height={source.height}
+          draggable={false}
+          className="block h-full w-full max-w-none select-none"
+        />
+        {frame ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute rounded-md"
+            style={{
+              left: `${frame.left}%`,
+              top: `${frame.top}%`,
+              width: `${frame.width}%`,
+              height: `${frame.height}%`,
+              boxShadow: '0 0 0 9999px rgba(13, 13, 13, 0.28)',
+            }}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function GuiaZoom({
   active,
   zoomed,
