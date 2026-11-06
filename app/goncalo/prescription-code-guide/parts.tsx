@@ -2,13 +2,28 @@
 
 import { SwordLogo } from '@/design/assets/logos/sword';
 import { cn } from '@/design/utils';
-import { Accessibility, ArrowLeft, ChevronDown, Globe, Menu } from 'lucide-react';
-import type { FocusEvent, ReactNode } from 'react';
+import {
+  Accessibility,
+  ArrowLeft,
+  ChevronDown,
+  Globe,
+  Menu,
+} from 'lucide-react';
+import type { FocusEvent, KeyboardEvent, ReactNode } from 'react';
 import type { CodeId, PrescriptionCode } from './codes';
 
-export function EnrollmentScreen({ children }: { children: ReactNode }) {
+export function EnrollmentScreen({
+  children,
+  topInset = 0,
+}: {
+  children: ReactNode;
+  topInset?: number;
+}) {
   return (
     <div className="relative isolate flex min-h-dvh flex-col bg-white text-[#0d0d0d]">
+      {topInset > 0 ? (
+        <div aria-hidden className="lg:hidden" style={{ height: topInset }} />
+      ) : null}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
@@ -71,6 +86,8 @@ export function CodeInput({
   onValue,
   onActivate,
   onBlur,
+  onKeyDown,
+  enterKeyHint,
   inputRef,
   labelAction,
 }: {
@@ -80,6 +97,8 @@ export function CodeInput({
   onValue: (value: string) => void;
   onActivate: () => void;
   onBlur?: (event: FocusEvent<HTMLInputElement>) => void;
+  onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+  enterKeyHint?: 'next' | 'done';
   inputRef?: (node: HTMLInputElement | null) => void;
   labelAction?: ReactNode;
 }) {
@@ -102,10 +121,12 @@ export function CodeInput({
         value={value}
         inputMode="numeric"
         autoComplete="off"
+        enterKeyHint={enterKeyHint}
         placeholder={code.placeholder}
         aria-describedby={`${code.id}-cue`}
         onFocus={onActivate}
         onBlur={onBlur}
+        onKeyDown={onKeyDown}
         onChange={(event) => onValue(event.target.value)}
         className={cn(
           'h-16 w-full rounded-2xl border bg-white px-4 text-[16px] leading-5 font-medium text-[#0d0d0d] placeholder:text-[#5e5e5e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414] md:text-[14px]',
@@ -120,13 +141,20 @@ export function Actions({
   onBack,
   onContinue,
   continueLabel = 'Continuar',
+  className,
 }: {
   onBack?: () => void;
   onContinue?: () => void;
   continueLabel?: string;
+  className?: string;
 }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 flex justify-center px-6 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <div
+      className={cn(
+        'fixed inset-x-0 bottom-0 z-30 flex justify-center px-6 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]',
+        className,
+      )}
+    >
       <div className="flex w-full max-w-[400px] items-center gap-4 md:w-auto">
         <button
           type="button"
@@ -158,8 +186,8 @@ export function Actions({
 export function ExampleNote() {
   return (
     <p className="text-[14px] leading-5 text-[#5e5e5e]">
-      Exemplo de uma guia SNS. Os números impressos são ilustrativos — use os
-      da sua guia.
+      Exemplo de uma guia SNS. Os números impressos são ilustrativos — use os da
+      sua guia.
     </p>
   );
 }

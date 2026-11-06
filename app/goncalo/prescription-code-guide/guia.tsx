@@ -182,6 +182,7 @@ function useElementSize(ref: RefObject<HTMLElement | null>) {
 function viewTransform(
   viewport: { width: number; height: number },
   frame: CodeRegion | null,
+  fill = 0.55,
 ) {
   const { width: viewWidth, height: viewHeight } = viewport;
   if (viewWidth === 0 || viewHeight === 0) {
@@ -211,8 +212,8 @@ function viewTransform(
   const scale = Math.max(
     contain,
     Math.min(
-      (viewWidth * 0.55) / frameWidth,
-      (viewHeight * 0.55) / frameHeight,
+      (viewWidth * fill) / frameWidth,
+      (viewHeight * fill) / frameHeight,
     ),
   );
 
@@ -372,17 +373,21 @@ export function GuiaZoom({
   active,
   zoomed,
   onSelect,
+  fill = 0.55,
+  interactive = true,
   className,
 }: {
   active: CodeId | null;
   zoomed: boolean;
   onSelect: (id: CodeId) => void;
+  fill?: number;
+  interactive?: boolean;
   className?: string;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const viewport = useElementSize(frameRef);
   const frame = zoomed && active ? zoomFrames[active] : null;
-  const { x, y, scale } = viewTransform(viewport, frame);
+  const { x, y, scale } = viewTransform(viewport, frame, fill);
   const ready = scale > 0;
 
   return (
@@ -413,30 +418,44 @@ export function GuiaZoom({
             draggable={false}
             className="block h-full w-full max-w-none select-none"
           />
-          {codes.map((code) => {
-            const spot = zoomFrames[code.id];
-            const isActive = code.id === active;
-            return (
-              <button
-                key={code.id}
-                type="button"
-                data-code={code.id}
-                aria-label={`${code.label}. ${code.cue}`}
-                aria-pressed={isActive}
-                onClick={() => onSelect(code.id)}
-                className="absolute z-10 cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
-                style={{
-                  left: `${spot.left}%`,
-                  top: `${spot.top}%`,
-                  width: `${spot.width}%`,
-                  height: `${spot.height}%`,
-                  boxShadow: isActive
-                    ? '0 0 0 9999px rgba(13, 13, 13, 0.28)'
-                    : undefined,
-                }}
-              />
-            );
-          })}
+          {interactive ? (
+            codes.map((code) => {
+              const spot = zoomFrames[code.id];
+              const isActive = code.id === active;
+              return (
+                <button
+                  key={code.id}
+                  type="button"
+                  data-code={code.id}
+                  aria-label={`${code.label}. ${code.cue}`}
+                  aria-pressed={isActive}
+                  onClick={() => onSelect(code.id)}
+                  className="absolute z-10 cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
+                  style={{
+                    left: `${spot.left}%`,
+                    top: `${spot.top}%`,
+                    width: `${spot.width}%`,
+                    height: `${spot.height}%`,
+                    boxShadow: isActive
+                      ? '0 0 0 9999px rgba(13, 13, 13, 0.28)'
+                      : undefined,
+                  }}
+                />
+              );
+            })
+          ) : active ? (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute rounded-md"
+              style={{
+                left: `${zoomFrames[active].left}%`,
+                top: `${zoomFrames[active].top}%`,
+                width: `${zoomFrames[active].width}%`,
+                height: `${zoomFrames[active].height}%`,
+                boxShadow: '0 0 0 9999px rgba(13, 13, 13, 0.28)',
+              }}
+            />
+          ) : null}
         </div>
       </div>
     </figure>
