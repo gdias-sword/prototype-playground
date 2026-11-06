@@ -87,7 +87,7 @@ export function VariantE() {
               </span>
             </p>
             <DrawerContent className="[--drawer-content-max-height:min(760px,calc(100dvh-4.5rem))]">
-              <DrawerHeader className="px-4">
+              <DrawerHeader className="px-4 pt-4">
                 <DrawerTitle className="font-serif text-[22px] leading-7 font-normal">
                   Encontre os códigos da sua prescrição
                 </DrawerTitle>
