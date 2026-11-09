@@ -78,12 +78,13 @@ export function VariantE() {
               <span className="lg:hidden">
                 Pode consultar onde se encontram os códigos{' '}
                 <DrawerTrigger className="cursor-pointer font-semibold text-[#4a89e8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]">
-                  no exemplo de guia
-                </DrawerTrigger>.
+                  no exemplo de prescrição
+                </DrawerTrigger>
+                .
               </span>
               <span className="hidden lg:inline">
-                Pode consultar os códigos no exemplo de guia. Os números são
-                ilustrativos.
+                Pode consultar onde se encontram os códigos no exemplo de
+                prescrição.
               </span>
             </p>
             <DrawerContent className="[--drawer-content-max-height:min(760px,calc(100dvh-4.5rem))]">
@@ -140,34 +141,24 @@ export function VariantE() {
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:items-stretch lg:gap-10">
           <div className="order-2 flex flex-col gap-10 lg:order-1">
             {codes.map((item) => (
-              <div key={item.id} className="flex flex-col gap-2">
-                <CodeInput
-                  code={item}
-                  value={values[item.id]}
-                  active={active === item.id}
-                  onActivate={() => {
-                    setActive(item.id);
-                    setZoomed(true);
-                  }}
-                  onBlur={handleBlur}
-                  onValue={(value) =>
-                    setValues((next) => ({ ...next, [item.id]: value }))
-                  }
-                  inputRef={(node) => {
-                    inputs.current[item.id] = node;
-                  }}
-                />
-                <p
-                  id={`${item.id}-cue`}
-                  className={
-                    active === item.id
-                      ? 'hidden text-[14px] leading-5 text-[#2e2e2e] lg:block'
-                      : 'hidden text-[14px] leading-5 text-[#5e5e5e] lg:block'
-                  }
-                >
-                  {item.cue}
-                </p>
-              </div>
+              <CodeInput
+                key={item.id}
+                code={item}
+                value={values[item.id]}
+                active={active === item.id}
+                describedByCue={false}
+                onActivate={() => {
+                  setActive(item.id);
+                  setZoomed(true);
+                }}
+                onBlur={handleBlur}
+                onValue={(value) =>
+                  setValues((next) => ({ ...next, [item.id]: value }))
+                }
+                inputRef={(node) => {
+                  inputs.current[item.id] = node;
+                }}
+              />
             ))}
           </div>
           <div className="relative order-1 hidden h-[300px] lg:order-2 lg:block lg:h-full lg:min-h-[320px]">

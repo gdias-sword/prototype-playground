@@ -90,6 +90,7 @@ export function CodeInput({
   enterKeyHint,
   inputRef,
   labelAction,
+  describedByCue = true,
 }: {
   code: PrescriptionCode;
   value: string;
@@ -101,6 +102,7 @@ export function CodeInput({
   enterKeyHint?: 'next' | 'done';
   inputRef?: (node: HTMLInputElement | null) => void;
   labelAction?: ReactNode;
+  describedByCue?: boolean;
 }) {
   const inputId = `${code.id}-input`;
 
@@ -123,7 +125,7 @@ export function CodeInput({
         autoComplete="off"
         enterKeyHint={enterKeyHint}
         placeholder={code.placeholder}
-        aria-describedby={`${code.id}-cue`}
+        aria-describedby={describedByCue ? `${code.id}-cue` : undefined}
         onFocus={onActivate}
         onBlur={onBlur}
         onKeyDown={onKeyDown}
