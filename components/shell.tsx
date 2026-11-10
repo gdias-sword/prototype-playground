@@ -9,6 +9,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
+  SidebarInset,
   SidebarItem,
   SidebarSubItem,
 } from '@/components/sidebar';
@@ -38,7 +39,7 @@ export function Shell({ children }: ShellProps) {
     : null;
 
   return (
-    <div className="flex h-full">
+    <div className="bg-background-neutral-faded h-dvh overflow-hidden">
       <Sidebar>
         <SidebarHeader>
           <SwordLogo variant="primary" className="w-24" />
@@ -99,7 +100,9 @@ export function Shell({ children }: ShellProps) {
           </SidebarFooter>
         ) : null}
       </Sidebar>
-      <Container className="flex flex-col py-10">{children}</Container>
+      <SidebarInset>
+        <Container className="flex flex-col py-10">{children}</Container>
+      </SidebarInset>
     </div>
   );
 }
