@@ -1,11 +1,12 @@
 'use client';
 
-import { teams } from '@/playground/teams';
-import type { Prototype } from '@/playground/prototypes';
-import { Input } from '@/design/components/input';
-import { Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
 import { PlaygroundItem } from '@/components/playground-item';
+import { Input } from '@/design/components/input';
+import type { Prototype } from '@/playground/prototypes';
+import { teams } from '@/playground/teams';
+import { Search } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useMemo, useState } from 'react';
 
 interface GalleryProps {
   prototypes: Prototype[];
@@ -46,33 +47,32 @@ export function Gallery({ prototypes, author }: GalleryProps) {
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div
-          className="bg-background-neutral-subtle flex w-fit flex-wrap gap-1 rounded-xl p-1"
+          className="bg-background-neutral-subtle isolate flex w-fit flex-wrap gap-1 rounded-xl p-1"
           role="group"
           aria-label="Filter prototypes by team"
         >
-          {categories.map((item) => {
-            const isActive = category === item;
-
-            return (
-              <button
-                key={item}
-                type="button"
-                aria-pressed={isActive}
-                onClick={() => setCategory(item)}
-                className={`text-body-medium-strong rounded-lg px-3 py-2 transition-colors ${
-                  isActive
-                    ? 'bg-background-neutral-default text-foreground-neutral-default shadow-sm'
-                    : 'text-foreground-neutral-faded hover:text-foreground-neutral-default'
-                }`}
-              >
-                {item}
-              </button>
-            );
-          })}
+          {categories.map((item) => (
+            <button
+              key={item}
+              type="button"
+              aria-pressed={category === item}
+              onClick={() => setCategory(item)}
+              className="text-body-medium-strong text-foreground-neutral-faded hover:text-foreground-neutral-default aria-pressed:text-foreground-neutral-default relative rounded-lg px-3 py-2 transition-colors"
+            >
+              {category === item && (
+                <motion.span
+                  layoutId="active-team"
+                  transition={{ duration: 0.4, ease: [0.4, 0.8, 0, 1] }}
+                  className="bg-background-neutral-default ring-border-neutral-subtle absolute inset-0 rounded-lg ring-1"
+                />
+              )}
+              <span className="relative z-10">{item}</span>
+            </button>
+          ))}
         </div>
         <div className="relative w-full lg:max-w-sm">
           <Search
-            className="text-foreground-neutral-faded pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2"
+            className="text-foreground-neutral-faded pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2"
             aria-hidden
           />
           <Input
