@@ -29,7 +29,7 @@ function assetSrc(asset: string | { src: string }) {
   return typeof asset === 'string' ? asset : asset.src;
 }
 
-export default function SummaryAutoProgressStepper() {
+export default function ThriveSummaryAppDownload() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d]">
       <PageGradient />
