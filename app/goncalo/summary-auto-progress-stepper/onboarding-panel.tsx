@@ -1,6 +1,6 @@
 'use client';
 
-import meshGradient from '@/design/assets/gradients/thrive-mesh-gradient-01.png';
+import meshGradient from './assets/thrive-mesh-gradient-01.png';
 import { cn } from '@/design/utils';
 import {
   AnimatePresence,
