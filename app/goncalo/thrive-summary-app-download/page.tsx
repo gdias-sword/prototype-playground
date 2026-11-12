@@ -5,6 +5,7 @@ import { cn } from '@/design/utils';
 import appStore from './assets/app-store.svg';
 import googlePlay from './assets/google-play.svg';
 import icAccessibility from './assets/ic-accessibility.svg';
+import icApple from './assets/ic-apple.svg';
 import icChevronDown16 from './assets/ic-chevron-down-16.svg';
 import icChevronDown20 from './assets/ic-chevron-down-20.svg';
 import icStar from './assets/ic-star.svg';
@@ -19,7 +20,6 @@ import qrFinderTl from './assets/qr-finder-tl.svg';
 import qrFinderTrCore from './assets/qr-finder-tr-core.svg';
 import qrFinderTr from './assets/qr-finder-tr.svg';
 import qrModules from './assets/qr-modules.svg';
-import icApple from './assets/ic-apple.svg';
 import swordSymbol from './assets/sword-symbol.svg';
 import { OnboardingPanel } from './onboarding-panel';
 
@@ -103,9 +103,7 @@ function Content() {
           Welcome, {MEMBER_FIRST_NAME}
         </p>
         <h1 className="font-serif text-[32px] leading-10 font-semibold tracking-[-0.4px] lg:text-[40px] lg:leading-12">
-          Download the Sword app{' '}
-          <br aria-hidden className="hidden lg:block" />
-          and get started
+          Download the Sword app and get started
         </h1>
       </div>
       <div className="hidden items-center gap-6 lg:flex">
