@@ -125,6 +125,7 @@ function StickyDock({ surface }: { surface: 'glass' | 'fade' }) {
               key={flag}
               label={flag}
               checked={answers.flags.has(index)}
+              disabled={answers.none}
               onToggle={() => answers.toggleFlag(index)}
             />
           ))}
@@ -189,6 +190,7 @@ export function VariantC() {
                 key={flag}
                 label={flag}
                 checked={answers.flags.has(index)}
+                disabled={answers.none}
                 onToggle={() => answers.toggleFlag(index)}
               />
             ))}

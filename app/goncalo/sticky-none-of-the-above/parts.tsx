@@ -168,10 +168,12 @@ function Progress() {
 export function OptionCard({
   label,
   checked,
+  disabled = false,
   onToggle,
 }: {
   label: string;
   checked: boolean;
+  disabled?: boolean;
   onToggle: () => void;
 }) {
   return (
@@ -179,13 +181,19 @@ export function OptionCard({
       type="button"
       role="checkbox"
       aria-checked={checked}
+      disabled={disabled}
       onClick={onToggle}
       className={cn(
-        'w-full cursor-pointer rounded-2xl border px-4 py-5 text-left text-[14px] leading-5 font-medium text-[#0d0d0d] transition-colors duration-150 outline-none',
+        'w-full rounded-2xl border px-4 py-5 text-left text-[14px] leading-5 font-medium transition-colors duration-150 outline-none',
         'focus-visible:ring-2 focus-visible:ring-[#4a89e8] focus-visible:ring-offset-2',
-        checked
-          ? 'border-[#4a89e8] bg-[#e0ecfd]'
-          : 'border-[#c2c2c2] bg-white hover:border-[#8f8f8f]',
+        disabled
+          ? 'cursor-not-allowed border-[#dbdbdb] bg-[#f5f5f5] text-[#8f8f8f]'
+          : cn(
+              'cursor-pointer text-[#0d0d0d]',
+              checked
+                ? 'border-[#4a89e8] bg-[#e0ecfd]'
+                : 'border-[#c2c2c2] bg-white hover:border-[#8f8f8f]',
+            ),
       )}
     >
       {label}
