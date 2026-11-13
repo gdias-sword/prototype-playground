@@ -102,7 +102,7 @@ Use the deployment-specific URL from the successful deployment record:
 
 ```bash
 gh api "repos/{owner}/{repo}/deployments/<deployment-id>/statuses" \
-  --jq '.[0].target_url // empty'
+  --jq '.[0].environment_url // .[0].target_url // empty'
 ```
 
 If the deployment status has no URL, read the deployment payload:
@@ -112,13 +112,30 @@ gh api "repos/{owner}/{repo}/deployments/<deployment-id>" \
   --jq '.payload.web_url // empty'
 ```
 
-Compose the final share link:
+Compose the final share link from that deployment's origin, not the production alias:
 
 ```
-<prod-url>/<username>/<slug>
+<deployment-origin>/<username>/<slug>
 ```
 
-### 8. Hand back the link
+`<deployment-origin>` is the scheme and host of the successful deployment (`environment_url`).
+
+### 8. Record the version
+
+Skip this step when the share did not create a commit.
+
+Record the commit that was just deployed. The server keeps it only when every file in that commit is inside this prototype folder.
+
+```bash
+curl -sS -X POST "<deployment-origin>/api/versions" \
+  -H "content-type: application/json" \
+  -d '{"path":"/<username>/<slug>","sha":"<full-sha>"}'
+```
+
+- **2xx** → continue.
+- **Anything else** → the share link is still valid. Report that this version was not added to the toolbar, include the response error, and stop. Do not make another commit to record it.
+
+### 9. Hand back the link
 
 Single output for every iteration, regardless of whether it was the first deployment or a re-deployment:
 
