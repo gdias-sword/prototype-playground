@@ -201,16 +201,6 @@ export function OptionCard({
   );
 }
 
-export function GlassSurface({ height }: { height: string }) {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-10 border-t border-white bg-linear-to-b from-white/64 to-white/80 backdrop-blur-[3px] motion-safe:transition-[height] motion-safe:duration-300"
-      style={{ height, transitionTimingFunction: EASE_OUT }}
-    />
-  );
-}
-
 export function Screen({
   footerRef,
   canContinue,
