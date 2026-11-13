@@ -1,5 +1,6 @@
 'use client';
 
+import { VariantSwitcher } from '@/components/variant-switcher';
 import { SwordLogo } from '@/design/assets/logos/sword';
 import { cn } from '@/design/utils';
 import appStore from './assets/app-store.svg';
@@ -21,7 +22,19 @@ import qrFinderTrCore from './assets/qr-finder-tr-core.svg';
 import qrFinderTr from './assets/qr-finder-tr.svg';
 import qrModules from './assets/qr-modules.svg';
 import swordSymbol from './assets/sword-symbol.svg';
-import { OnboardingPanel } from './onboarding-panel';
+import {
+  OnboardingFrame,
+  OnboardingMedia,
+  OnboardingSteps,
+} from './onboarding-panel';
+
+const variants = [
+  { id: 'E', label: 'Steady glass pill' },
+  { id: 'D', label: 'Numbered glass pill' },
+  { id: 'A', label: 'Story meters' },
+  { id: 'B', label: 'Sliding underline' },
+  { id: 'C', label: 'Journey rail' },
+];
 
 const MEMBER_FIRST_NAME = 'Gonçalo';
 
@@ -31,15 +44,21 @@ function assetSrc(asset: string | { src: string }) {
 
 export default function ThriveSummaryAppDownload() {
   return (
-    <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d]">
-      <PageGradient />
-      <OnboardingPanel />
-      <Header />
-      <main className="relative z-2 mx-auto flex w-full max-w-[1080px] flex-1 items-start px-6 pt-6 pb-28 lg:items-center lg:px-16 lg:py-10 xl:px-0">
-        <Content />
-      </main>
-      <DownloadBar />
-    </div>
+    <VariantSwitcher variants={variants}>
+      {(variant) => (
+        <OnboardingFrame key={variant} variant={variant}>
+          <div className="relative isolate flex h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d] lg:h-auto lg:min-h-dvh lg:overflow-visible">
+            <PageGradient />
+            <OnboardingMedia />
+            <Header />
+            <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-6 pb-24 lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 xl:px-0">
+              <Content />
+            </main>
+            <DownloadBar />
+          </div>
+        </OnboardingFrame>
+      )}
+    </VariantSwitcher>
   );
 }
 
@@ -96,7 +115,7 @@ function Header() {
 
 function Content() {
   return (
-    <div className="flex w-full flex-col gap-6 lg:max-w-[min(600px,calc(57.34vw-128px))] lg:gap-10">
+    <div className="flex w-full flex-col gap-6 max-lg:flex-1 lg:max-w-[min(600px,calc(57.34vw-128px))] lg:gap-10">
       <AppRating className="lg:hidden" />
       <div className="flex flex-col gap-3">
         <p className="font-serif text-[22px] leading-7 font-normal tracking-[-0.4px] lg:text-[28px] lg:leading-9">
@@ -106,6 +125,7 @@ function Content() {
           Download the Sword app and get started
         </h1>
       </div>
+      <OnboardingSteps />
       <div className="hidden items-center gap-6 lg:flex">
         <QrCode />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
