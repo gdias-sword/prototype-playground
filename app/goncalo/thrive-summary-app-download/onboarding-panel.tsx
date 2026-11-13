@@ -34,7 +34,7 @@ import {
 
 const STEP_DURATION = 5000;
 
-type PauseReason = 'hover' | 'focus';
+type PauseReason = 'focus';
 
 const STEPS: Step[] = [
   { label: 'Do your sessions, guided in real time' },

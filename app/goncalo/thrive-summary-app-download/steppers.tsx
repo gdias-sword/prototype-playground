@@ -21,7 +21,7 @@ export interface Step {
   label: string;
 }
 
-type PauseReason = 'hover' | 'focus';
+type PauseReason = 'focus';
 
 export interface StepperProps {
   steps: Step[];
@@ -43,8 +43,6 @@ function pauseHandlers(
   onPauseChange: (reason: PauseReason, paused: boolean) => void,
 ) {
   return {
-    onPointerEnter: () => onPauseChange('hover', true),
-    onPointerLeave: () => onPauseChange('hover', false),
     onFocus: (event: FocusEvent<HTMLOListElement>) => {
       if (
         event.target instanceof Element &&
@@ -655,20 +653,14 @@ export function SteadyPill({
         const isActive = index === active;
         return (
           <li key={step.label} className="flex shrink-0">
-            <motion.button
+            <button
               type="button"
-              layout={reduceMotion ? false : 'position'}
               onClick={() => onSelect(index)}
               aria-current={isActive ? 'step' : undefined}
               aria-label={`Step ${index + 1} of ${steps.length}: ${step.label}`}
-              transition={
-                reduceMotion
-                  ? { duration: 0 }
-                  : { duration: 0.45, ease: [0.22, 1, 0.36, 1] }
-              }
               className={cn(
                 'group relative flex h-12 shrink-0 cursor-pointer items-center overflow-hidden rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d0d0d]',
-                isActive ? 'gap-2 pr-4' : 'size-12 justify-center hover:bg-white/45',
+                isActive ? null : 'hover:bg-white/45',
               )}
             >
               {isActive ? (
@@ -688,23 +680,33 @@ export function SteadyPill({
               >
                 {index + 1}
               </span>
-              {isActive ? (
-                <span className="relative z-1 grid whitespace-nowrap text-[12px] leading-4 font-medium tracking-[0.2px] text-[#0d0d0d] lg:text-[14px] lg:leading-5">
-                  {steps.map((candidate, candidateIndex) => (
-                    <span
-                      key={candidate.label}
-                      aria-hidden={candidateIndex !== index}
-                      className={cn(
-                        'col-start-1 row-start-1',
-                        candidateIndex === index ? null : 'invisible',
-                      )}
-                    >
-                      {candidate.label}
-                    </span>
-                  ))}
+              <span
+                className={cn(
+                  'grid transition-[grid-template-columns,margin,opacity] ease-in-out',
+                  reduceMotion ? 'duration-0' : 'duration-700',
+                  isActive
+                    ? '-ml-2 grid-cols-[1fr] opacity-100'
+                    : 'ml-0 grid-cols-[0fr] opacity-0',
+                )}
+              >
+                <span className="min-w-0 overflow-hidden">
+                  <span className="relative z-1 grid pr-4 text-left text-[12px] leading-4 font-medium tracking-[0.2px] whitespace-nowrap text-[#0d0d0d] lg:text-[14px] lg:leading-5">
+                    {steps.map((candidate, candidateIndex) => (
+                      <span
+                        key={candidate.label}
+                        aria-hidden={candidateIndex !== index}
+                        className={cn(
+                          'col-start-1 row-start-1',
+                          candidateIndex === index ? null : 'invisible',
+                        )}
+                      >
+                        {candidate.label}
+                      </span>
+                    ))}
+                  </span>
                 </span>
-              ) : null}
-            </motion.button>
+              </span>
+            </button>
           </li>
         );
       })}
