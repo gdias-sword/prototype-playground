@@ -159,11 +159,15 @@ export function OnboardingMobileStage() {
   const value = useOnboarding();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 lg:hidden">
-      <Rise delay={0.8} duration={1} className="flex w-full justify-center">
+    <div className="flex min-h-0 flex-1 flex-col items-center gap-4 lg:hidden">
+      <Rise
+        delay={0.8}
+        duration={1}
+        className="flex min-h-0 w-full flex-1 flex-col"
+      >
         <StepVisual active={value.active} compact />
       </Rise>
-      <Rise delay={1.1} duration={1}>
+      <Rise delay={1.1} duration={1} className="shrink-0">
         <StepMeters {...value} />
       </Rise>
     </div>
@@ -184,10 +188,10 @@ export function OnboardingMedia() {
         <Mesh />
       </div>
       <div className="relative z-1 flex w-full max-w-[420px] flex-col items-center gap-8">
-        <Rise delay={0.8} duration={1} className="w-full">
+        <Rise delay={0.8} duration={1} className="flex w-full flex-col">
           <StepVisual active={value.active} />
         </Rise>
-        <Rise delay={1.1} duration={1}>
+        <Rise delay={1.1} duration={1} className="shrink-0">
           <StepMeters {...value} />
         </Rise>
       </div>
@@ -216,42 +220,61 @@ function StepVisual({
   const step = STEPS[active];
   const visual = STEP_VISUALS[active];
 
+  const motionProps = {
+    initial: reduceMotion
+      ? { opacity: 0 }
+      : { opacity: 0, y: 16, filter: 'blur(8px)' },
+    animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
+    exit: reduceMotion
+      ? { opacity: 0 }
+      : { opacity: 0, y: -16, filter: 'blur(8px)' },
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
+  };
+
   return (
-    <AnimatePresence mode="popLayout" initial={false}>
-      <motion.div
-        key={active}
-        initial={
-          reduceMotion
-            ? { opacity: 0 }
-            : { opacity: 0, y: 16, filter: 'blur(8px)' }
-        }
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        exit={
-          reduceMotion
-            ? { opacity: 0 }
-            : { opacity: 0, y: -16, filter: 'blur(8px)' }
-        }
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="flex w-full flex-col items-center gap-4 lg:gap-7"
-      >
-        {active === CHAT_STEP ? (
-          <TherapistChat compact={compact} />
-        ) : (
-          <img
-            alt={visual.alt}
-            src={assetSrc(visual.src)}
-            draggable={false}
-            className={cn(
-              'pointer-events-none w-auto max-w-full object-contain drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none',
-              compact
-                ? 'h-[min(280px,32dvh)]'
-                : 'h-[min(420px,calc(100dvh-23rem))]',
-            )}
-          />
+    <div
+      className={cn(
+        'flex w-full flex-col gap-4 lg:gap-7',
+        compact && 'min-h-0 flex-1',
+      )}
+    >
+      <div
+        className={cn(
+          'relative w-full',
+          compact ? 'min-h-0 flex-1' : 'h-[min(420px,calc(100dvh-23rem))]',
         )}
-        <StepCaption step={step} compact={compact} />
-      </motion.div>
-    </AnimatePresence>
+      >
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={active}
+            {...motionProps}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            {active === CHAT_STEP ? (
+              <TherapistChat />
+            ) : (
+              <img
+                alt={visual.alt}
+                src={assetSrc(visual.src)}
+                draggable={false}
+                className="pointer-events-none h-full max-h-full w-auto max-w-full object-contain drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none"
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+      <div className="relative h-24 w-full shrink-0">
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={active}
+            {...motionProps}
+            className="absolute inset-0 flex items-start justify-center"
+          >
+            <StepCaption step={step} compact={compact} />
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }
 

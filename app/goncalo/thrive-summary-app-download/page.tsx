@@ -37,7 +37,7 @@ export default function ThriveSummaryAppDownload() {
         <OnboardingWash />
         <OnboardingMedia />
         <Header />
-        <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-[max(24px,env(safe-area-inset-top))] lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 xl:px-0">
+        <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-[max(64px,calc(env(safe-area-inset-top)+40px))] lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 xl:px-0">
           <Content />
         </main>
         <Rise

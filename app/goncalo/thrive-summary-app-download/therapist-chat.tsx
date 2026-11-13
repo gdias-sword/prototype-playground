@@ -33,7 +33,24 @@ function assetSrc(asset: string | { src: string }) {
   return typeof asset === 'string' ? asset : asset.src;
 }
 
-export function TherapistChat({ compact }: { compact?: boolean }) {
+export function TherapistChat() {
+  return (
+    <div className="relative aspect-[280/544] h-full max-h-full w-auto max-w-full [container-type:size]">
+      <div
+        className="absolute top-0 left-0 origin-top-left drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)]"
+        style={{
+          width: 280,
+          height: 544,
+          transform: 'scale(calc(100cqh / 544px))',
+        }}
+      >
+        <Phone />
+      </div>
+    </div>
+  );
+}
+
+function Phone() {
   const reduced = useReducedMotion();
   const { shown, draft, typing } = useChatPlay(reduced);
   const thread = useRef<HTMLDivElement>(null);
@@ -48,14 +65,8 @@ export function TherapistChat({ compact }: { compact?: boolean }) {
   }, [shown, draft, typing]);
 
   return (
-    <div
-      className={cn(
-        'relative flex flex-col overflow-hidden border-white bg-[#f2f2f2] shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none',
-        compact
-          ? 'h-[min(440px,52dvh)] w-[230px] rounded-[28px] border-[6px]'
-          : 'h-[min(520px,calc(100dvh-22rem))] w-[260px] rounded-[32px] border-[7px]',
-      )}
-    >
+    <div className="flex h-full flex-col rounded-[44px] bg-[#14161c] p-2 select-none">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[36px] bg-[#f2f2f2]">
       <img
         alt=""
         src={assetSrc(chatBg)}
@@ -76,7 +87,7 @@ export function TherapistChat({ compact }: { compact?: boolean }) {
       </header>
       <div
         ref={thread}
-        className="relative z-1 flex min-h-0 flex-1 flex-col justify-end gap-3 overflow-y-auto px-0 py-3 [mask-image:linear-gradient(transparent_12px,#000_32px)]"
+        className="relative z-1 flex min-h-0 flex-1 flex-col justify-end gap-3 overflow-y-auto px-0 py-3"
       >
         {opening.length > 0 ? (
           <div className="flex flex-col gap-2">
@@ -118,6 +129,7 @@ export function TherapistChat({ compact }: { compact?: boolean }) {
           </span>
         </div>
       </form>
+      </div>
     </div>
   );
 }
