@@ -189,7 +189,7 @@ export function OnboardingMobileStage() {
   const value = useOnboarding();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center gap-4 lg:hidden">
+    <div className="flex min-h-0 flex-1 flex-col items-center gap-2 lg:hidden">
       <Rise
         delay={0.8}
         duration={1}
@@ -217,7 +217,7 @@ export function OnboardingMedia() {
       <div className="absolute inset-0 overflow-hidden">
         <Mesh />
       </div>
-      <div className="relative z-1 flex w-full max-w-[420px] flex-col items-center gap-8">
+      <div className="relative z-1 flex w-full max-w-[420px] flex-col items-center gap-6">
         <Rise delay={0.8} duration={1} className="flex w-full flex-col">
           <StepVisual active={value.active} />
         </Rise>
@@ -269,8 +269,8 @@ function StepVisual({
   return (
     <div
       className={cn(
-        'flex w-full flex-col lg:gap-7',
-        compact ? 'min-h-0 flex-1 gap-8' : 'gap-7',
+        'flex w-full flex-col gap-12',
+        compact && 'min-h-0 flex-1',
       )}
     >
       <div
@@ -406,16 +406,17 @@ function WelcomeKit({ compact }: { compact?: boolean }) {
 
   return (
     <div
-      className="flex h-full w-full items-end justify-center"
+      className="flex h-full w-full flex-col items-center"
       style={{ containerType: 'size' }}
     >
+      <div className="min-h-0 flex-[3]" />
       <img
         alt={visual.alt}
         src={assetSrc(visual.src)}
         draggable={false}
         className={cn(
-          'pointer-events-none w-auto max-w-full object-contain drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none',
-          compact && 'origin-bottom scale-105',
+          'pointer-events-none w-auto max-w-full shrink-0 object-contain drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none',
+          compact && 'origin-center scale-105',
         )}
         style={{
           height: compact
@@ -423,6 +424,7 @@ function WelcomeKit({ compact }: { compact?: boolean }) {
             : `min(75cqh, calc(75cqw * ${KIT_FRAME.height} / ${KIT_FRAME.width}))`,
         }}
       />
+      <div className="min-h-0 flex-1" />
     </div>
   );
 }
