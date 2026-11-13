@@ -15,6 +15,7 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
+  type Ref,
   type RefObject,
 } from 'react';
 
@@ -35,6 +36,8 @@ export const FLAGS = [
 export const NONE_LABEL = 'None of these apply to me';
 
 export const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
+
+export const FADE = 48;
 
 const PROGRESS = [1, 1, 0.5, 0, 0, 0];
 
@@ -84,6 +87,62 @@ export function useHeight(ref: RefObject<HTMLElement | null>) {
   }, [ref]);
 
   return height;
+}
+
+export function useClipped(
+  listRef: RefObject<HTMLElement | null>,
+  footerRef: RefObject<HTMLElement | null>,
+) {
+  const [clipped, setClipped] = useState(false);
+
+  useEffect(() => {
+    const list = listRef.current;
+    const footer = footerRef.current;
+    if (!list || !footer) return;
+
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const listBottom = list.getBoundingClientRect().bottom;
+      const footerTop = footer.getBoundingClientRect().top;
+      setClipped(listBottom > footerTop + 1);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+
+    measure();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    const observer = new ResizeObserver(schedule);
+    observer.observe(list);
+    observer.observe(footer);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      observer.disconnect();
+    };
+  }, [listRef, footerRef]);
+
+  return clipped;
+}
+
+export function FadeSurface({ height }: { height: string }) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-10 overflow-hidden motion-safe:transition-[height] motion-safe:duration-300"
+      style={{
+        height,
+        transitionTimingFunction: EASE_OUT,
+        maskImage: `linear-gradient(to top, #000 calc(100% - ${FADE}px), transparent)`,
+      }}
+    >
+      <Backdrop className="absolute inset-x-0 bottom-0 h-dvh" />
+    </div>
+  );
 }
 
 export function Backdrop({ className }: { className?: string }) {
@@ -166,11 +225,13 @@ function Progress() {
 }
 
 export function OptionCard({
+  ref,
   label,
   checked,
   disabled = false,
   onToggle,
 }: {
+  ref?: Ref<HTMLButtonElement>;
   label: string;
   checked: boolean;
   disabled?: boolean;
@@ -178,6 +239,7 @@ export function OptionCard({
 }) {
   return (
     <button
+      ref={ref}
       type="button"
       role="checkbox"
       aria-checked={checked}
