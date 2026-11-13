@@ -1,6 +1,5 @@
 'use client';
 
-import { MessageSquare } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import {
   useCallback,
@@ -25,6 +24,7 @@ import {
   CommentComposer,
   CommentThread,
 } from '@/components/comments/comment-thread';
+import { PrototypeToolbar } from '@/components/prototype-toolbar';
 import type { PublicThread } from '@/playground/comment-model';
 
 const POLL_INTERVAL_MS = 4000;
@@ -194,11 +194,12 @@ export function CommentLayer() {
 
     function handlePointerDown(event: PointerEvent) {
       if (event.button !== 0 || isCommentUi(event.target)) return;
+      if (isXrayClaim(event)) return;
       event.stopPropagation();
     }
 
     function handleClick(event: MouseEvent) {
-      if (isCommentUi(event.target)) return;
+      if (isCommentUi(event.target) || isXrayClaim(event)) return;
       event.preventDefault();
       event.stopPropagation();
       if (draftRef.current || openThreadIdRef.current) {
@@ -215,6 +216,7 @@ export function CommentLayer() {
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== 'Escape') return;
+      if (document.documentElement.dataset.xrayGesture === '1') return;
       event.preventDefault();
       event.stopPropagation();
       if (draftRef.current) {
@@ -354,11 +356,7 @@ export function CommentLayer() {
     }
   }
 
-  if (
-    !prototypePath ||
-    availability === 'loading' ||
-    availability === 'missing'
-  ) {
+  if (!prototypePath || availability === 'missing') {
     return null;
   }
 
@@ -482,7 +480,7 @@ export function CommentLayer() {
       {isOpen ? (
         <div
           data-comment-ui
-          className="border-border-neutral-default bg-background-neutral-default fixed right-4 bottom-20 z-[10001] flex max-h-[min(32rem,calc(100dvh-8rem))] w-80 flex-col gap-4 overflow-y-auto rounded-2xl border p-4 shadow-lg"
+          className="border-border-neutral-default bg-background-neutral-default fixed bottom-20 left-1/2 z-[10001] flex max-h-[min(32rem,calc(100dvh-8rem))] w-80 -translate-x-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border p-4 shadow-lg"
         >
           {availability === 'unconfigured' ? (
             <p className="text-body-medium-default text-foreground-neutral-default">
@@ -527,33 +525,15 @@ export function CommentLayer() {
         </div>
       ) : null}
 
-      <div
-        data-comment-ui
-        className="fixed right-4 bottom-4 z-[10002] flex items-center gap-2"
-      >
-        <button
-          type="button"
-          className={`bg-background-brand-default text-foreground-neutral-inverse relative flex size-12 cursor-pointer items-center justify-center rounded-full shadow-md ${
-            isOpen
-              ? 'outline-background-brand-default outline-2 outline-offset-2'
-              : ''
-          }`}
-          aria-pressed={isOpen}
-          aria-keyshortcuts="c"
-          title="Toggle comments (C)"
-          aria-label={
-            openCount > 0 ? `Comments, ${openCount} open` : 'Comments'
-          }
-          onClick={toggleComments}
-        >
-          <MessageSquare className="size-5" />
-          {availability === 'ready' && openCount > 0 ? (
-            <span className="bg-background-neutral-default text-body-small-strong text-foreground-neutral-default absolute -top-1 -right-1 flex min-w-5 items-center justify-center rounded-full px-1">
-              {openCount > 99 ? '99+' : openCount}
-            </span>
-          ) : null}
-        </button>
-      </div>
+      <PrototypeToolbar
+        path={prototypePath}
+        comments={{
+          availability,
+          isOpen,
+          openCount,
+          onToggle: toggleComments,
+        }}
+      />
     </>
   );
 }
@@ -699,6 +679,14 @@ function ThreadSection({
         );
       })}
     </section>
+  );
+}
+
+function isXrayClaim(event: MouseEvent | PointerEvent) {
+  return (
+    document.documentElement.dataset.xray === 'armed' ||
+    document.documentElement.dataset.xrayGesture === '1' ||
+    event.altKey
   );
 }
 
