@@ -13,7 +13,8 @@ import qrCode from './assets/qr.svg';
 import swordSymbol from './assets/sword-symbol.svg';
 import {
   CelebrationBloom,
-  CompletionSeal,
+  CelebrationHeadline,
+  CelebrationMark,
   Rise,
 } from './celebration';
 import {
@@ -30,6 +31,10 @@ function assetSrc(asset: string | { src: string }) {
 }
 
 export default function ThriveSummaryAppDownload() {
+  return <Screen />;
+}
+
+function Screen() {
   return (
     <OnboardingFrame>
       <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d] max-lg:bg-linear-to-b max-lg:from-white max-lg:to-[#c7ddfb]">
@@ -108,20 +113,11 @@ function Content() {
       <div className="relative">
         <CelebrationBloom />
         <div className="relative z-1 flex flex-col">
-          <div className="flex items-center gap-3 lg:gap-3.5">
-            <CompletionSeal />
-            <Rise
-              delay={0.35}
-              duration={0.8}
-              className="text-[14px] leading-5 font-semibold tracking-[0.2px] text-[#0d0d0d]/80 lg:text-[15px]"
-            >
-              That was the hard part
-            </Rise>
-          </div>
-          <Rise delay={0.5} className="pt-3.5 lg:pt-5">
-            <h1 className="font-serif text-[30px] leading-9 font-semibold tracking-[-0.4px] text-pretty lg:text-[40px] lg:leading-12">
-              You’re all set, {MEMBER_FIRST_NAME}!
-            </h1>
+          <CelebrationMark celebration="confetti" />
+          <Rise delay={0.5} className="pt-4 lg:pt-6">
+            <CelebrationHeadline celebration="confetti" ending="!">
+              You’re all set, {MEMBER_FIRST_NAME}
+            </CelebrationHeadline>
           </Rise>
           <Rise delay={0.7} className="pt-2 lg:pt-4">
             <p className="max-w-[460px] text-[15px] leading-[22px] tracking-[0.2px] text-[#0d0d0d]/70 lg:text-[18px] lg:leading-[26px]">
