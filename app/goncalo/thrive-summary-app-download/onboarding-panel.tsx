@@ -20,11 +20,12 @@ import {
 } from 'react';
 import sessionFeedback from './assets/session-feedback.png';
 import meshGradient from './assets/thrive-mesh-gradient-01.png';
-import welcomeKit from './assets/welcome-kit.png';
+import welcomeKit from './assets/welcome-kit-closed.png';
 import { Rise } from './celebration';
 import { TherapistChat } from './therapist-chat';
 
 const CHAT_STEP = 2;
+const KIT_STEP = 1;
 const SESSION_STEP = 0;
 const STEP_DURATIONS = [10000, 5000, 9000];
 
@@ -43,6 +44,7 @@ const SESSION_CLIP_SOURCES = [
 
 // The clip and its poster (session-feedback.png) are both 930×960.
 const SESSION_FRAME = { width: 930, height: 960 };
+const KIT_FRAME = { width: 1024, height: 845 };
 
 // Hold the clip until the panel's Rise (0.8s delay + 1s) has mostly landed,
 // or until the step crossfade (0.6s) finishes on later visits.
@@ -68,7 +70,7 @@ const STEPS: Step[] = [
   {
     icon: 'lock',
     eyebrow: 'Unlocks after your first session',
-    label: 'Get your free welcome kit',
+    label: 'Get your free\nwelcome kit',
   },
   {
     icon: 'lock',
@@ -84,7 +86,7 @@ const STEP_VISUALS: { src: string | { src: string }; alt: string }[] = [
   },
   {
     src: welcomeKit,
-    alt: 'The free welcome kit: a Sword phone stand beside its box',
+    alt: 'The free welcome kit, closed in its Thrive box',
   },
 ];
 
@@ -247,7 +249,6 @@ function StepVisual({
   const { paused } = useOnboarding();
   const reduceMotion = useReducedMotion();
   const step = STEPS[active];
-  const visual = STEP_VISUALS[active];
   const mounted = useRef(false);
 
   useEffect(() => {
@@ -302,17 +303,9 @@ function StepVisual({
                 reduceMotion={Boolean(reduceMotion)}
                 compact={compact}
               />
-            ) : (
-              <img
-                alt={visual.alt}
-                src={assetSrc(visual.src)}
-                draggable={false}
-                className={cn(
-                  'pointer-events-none w-auto max-w-full object-contain drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none',
-                  compact ? 'max-h-[92%]' : 'h-full max-h-full',
-                )}
-              />
-            )}
+            ) : active === KIT_STEP ? (
+              <WelcomeKit compact={compact} />
+            ) : null}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -408,6 +401,32 @@ function SessionClip({
   );
 }
 
+function WelcomeKit({ compact }: { compact?: boolean }) {
+  const visual = STEP_VISUALS[KIT_STEP];
+
+  return (
+    <div
+      className="flex h-full w-full items-end justify-center"
+      style={{ containerType: 'size' }}
+    >
+      <img
+        alt={visual.alt}
+        src={assetSrc(visual.src)}
+        draggable={false}
+        className={cn(
+          'pointer-events-none w-auto max-w-full object-contain drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none',
+          compact && 'origin-bottom scale-105',
+        )}
+        style={{
+          height: compact
+            ? `min(69cqh, calc(75cqw * ${KIT_FRAME.height} / ${KIT_FRAME.width}))`
+            : `min(75cqh, calc(75cqw * ${KIT_FRAME.height} / ${KIT_FRAME.width}))`,
+        }}
+      />
+    </div>
+  );
+}
+
 function StepCaption({ step, compact }: { step: Step; compact?: boolean }) {
   return (
     <div className="flex max-w-[340px] flex-col items-center gap-2 text-center">
@@ -417,7 +436,7 @@ function StepCaption({ step, compact }: { step: Step; compact?: boolean }) {
       </p>
       <h2
         className={cn(
-          'font-serif font-semibold tracking-[-0.3px] text-pretty text-[#0d0d0d]',
+          'font-serif font-semibold tracking-[-0.3px] whitespace-pre-line text-pretty text-[#0d0d0d]',
           compact ? 'text-[22px] leading-7' : 'text-[26px] leading-8',
         )}
       >
@@ -500,7 +519,7 @@ function StepMeters({
             type="button"
             onClick={() => select(index)}
             aria-current={index === active ? 'step' : undefined}
-            aria-label={`Step ${index + 1} of ${steps.length}: ${step.label}`}
+            aria-label={`Step ${index + 1} of ${steps.length}: ${step.label.replace('\n', ' ')}`}
             className="w-12 cursor-pointer py-2.5 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d0d0d] lg:w-14"
           >
             <span className="block h-1 overflow-hidden rounded-full bg-[#0d0d0d]/15">
