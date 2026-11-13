@@ -78,7 +78,6 @@ export function TherapistChat({ compact }: { compact?: boolean }) {
         ref={thread}
         className="relative z-1 flex min-h-0 flex-1 flex-col justify-end gap-4 overflow-y-auto px-0 py-3"
       >
-        {shown > 0 ? <Unread /> : null}
         {opening.length > 0 ? (
           <div className="flex flex-col gap-2">
             {opening.map((message, index) => (
@@ -196,24 +195,18 @@ function LaurenMark({ className }: { className?: string }) {
   );
 }
 
-function Unread() {
-  return (
-    <p className="mx-4 rounded-lg bg-[#e8e8e8] px-4 py-0.5 text-center text-[12px] leading-4 font-medium text-[#0d0d0d] backdrop-blur-[6px]">
-      Unread messages
-    </p>
-  );
-}
-
 function Received({
   name,
   avatar,
   text,
   children,
+  meta = true,
 }: {
   name?: boolean;
   avatar?: boolean;
   text?: string;
   children?: ReactNode;
+  meta?: boolean;
 }) {
   return (
     <motion.div
@@ -227,7 +220,12 @@ function Received({
       ) : (
         <span className="size-5 shrink-0" />
       )}
-      <div className="relative min-w-16 rounded-xl bg-white px-1 pt-1 pb-5">
+      <div
+        className={cn(
+          'relative min-w-16 rounded-xl bg-white px-1 pt-1',
+          meta ? 'pb-5' : 'pb-1',
+        )}
+      >
         {name ? (
           <p className="px-1 text-[12px] leading-4 font-bold text-[#0d0d0d]">
             Lauren
@@ -236,7 +234,7 @@ function Received({
         <div className="px-1 text-[13px] leading-[18px] font-medium text-pretty text-[#0d0d0d]">
           {children ?? text}
         </div>
-        <Stamp />
+        {meta ? <Stamp /> : null}
       </div>
     </motion.div>
   );
@@ -262,7 +260,7 @@ function Sent({ text }: { text: string }) {
 
 function Typing() {
   return (
-    <Received avatar>
+    <Received avatar meta={false}>
       <span className="flex h-[18px] items-center gap-1">
         {[0, 1, 2].map((index) => (
           <motion.span
