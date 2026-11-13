@@ -10,24 +10,24 @@ import icSend from './assets/ic-send.svg';
 import lauren from './assets/lauren.png';
 
 const MEMBER = 'Gonçalo';
-const REPLY = 'I’ll start it now.';
+const REPLY = 'The last ones were the tough part.';
 const TIME = ['8:34', 'AM'] as const;
 
 const OPENING = [
   {
     id: 'hello',
     name: true,
-    text: `Hi ${MEMBER}! I’m Lauren, your physical therapist.`,
+    text: `Hi ${MEMBER}! I reviewed your first session.`,
   },
   {
-    id: 'guide',
+    id: 'review',
     name: false,
-    text: 'Your first session is ready. It’s about 5 minutes, and I’ll guide you through it.',
+    text: 'You finished every rep. Form stayed steady, and you slowed down right when it got hard.',
   },
 ] as const;
 
 const CLOSING =
-  'Open the app and tap your first session. I’ll be right here if you need me.';
+  'That’s a strong start. I’ll shape the next session around it.';
 
 function assetSrc(asset: string | { src: string }) {
   return typeof asset === 'string' ? asset : asset.src;

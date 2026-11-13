@@ -1,10 +1,5 @@
 'use client';
 
-import meshGradient from './assets/thrive-mesh-gradient-01.png';
-import sessionFeedback from './assets/session-feedback.png';
-import welcomeKit from './assets/welcome-kit.png';
-import { TherapistChat } from './therapist-chat';
-import { Rise } from './celebration';
 import { cn } from '@/design/utils';
 import {
   AnimatePresence,
@@ -23,25 +18,36 @@ import {
   type FocusEvent,
   type ReactNode,
 } from 'react';
+import sessionFeedback from './assets/session-feedback.png';
+import meshGradient from './assets/thrive-mesh-gradient-01.png';
+import welcomeKit from './assets/welcome-kit.png';
+import { Rise } from './celebration';
+import { TherapistChat } from './therapist-chat';
 
 const CHAT_STEP = 2;
 const SESSION_STEP = 0;
 const STEP_DURATIONS = [10000, 5000, 9000];
 
-const SESSION_CLIP_SRC = new URL(
-  './assets/session-feedback.mp4',
-  import.meta.url,
-).href;
+// Safari only renders alpha from HEVC, and Chromium only from VP9. Chromium
+// rejects the quicktime type, so each browser lands on the file it can key.
+const SESSION_CLIP_SOURCES = [
+  {
+    src: new URL('./assets/session-feedback.mov', import.meta.url).href,
+    type: 'video/quicktime; codecs="hvc1"',
+  },
+  {
+    src: new URL('./assets/session-feedback.webm', import.meta.url).href,
+    type: 'video/webm; codecs="vp9"',
+  },
+];
 
-// session-feedback.png is 890×916. The screen opening is inset from that frame.
-const SESSION_FRAME = { width: 890, height: 916 };
-const SESSION_SCREEN = {
-  left: '3.483%',
-  top: '1.856%',
-  width: '45.506%',
-  height: '95.524%',
-  radius: '14.815% / 6.857%',
-};
+// The clip and its poster (session-feedback.png) are both 930×960.
+const SESSION_FRAME = { width: 930, height: 960 };
+
+// Hold the clip until the panel's Rise (0.8s delay + 1s) has mostly landed,
+// or until the step crossfade (0.6s) finishes on later visits.
+const SESSION_START_ON_ENTRANCE = 1600;
+const SESSION_START_ON_STEP = 600;
 
 type PauseReason = 'focus' | 'hover';
 
@@ -242,6 +248,11 @@ function StepVisual({
   const reduceMotion = useReducedMotion();
   const step = STEPS[active];
   const visual = STEP_VISUALS[active];
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+  }, []);
 
   const motionProps = {
     initial: reduceMotion
@@ -277,10 +288,17 @@ function StepVisual({
             )}
           >
             {active === CHAT_STEP ? (
-              <TherapistChat className={compact ? 'h-[92%] max-h-[92%]' : undefined} />
+              <TherapistChat
+                className={compact ? 'h-[92%] max-h-[92%]' : undefined}
+              />
             ) : active === SESSION_STEP ? (
               <SessionClip
                 paused={paused}
+                startDelay={
+                  mounted.current
+                    ? SESSION_START_ON_STEP
+                    : SESSION_START_ON_ENTRANCE
+                }
                 reduceMotion={Boolean(reduceMotion)}
                 compact={compact}
               />
@@ -315,25 +333,34 @@ function StepVisual({
 
 function SessionClip({
   paused,
+  startDelay,
   reduceMotion,
   compact,
 }: {
   paused: boolean;
+  startDelay: number;
   reduceMotion: boolean;
   compact?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const visual = STEP_VISUALS[SESSION_STEP];
+  const [delay] = useState(startDelay);
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setStarted(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || reduceMotion) return;
+    if (!video || reduceMotion || !started) return;
     if (paused) {
       video.pause();
       return;
     }
     void video.play().catch(() => {});
-  }, [paused, reduceMotion]);
+  }, [paused, reduceMotion, started]);
 
   return (
     <div
@@ -344,7 +371,10 @@ function SessionClip({
       style={{ containerType: 'size' }}
     >
       <div
-        className={cn('relative max-w-full', compact && 'origin-bottom scale-105')}
+        className={cn(
+          'relative max-w-full',
+          compact && 'origin-bottom scale-105',
+        )}
         style={{
           aspectRatio: `${SESSION_FRAME.width} / ${SESSION_FRAME.height}`,
           height: compact
@@ -352,29 +382,26 @@ function SessionClip({
             : `min(100cqh, calc(100cqw * ${SESSION_FRAME.height} / ${SESSION_FRAME.width}))`,
         }}
       >
-        <img
-          alt={visual.alt}
-          src={assetSrc(visual.src)}
-          draggable={false}
-          className="pointer-events-none block h-full w-full drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none"
-        />
-        {reduceMotion ? null : (
+        {reduceMotion ? (
+          <img
+            alt={visual.alt}
+            src={assetSrc(visual.src)}
+            draggable={false}
+            className="pointer-events-none block h-full w-full drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none"
+          />
+        ) : (
           <video
             ref={videoRef}
-            aria-hidden
+            aria-label={visual.alt}
             muted
             playsInline
             preload="auto"
-            src={SESSION_CLIP_SRC}
-            className="pointer-events-none absolute object-cover"
-            style={{
-              left: SESSION_SCREEN.left,
-              top: SESSION_SCREEN.top,
-              width: SESSION_SCREEN.width,
-              height: SESSION_SCREEN.height,
-              borderRadius: SESSION_SCREEN.radius,
-            }}
-          />
+            className="pointer-events-none block h-full w-full drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none"
+          >
+            {SESSION_CLIP_SOURCES.map((source) => (
+              <source key={source.src} src={source.src} type={source.type} />
+            ))}
+          </video>
         )}
       </div>
     </div>
@@ -391,9 +418,7 @@ function StepCaption({ step, compact }: { step: Step; compact?: boolean }) {
       <h2
         className={cn(
           'font-serif font-semibold tracking-[-0.3px] text-pretty text-[#0d0d0d]',
-          compact
-            ? 'text-[22px] leading-7'
-            : 'text-[26px] leading-8',
+          compact ? 'text-[22px] leading-7' : 'text-[26px] leading-8',
         )}
       >
         {step.label}

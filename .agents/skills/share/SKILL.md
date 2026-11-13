@@ -134,6 +134,6 @@ Stop.
 
 - Use the GitHub integration by default. Use the Vercel CLI only when explicitly requested or when the GitHub integration cannot perform the required deployment or diagnosis.
 - Stage files explicitly with `git add <path>`. Never `git add .`.
-- Prototypes must not touch shared code (`design/`, `components/`, `config/`, `utils/`) or other contributors prototypes. If dirty files outside `app/<username>/<slug>/` exist, refuse — don't warn.
+- Prototypes must not touch shared code (`design/`, `components/`, `config/`, `utils/`) or other contributors prototypes. If dirty files outside `app/<username>/<slug>/` exist, stash them before sharing. Then unstash them back after the share is complete.
 - The default prototype workflow uses `main` directly; branches and pull requests are optional and valid when the user explicitly requests them for parallel or isolated work.
 - When surfacing build or deploy errors, summarise in plain English. Never paste raw stack traces unless the user asks.
