@@ -1,6 +1,3 @@
-'use client';
-
-import { VariantSwitcher } from '@/components/variant-switcher';
 import { SwordLogo } from '@/design/assets/logos/sword';
 import { cn } from '@/design/utils';
 import appStore from './assets/app-store.svg';
@@ -12,29 +9,14 @@ import icChevronDown20 from './assets/ic-chevron-down-20.svg';
 import icStar from './assets/ic-star.svg';
 import icWorld from './assets/ic-world.svg';
 import pageGradient from './assets/page-gradient.svg';
-import qrBase from './assets/qr-base.svg';
-import qrCenter from './assets/qr-center.png';
-import qrFinderBlCore from './assets/qr-finder-bl-core.svg';
-import qrFinderBl from './assets/qr-finder-bl.svg';
-import qrFinderTlCore from './assets/qr-finder-tl-core.svg';
-import qrFinderTl from './assets/qr-finder-tl.svg';
-import qrFinderTrCore from './assets/qr-finder-tr-core.svg';
-import qrFinderTr from './assets/qr-finder-tr.svg';
-import qrModules from './assets/qr-modules.svg';
+import qrCode from './assets/qr.svg';
 import swordSymbol from './assets/sword-symbol.svg';
 import {
   OnboardingFrame,
   OnboardingMedia,
-  OnboardingSteps,
+  OnboardingMobileStage,
+  OnboardingWash,
 } from './onboarding-panel';
-
-const variants = [
-  { id: 'E', label: 'Steady glass pill' },
-  { id: 'D', label: 'Numbered glass pill' },
-  { id: 'A', label: 'Story meters' },
-  { id: 'B', label: 'Sliding underline' },
-  { id: 'C', label: 'Journey rail' },
-];
 
 const MEMBER_FIRST_NAME = 'Gonçalo';
 
@@ -44,27 +26,24 @@ function assetSrc(asset: string | { src: string }) {
 
 export default function ThriveSummaryAppDownload() {
   return (
-    <VariantSwitcher variants={variants}>
-      {(variant) => (
-        <OnboardingFrame key={variant} variant={variant}>
-          <div className="relative isolate flex h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d] lg:h-auto lg:min-h-dvh lg:overflow-visible">
-            <PageGradient />
-            <OnboardingMedia />
-            <Header />
-            <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-6 pb-24 lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 xl:px-0">
-              <Content />
-            </main>
-            <DownloadBar />
-          </div>
-        </OnboardingFrame>
-      )}
-    </VariantSwitcher>
+    <OnboardingFrame>
+      <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d] max-lg:bg-linear-to-b max-lg:from-white max-lg:to-[#c7ddfb]">
+        <PageGradient />
+        <OnboardingWash />
+        <OnboardingMedia />
+        <Header />
+        <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-[max(24px,env(safe-area-inset-top))] lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 xl:px-0">
+          <Content />
+        </main>
+        <DownloadBar />
+      </div>
+    </OnboardingFrame>
   );
 }
 
 function PageGradient() {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 z-1">
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-1 hidden overflow-hidden lg:block">
       <div className="absolute bottom-[-1840px] left-1/2 size-[2000px] -translate-x-1/2">
         <img
           alt=""
@@ -115,22 +94,22 @@ function Header() {
 
 function Content() {
   return (
-    <div className="flex w-full flex-col gap-6 max-lg:flex-1 lg:max-w-[min(600px,calc(57.34vw-128px))] lg:gap-10">
-      <AppRating className="lg:hidden" />
+    <div className="flex w-full flex-1 flex-col gap-6 lg:max-w-[min(600px,calc(57.34vw-128px))] lg:flex-none lg:gap-10">
       <div className="flex flex-col gap-3">
-        <p className="font-serif text-[22px] leading-7 font-normal tracking-[-0.4px] lg:text-[28px] lg:leading-9">
-          Welcome, {MEMBER_FIRST_NAME}
-        </p>
-        <h1 className="font-serif text-[32px] leading-10 font-semibold tracking-[-0.4px] lg:text-[40px] lg:leading-12">
-          Download the Sword app and get started
+        <h1 className="font-serif text-[30px] leading-9 font-semibold tracking-[-0.4px] text-pretty lg:text-[40px] lg:leading-12">
+          You’re all set, {MEMBER_FIRST_NAME}!
         </h1>
+        <p className="max-w-[460px] text-[15px] leading-[22px] tracking-[0.2px] text-[#0d0d0d]/70 lg:text-[18px] lg:leading-[26px]">
+          Your first 5-minute session is next. Download the app to start.
+        </p>
       </div>
-      <OnboardingSteps />
+      <OnboardingMobileStage />
       <div className="hidden items-center gap-6 lg:flex">
         <QrCode />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
           <p className="text-[18px] leading-[26px] tracking-[0.2px]">
             <span className="font-semibold">Scan the QR code</span> to download
+            and start
           </p>
           <AppRating />
           <div className="flex flex-wrap items-center gap-3">
@@ -143,51 +122,25 @@ function Content() {
   );
 }
 
-const QR_LAYERS = [
-  { asset: qrModules, x: 3.3, y: 3.3 },
-  { asset: qrFinderTl, x: 3.3, y: 3.3 },
-  { asset: qrFinderTlCore, x: 11.1, y: 11.1 },
-  { asset: qrFinderTr, x: 89.1, y: 3.3 },
-  { asset: qrFinderTrCore, x: 96.9, y: 11.1 },
-  { asset: qrFinderBl, x: 3.3, y: 89.1 },
-  { asset: qrFinderBlCore, x: 11.1, y: 96.9 },
-];
-
 function QrCode() {
   return (
-    <div
-      role="img"
-      aria-label="QR code to download the Sword app"
-      className="relative size-30 shrink-0 overflow-clip"
-    >
-      <img alt="" src={assetSrc(qrBase)} className="absolute inset-0" />
-      {QR_LAYERS.map(({ asset, x, y }) => (
-        <img
-          key={assetSrc(asset)}
-          alt=""
-          src={assetSrc(asset)}
-          className="absolute"
-          style={{ left: x, top: y }}
-        />
-      ))}
-      <img
-        alt=""
-        src={assetSrc(qrCenter)}
-        className="absolute top-[45.3px] left-[45.3px] size-[29.1px]"
-      />
-    </div>
+    <img
+      alt="QR code to download the Sword app"
+      src={assetSrc(qrCode)}
+      className="size-36 shrink-0"
+    />
   );
 }
 
 function DownloadBar() {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-4 px-6 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] lg:hidden">
+    <div className="relative z-2 shrink-0 px-6 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] lg:hidden">
       <button
         type="button"
         className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#2e2e2e] text-[14px] leading-5 font-semibold tracking-[0.2px] text-white"
       >
         <img alt="" src={assetSrc(icApple)} />
-        Download on the App Store
+        Download and start your first session
       </button>
     </div>
   );
