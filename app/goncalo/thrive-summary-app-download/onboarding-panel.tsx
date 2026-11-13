@@ -66,8 +66,8 @@ const STEP_VISUALS: {
     src: connectPt,
     alt: 'Your physical therapist, with other therapists nearby',
     frameClass:
-      'h-auto w-[min(620px,calc(42.66vw-2rem))] max-h-[min(520px,calc(100dvh-22rem))] object-contain',
-    mobileClass: 'h-[88%] w-auto max-w-none',
+      'h-auto w-[min(540px,calc(38vw-2rem))] max-h-[min(450px,calc(100dvh-24rem))] object-contain',
+    mobileClass: 'h-[78%] w-auto max-w-none',
   },
 ];
 
