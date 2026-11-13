@@ -4,6 +4,7 @@ import meshGradient from './assets/thrive-mesh-gradient-01.png';
 import sessionFeedback from './assets/session-feedback.png';
 import welcomeKit from './assets/welcome-kit.png';
 import { TherapistChat } from './therapist-chat';
+import { Rise } from './celebration';
 import { cn } from '@/design/utils';
 import {
   AnimatePresence,
@@ -27,21 +28,27 @@ const STEP_DURATIONS = [5000, 5000, 9000];
 
 type PauseReason = 'focus' | 'hover';
 
+type EyebrowIcon = 'bolt' | 'lock';
+
 interface Step {
+  icon: EyebrowIcon;
   eyebrow: string;
   label: string;
 }
 
 const STEPS: Step[] = [
   {
+    icon: 'bolt',
     eyebrow: 'Start now · 5 min',
     label: 'Do your first session, guided in real time',
   },
   {
+    icon: 'lock',
     eyebrow: 'Unlocks after your first session',
     label: 'Get your free welcome kit',
   },
   {
+    icon: 'lock',
     eyebrow: 'Unlocks after your first session',
     label: 'Connect with your physical therapist',
   },
@@ -153,8 +160,12 @@ export function OnboardingMobileStage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 lg:hidden">
-      <StepVisual active={value.active} compact />
-      <StepMeters {...value} />
+      <Rise delay={0.8} duration={1} className="flex w-full justify-center">
+        <StepVisual active={value.active} compact />
+      </Rise>
+      <Rise delay={1.1} duration={1}>
+        <StepMeters {...value} />
+      </Rise>
     </div>
   );
 }
@@ -173,8 +184,12 @@ export function OnboardingMedia() {
         <Mesh />
       </div>
       <div className="relative z-1 flex w-full max-w-[420px] flex-col items-center gap-8">
-        <StepVisual active={value.active} />
-        <StepMeters {...value} />
+        <Rise delay={0.8} duration={1} className="w-full">
+          <StepVisual active={value.active} />
+        </Rise>
+        <Rise delay={1.1} duration={1}>
+          <StepMeters {...value} />
+        </Rise>
       </div>
     </aside>
   );
@@ -243,7 +258,8 @@ function StepVisual({
 function StepCaption({ step, compact }: { step: Step; compact?: boolean }) {
   return (
     <div className="flex max-w-[340px] flex-col items-center gap-2 text-center">
-      <p className="text-[12px] leading-4 font-semibold tracking-[1.2px] text-[#0d0d0d]/55 uppercase">
+      <p className="flex items-center justify-center gap-1.5 text-[12px] leading-4 font-semibold tracking-[1.2px] text-[#0d0d0d]/55 uppercase">
+        <EyebrowMark icon={step.icon} />
         {step.eyebrow}
       </p>
       <h2
@@ -257,6 +273,49 @@ function StepCaption({ step, compact }: { step: Step; compact?: boolean }) {
         {step.label}
       </h2>
     </div>
+  );
+}
+
+function EyebrowMark({ icon }: { icon: EyebrowIcon }) {
+  if (icon === 'bolt') {
+    return (
+      <svg
+        width="10"
+        height="12"
+        viewBox="0 0 10 12"
+        fill="currentColor"
+        aria-hidden
+        className="shrink-0"
+      >
+        <path d="M6 0 0 7h4l-1 5 7-7H6z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      width="11"
+      height="12"
+      viewBox="0 0 11 12"
+      fill="none"
+      aria-hidden
+      className="shrink-0"
+    >
+      <rect
+        x=".75"
+        y="5"
+        width="9.5"
+        height="6.25"
+        rx="1.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M2.9 5V3.6a2.6 2.6 0 0 1 5.2 0V5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+    </svg>
   );
 }
 

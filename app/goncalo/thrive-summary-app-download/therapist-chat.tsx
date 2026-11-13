@@ -52,8 +52,8 @@ export function TherapistChat({ compact }: { compact?: boolean }) {
       className={cn(
         'relative flex flex-col overflow-hidden border-white bg-[#f2f2f2] shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none',
         compact
-          ? 'h-[min(300px,36dvh)] w-[210px] rounded-[26px] border-[6px]'
-          : 'h-[min(460px,calc(100dvh-22rem))] w-[260px] rounded-[32px] border-[7px]',
+          ? 'h-[min(440px,52dvh)] w-[230px] rounded-[28px] border-[6px]'
+          : 'h-[min(520px,calc(100dvh-22rem))] w-[260px] rounded-[32px] border-[7px]',
       )}
     >
       <img
@@ -76,7 +76,7 @@ export function TherapistChat({ compact }: { compact?: boolean }) {
       </header>
       <div
         ref={thread}
-        className="relative z-1 flex min-h-0 flex-1 flex-col justify-end gap-4 overflow-y-auto px-0 py-3"
+        className="relative z-1 flex min-h-0 flex-1 flex-col justify-end gap-3 overflow-y-auto px-0 py-3 [mask-image:linear-gradient(transparent_12px,#000_32px)]"
       >
         {opening.length > 0 ? (
           <div className="flex flex-col gap-2">
@@ -141,6 +141,7 @@ function useChatPlay(reduced: boolean | null) {
     setTyping(false);
 
     let typed = 0;
+    let sent = false;
     const timers: number[] = [];
     const later = (ms: number, run: () => void) => {
       timers.push(window.setTimeout(run, ms));
@@ -150,7 +151,9 @@ function useChatPlay(reduced: boolean | null) {
     later(1500, () => setShown(2));
     later(2300, () => {
       typed = window.setInterval(() => {
+        if (sent) return;
         setDraft((current) => {
+          if (sent) return current;
           const next = REPLY.slice(0, current.length + 1);
           if (next.length >= REPLY.length) window.clearInterval(typed);
           return next;
@@ -159,6 +162,8 @@ function useChatPlay(reduced: boolean | null) {
     });
     const sendAt = 2300 + REPLY.length * 70 + 280;
     later(sendAt, () => {
+      sent = true;
+      window.clearInterval(typed);
       setDraft('');
       setShown(3);
     });

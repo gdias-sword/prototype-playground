@@ -12,6 +12,11 @@ import pageGradient from './assets/page-gradient.svg';
 import qrCode from './assets/qr.svg';
 import swordSymbol from './assets/sword-symbol.svg';
 import {
+  CelebrationBloom,
+  CompletionSeal,
+  Rise,
+} from './celebration';
+import {
   OnboardingFrame,
   OnboardingMedia,
   OnboardingMobileStage,
@@ -35,7 +40,12 @@ export default function ThriveSummaryAppDownload() {
         <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-[max(24px,env(safe-area-inset-top))] lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 xl:px-0">
           <Content />
         </main>
-        <DownloadBar />
+        <Rise
+          delay={1}
+          className="relative z-2 shrink-0 px-6 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] lg:hidden"
+        >
+          <DownloadBar />
+        </Rise>
       </div>
     </OnboardingFrame>
   );
@@ -95,16 +105,33 @@ function Header() {
 function Content() {
   return (
     <div className="flex w-full flex-1 flex-col gap-6 lg:max-w-[min(600px,calc(57.34vw-128px))] lg:flex-none lg:gap-10">
-      <div className="flex flex-col gap-3">
-        <h1 className="font-serif text-[30px] leading-9 font-semibold tracking-[-0.4px] text-pretty lg:text-[40px] lg:leading-12">
-          You’re all set, {MEMBER_FIRST_NAME}!
-        </h1>
-        <p className="max-w-[460px] text-[15px] leading-[22px] tracking-[0.2px] text-[#0d0d0d]/70 lg:text-[18px] lg:leading-[26px]">
-          Your first 5-minute session is next. Download the app to start.
-        </p>
+      <div className="relative">
+        <CelebrationBloom />
+        <div className="relative z-1 flex flex-col">
+          <div className="flex items-center gap-3 lg:gap-3.5">
+            <CompletionSeal />
+            <Rise
+              delay={0.35}
+              duration={0.8}
+              className="text-[14px] leading-5 font-semibold tracking-[0.2px] text-[#0d0d0d]/80 lg:text-[15px]"
+            >
+              That was the hard part
+            </Rise>
+          </div>
+          <Rise delay={0.5} className="pt-3.5 lg:pt-5">
+            <h1 className="font-serif text-[30px] leading-9 font-semibold tracking-[-0.4px] text-pretty lg:text-[40px] lg:leading-12">
+              You’re all set, {MEMBER_FIRST_NAME}!
+            </h1>
+          </Rise>
+          <Rise delay={0.7} className="pt-2 lg:pt-4">
+            <p className="max-w-[460px] text-[15px] leading-[22px] tracking-[0.2px] text-[#0d0d0d]/70 lg:text-[18px] lg:leading-[26px]">
+              Your first 5-minute session is next. Download the app to start.
+            </p>
+          </Rise>
+        </div>
       </div>
       <OnboardingMobileStage />
-      <div className="hidden items-center gap-6 lg:flex">
+      <Rise delay={0.9} className="hidden items-center gap-6 lg:flex">
         <QrCode />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
           <p className="text-[18px] leading-[26px] tracking-[0.2px]">
@@ -117,7 +144,7 @@ function Content() {
             <img alt="Download on the App Store" src={assetSrc(appStore)} />
           </div>
         </div>
-      </div>
+      </Rise>
     </div>
   );
 }
@@ -134,15 +161,13 @@ function QrCode() {
 
 function DownloadBar() {
   return (
-    <div className="relative z-2 shrink-0 px-6 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] lg:hidden">
-      <button
-        type="button"
-        className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#2e2e2e] text-[14px] leading-5 font-semibold tracking-[0.2px] text-white"
-      >
-        <img alt="" src={assetSrc(icApple)} />
-        Download and start your first session
-      </button>
-    </div>
+    <button
+      type="button"
+      className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#2e2e2e] text-[14px] leading-5 font-semibold tracking-[0.2px] text-white"
+    >
+      <img alt="" src={assetSrc(icApple)} />
+      Download and start your first session
+    </button>
   );
 }
 
