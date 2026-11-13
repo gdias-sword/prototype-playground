@@ -17,6 +17,7 @@ import {
 import {
   createContext,
   useContext,
+  useEffect,
   useRef,
   useState,
   type FocusEvent,
@@ -24,7 +25,23 @@ import {
 } from 'react';
 
 const CHAT_STEP = 2;
-const STEP_DURATIONS = [5000, 5000, 9000];
+const SESSION_STEP = 0;
+const STEP_DURATIONS = [10000, 5000, 9000];
+
+const SESSION_CLIP_SRC = new URL(
+  './assets/session-feedback.mp4',
+  import.meta.url,
+).href;
+
+// session-feedback.png is 890×916. The screen opening is inset from that frame.
+const SESSION_FRAME = { width: 890, height: 916 };
+const SESSION_SCREEN = {
+  left: '3.483%',
+  top: '1.856%',
+  width: '45.506%',
+  height: '95.524%',
+  radius: '14.815% / 6.857%',
+};
 
 type PauseReason = 'focus' | 'hover';
 
@@ -68,6 +85,7 @@ const STEP_VISUALS: { src: string | { src: string }; alt: string }[] = [
 interface OnboardingValue {
   steps: Step[];
   active: number;
+  paused: boolean;
   meters: MotionValue<number>[];
   select: (index: number) => void;
   setPaused: (reason: PauseReason, paused: boolean) => void;
@@ -95,6 +113,7 @@ function useAutoProgress(durations: number[]) {
   const meter2 = useMotionValue(0);
   const meters = useRef([meter0, meter1, meter2]);
   const pausedBy = useRef(new Set<string>());
+  const [paused, setPausedState] = useState(false);
 
   function goTo(index: number) {
     meters.current.forEach((meter, step) => {
@@ -122,10 +141,12 @@ function useAutoProgress(durations: number[]) {
   function setPaused(reason: PauseReason, value: boolean) {
     if (value) pausedBy.current.add(reason);
     else pausedBy.current.delete(reason);
+    setPausedState(pausedBy.current.size > 0);
   }
 
   return {
     active,
+    paused,
     meters: [meter0, meter1, meter2],
     select,
     setPaused,
@@ -133,11 +154,12 @@ function useAutoProgress(durations: number[]) {
 }
 
 export function OnboardingFrame({ children }: { children: ReactNode }) {
-  const { active, meters, select, setPaused } = useAutoProgress(STEP_DURATIONS);
+  const { active, paused, meters, select, setPaused } =
+    useAutoProgress(STEP_DURATIONS);
 
   return (
     <OnboardingContext.Provider
-      value={{ steps: STEPS, active, meters, select, setPaused }}
+      value={{ steps: STEPS, active, paused, meters, select, setPaused }}
     >
       {children}
     </OnboardingContext.Provider>
@@ -216,6 +238,7 @@ function StepVisual({
   active: number;
   compact?: boolean;
 }) {
+  const { paused } = useOnboarding();
   const reduceMotion = useReducedMotion();
   const step = STEPS[active];
   const visual = STEP_VISUALS[active];
@@ -234,8 +257,8 @@ function StepVisual({
   return (
     <div
       className={cn(
-        'flex w-full flex-col gap-4 lg:gap-7',
-        compact && 'min-h-0 flex-1',
+        'flex w-full flex-col lg:gap-7',
+        compact ? 'min-h-0 flex-1 gap-8' : 'gap-7',
       )}
     >
       <div
@@ -248,16 +271,28 @@ function StepVisual({
           <motion.div
             key={active}
             {...motionProps}
-            className="absolute inset-0 flex items-center justify-center"
+            className={cn(
+              'absolute inset-0 flex justify-center',
+              compact ? 'items-end' : 'items-center',
+            )}
           >
             {active === CHAT_STEP ? (
-              <TherapistChat />
+              <TherapistChat className={compact ? 'h-[92%] max-h-[92%]' : undefined} />
+            ) : active === SESSION_STEP ? (
+              <SessionClip
+                paused={paused}
+                reduceMotion={Boolean(reduceMotion)}
+                compact={compact}
+              />
             ) : (
               <img
                 alt={visual.alt}
                 src={assetSrc(visual.src)}
                 draggable={false}
-                className="pointer-events-none h-full max-h-full w-auto max-w-full object-contain drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none"
+                className={cn(
+                  'pointer-events-none w-auto max-w-full object-contain drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none',
+                  compact ? 'max-h-[92%]' : 'h-full max-h-full',
+                )}
               />
             )}
           </motion.div>
@@ -273,6 +308,74 @@ function StepVisual({
             <StepCaption step={step} compact={compact} />
           </motion.div>
         </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function SessionClip({
+  paused,
+  reduceMotion,
+  compact,
+}: {
+  paused: boolean;
+  reduceMotion: boolean;
+  compact?: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const visual = STEP_VISUALS[SESSION_STEP];
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || reduceMotion) return;
+    if (paused) {
+      video.pause();
+      return;
+    }
+    void video.play().catch(() => {});
+  }, [paused, reduceMotion]);
+
+  return (
+    <div
+      className={cn(
+        'flex h-full w-full justify-center',
+        compact ? 'items-end' : 'items-center',
+      )}
+      style={{ containerType: 'size' }}
+    >
+      <div
+        className={cn('relative max-w-full', compact && 'origin-bottom scale-105')}
+        style={{
+          aspectRatio: `${SESSION_FRAME.width} / ${SESSION_FRAME.height}`,
+          height: compact
+            ? `min(92cqh, calc(100cqw * ${SESSION_FRAME.height} / ${SESSION_FRAME.width}))`
+            : `min(100cqh, calc(100cqw * ${SESSION_FRAME.height} / ${SESSION_FRAME.width}))`,
+        }}
+      >
+        <img
+          alt={visual.alt}
+          src={assetSrc(visual.src)}
+          draggable={false}
+          className="pointer-events-none block h-full w-full drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none"
+        />
+        {reduceMotion ? null : (
+          <video
+            ref={videoRef}
+            aria-hidden
+            muted
+            playsInline
+            preload="auto"
+            src={SESSION_CLIP_SRC}
+            className="pointer-events-none absolute object-cover"
+            style={{
+              left: SESSION_SCREEN.left,
+              top: SESSION_SCREEN.top,
+              width: SESSION_SCREEN.width,
+              height: SESSION_SCREEN.height,
+              borderRadius: SESSION_SCREEN.radius,
+            }}
+          />
+        )}
       </div>
     </div>
   );

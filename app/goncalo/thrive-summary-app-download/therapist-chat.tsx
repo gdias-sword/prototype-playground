@@ -33,9 +33,14 @@ function assetSrc(asset: string | { src: string }) {
   return typeof asset === 'string' ? asset : asset.src;
 }
 
-export function TherapistChat() {
+export function TherapistChat({ className }: { className?: string }) {
   return (
-    <div className="relative aspect-[280/544] h-full max-h-full w-auto max-w-full [container-type:size]">
+    <div
+      className={cn(
+        'relative aspect-[280/544] h-full max-h-full w-auto max-w-full [container-type:size]',
+        className,
+      )}
+    >
       <div
         className="absolute top-0 left-0 origin-top-left drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)]"
         style={{
