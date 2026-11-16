@@ -83,7 +83,7 @@ export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
             layout
             initial={false}
             transition={{
-              layout: { duration: instant ? 0 : 4, ease: EASE },
+              layout: { duration: instant ? 0 : 0.4, ease: EASE },
             }}
             style={{ originX: 0.5, originY: 1 }}
             className="border-border-neutral-subtle bg-background-neutral-default relative overflow-hidden rounded-full border shadow-lg"
