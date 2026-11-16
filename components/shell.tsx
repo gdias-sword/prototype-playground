@@ -1,6 +1,8 @@
 import { Container } from '@/components/container';
+import { CopySetupPrompt } from '@/components/setup';
 import { getCurrentContributor } from '@/playground/identity';
 import { getContributorsByTeam, getPrototypes } from '@/playground/prototypes';
+import { readSetupPrompt } from '@/playground/setup';
 import {
   Sidebar,
   SidebarContent,
@@ -29,6 +31,7 @@ export function Shell({ children }: ShellProps) {
   const contributor = getCurrentContributor();
   const contributorsByTeam = getContributorsByTeam();
   const prototypeCount = getPrototypes().length;
+  const setupPrompt = readSetupPrompt();
   const initials = contributor
     ? contributor.name
         .split(' ')
@@ -84,19 +87,22 @@ export function Shell({ children }: ShellProps) {
             </div>
           ) : null}
         </SidebarContent>
-        {contributor ? (
+        {setupPrompt || contributor ? (
           <SidebarFooter>
-            <div className="flex items-center gap-3 rounded-md px-2 py-2">
-              <span
-                className="bg-background-neutral-strong text-body-small-subtle text-foreground-neutral-default flex size-8 shrink-0 items-center justify-center rounded-full"
-                aria-hidden
-              >
-                {initials}
-              </span>
-              <span className="text-body-large-subtle text-foreground-neutral-default">
-                {contributor.name}
-              </span>
-            </div>
+            {setupPrompt ? <CopySetupPrompt prompt={setupPrompt} /> : null}
+            {contributor ? (
+              <div className="flex items-center gap-3 rounded-md px-2 py-2">
+                <span
+                  className="bg-background-neutral-strong text-body-small-subtle text-foreground-neutral-default flex size-8 shrink-0 items-center justify-center rounded-full"
+                  aria-hidden
+                >
+                  {initials}
+                </span>
+                <span className="text-body-large-subtle text-foreground-neutral-default">
+                  {contributor.name}
+                </span>
+              </div>
+            ) : null}
           </SidebarFooter>
         ) : null}
       </Sidebar>
