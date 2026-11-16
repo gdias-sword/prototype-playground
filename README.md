@@ -4,6 +4,10 @@ A shared prototype playground for design & product experimentation, powered by S
 
 ## Getting started
 
+To set up from scratch with an agent, copy the prompt in [docs/setup.md](docs/setup.md) into Claude Code, Codex, or Cursor.
+
+Once the repo is on your machine:
+
 ```bash
 npm install
 npm run dev
