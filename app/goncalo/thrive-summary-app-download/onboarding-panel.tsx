@@ -149,7 +149,7 @@ export function StepsVariantSwitcher() {
       param="steps"
       caption="Steps"
       hotkeys={false}
-      className="lg:bottom-24"
+      className="bottom-[max(88px,calc(env(safe-area-inset-bottom)+72px))] lg:bottom-24"
       variants={STEP_VARIANTS}
     >
       {() => null}
@@ -157,13 +157,21 @@ export function StepsVariantSwitcher() {
   );
 }
 
+export function OnboardingWash() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-0 lg:hidden"
+    >
+      <Mesh />
+    </div>
+  );
+}
+
 export function OnboardingMobileStage() {
   return (
-    <Rise delay={0.8} duration={1} className="lg:hidden">
-      <div className="relative overflow-hidden rounded-[32px] bg-linear-to-b from-white to-[#c7ddfb] px-4 py-5">
-        <Mesh />
-        <Steps />
-      </div>
+    <Rise delay={0.8} duration={1} className="pt-2 lg:hidden">
+      <Steps />
     </Rise>
   );
 }

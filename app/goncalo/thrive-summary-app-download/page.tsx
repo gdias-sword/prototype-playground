@@ -20,6 +20,7 @@ import {
 import {
   OnboardingMedia,
   OnboardingMobileStage,
+  OnboardingWash,
   StepsVariantSwitcher,
 } from './onboarding-panel';
 import { QrCode, QrVariantSwitcher } from './qr-attention';
@@ -36,13 +37,20 @@ export default function ThriveSummaryAppDownload() {
 
 function Screen() {
   return (
-    <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d]">
+    <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d] max-lg:bg-linear-to-b max-lg:from-white max-lg:to-[#c7ddfb]">
       <PageGradient />
+      <OnboardingWash />
       <OnboardingMedia />
       <Header />
-      <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-[max(64px,calc(env(safe-area-inset-top)+40px))] pb-[max(16px,env(safe-area-inset-bottom))] lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 lg:pb-10 xl:px-0">
+      <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-[max(64px,calc(env(safe-area-inset-top)+40px))] lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 xl:px-0">
         <Content />
       </main>
+      <Rise
+        delay={1}
+        className="relative z-2 shrink-0 px-6 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] lg:hidden"
+      >
+        <DownloadBar />
+      </Rise>
       <QrVariantSwitcher />
       <StepsVariantSwitcher />
     </div>
@@ -123,9 +131,6 @@ function Content() {
         </div>
       </div>
       <OnboardingMobileStage />
-      <Rise delay={1} className="lg:hidden">
-        <DownloadBar />
-      </Rise>
       <Rise delay={0.9} className="hidden items-center gap-6 lg:flex">
         <QrCode src={assetSrc(qrCode)} />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
