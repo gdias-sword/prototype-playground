@@ -18,11 +18,11 @@ import {
   Rise,
 } from './celebration';
 import {
-  OnboardingFrame,
   OnboardingMedia,
   OnboardingMobileStage,
-  OnboardingWash,
+  StepsVariantSwitcher,
 } from './onboarding-panel';
+import { QrCode, QrVariantSwitcher } from './qr-attention';
 
 const MEMBER_FIRST_NAME = 'Gonçalo';
 
@@ -36,29 +36,25 @@ export default function ThriveSummaryAppDownload() {
 
 function Screen() {
   return (
-    <OnboardingFrame>
-      <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d] max-lg:bg-linear-to-b max-lg:from-white max-lg:to-[#c7ddfb]">
-        <PageGradient />
-        <OnboardingWash />
-        <OnboardingMedia />
-        <Header />
-        <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-[max(64px,calc(env(safe-area-inset-top)+40px))] lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 xl:px-0">
-          <Content />
-        </main>
-        <Rise
-          delay={1}
-          className="relative z-2 shrink-0 px-6 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] lg:hidden"
-        >
-          <DownloadBar />
-        </Rise>
-      </div>
-    </OnboardingFrame>
+    <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d]">
+      <PageGradient />
+      <OnboardingMedia />
+      <Header />
+      <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-[max(64px,calc(env(safe-area-inset-top)+40px))] pb-[max(16px,env(safe-area-inset-bottom))] lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 lg:pb-10 xl:px-0">
+        <Content />
+      </main>
+      <QrVariantSwitcher />
+      <StepsVariantSwitcher />
+    </div>
   );
 }
 
 function PageGradient() {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 z-1 hidden overflow-hidden lg:block">
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-1 hidden overflow-hidden lg:block"
+    >
       <div className="absolute bottom-[-1840px] left-1/2 size-[2000px] -translate-x-1/2">
         <img
           alt=""
@@ -116,23 +112,25 @@ function Content() {
           <CelebrationMark celebration="confetti" />
           <Rise delay={0.5} className="pt-4 lg:pt-6">
             <CelebrationHeadline celebration="confetti" ending="!">
-              You’re all set, {MEMBER_FIRST_NAME}
+              You’re almost done, {MEMBER_FIRST_NAME}
             </CelebrationHeadline>
           </Rise>
           <Rise delay={0.7} className="pt-2 lg:pt-4">
             <p className="max-w-[460px] text-[15px] leading-[22px] tracking-[0.2px] text-[#0d0d0d]/70 lg:text-[18px] lg:leading-[26px]">
-              Your first 5-minute session is next. Download the app to start.
+              Download the Sword Health app to start your neck recovery
             </p>
           </Rise>
         </div>
       </div>
       <OnboardingMobileStage />
+      <Rise delay={1} className="lg:hidden">
+        <DownloadBar />
+      </Rise>
       <Rise delay={0.9} className="hidden items-center gap-6 lg:flex">
-        <QrCode />
+        <QrCode src={assetSrc(qrCode)} />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
           <p className="text-[18px] leading-[26px] tracking-[0.2px]">
             <span className="font-semibold">Scan the QR code</span> to download
-            and start
           </p>
           <AppRating />
           <div className="flex flex-wrap items-center gap-3">
@@ -145,16 +143,6 @@ function Content() {
   );
 }
 
-function QrCode() {
-  return (
-    <img
-      alt="QR code to download the Sword app"
-      src={assetSrc(qrCode)}
-      className="size-36 shrink-0"
-    />
-  );
-}
-
 function DownloadBar() {
   return (
     <button
@@ -162,7 +150,7 @@ function DownloadBar() {
       className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#2e2e2e] text-[14px] leading-5 font-semibold tracking-[0.2px] text-white"
     >
       <img alt="" src={assetSrc(icApple)} />
-      Download and start your first session
+      Download the Sword Health app
     </button>
   );
 }

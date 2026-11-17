@@ -1,230 +1,183 @@
 'use client';
 
+import julieScott from '@/design/assets/specialists/julie-scott.png';
+import { VariantSwitcher } from './switcher';
 import { cn } from '@/design/utils';
-import {
-  AnimatePresence,
-  motion,
-  useAnimationFrame,
-  useMotionValue,
-  useReducedMotion,
-  type MotionValue,
-} from 'motion/react';
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type FocusEvent,
-  type ReactNode,
-} from 'react';
-import sessionFeedback from './assets/session-feedback.png';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import loginCard from './assets/login-card.png';
 import meshGradient from './assets/thrive-mesh-gradient-01.png';
-import welcomeKit from './assets/welcome-kit-closed.png';
+import programCard from './assets/program-card.png';
+import welcomeKitCard from './assets/welcome-kit-card.png';
 import { Rise } from './celebration';
-import { TherapistChat } from './therapist-chat';
 
-const CHAT_STEP = 2;
-const KIT_STEP = 1;
-const SESSION_STEP = 0;
-const STEP_DURATIONS = [10000, 5000, 9000];
+const BORDER_BEAM =
+  'conic-gradient(from var(--beam-angle), rgba(74,137,232,0) 0deg, rgba(74,137,232,0) 160deg, #4a89e8 320deg, #4a89e8 360deg, rgba(74,137,232,0) 360deg)';
 
-// Safari only renders alpha from HEVC, and Chromium only from VP9. Chromium
-// rejects the quicktime type, so each browser lands on the file it can key.
-const SESSION_CLIP_SOURCES = [
-  {
-    src: new URL('./assets/session-feedback.mov', import.meta.url).href,
-    type: 'video/quicktime; codecs="hvc1"',
-  },
-  {
-    src: new URL('./assets/session-feedback.webm', import.meta.url).href,
-    type: 'video/webm; codecs="vp9"',
-  },
+const borderBeamMask = {
+  background: BORDER_BEAM,
+  mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+  WebkitMask:
+    'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+  maskComposite: 'exclude',
+  WebkitMaskComposite: 'xor',
+} as const;
+
+const STEP_VARIANTS = [
+  { id: 'default', label: 'Physical Therapist' },
+  { id: 'login', label: 'Login' },
 ];
 
-// The clip and its poster (session-feedback.png) are both 930×960.
-const SESSION_FRAME = { width: 930, height: 960 };
-const KIT_FRAME = { width: 1024, height: 845 };
+const DEFAULT_GRADIENT =
+  'linear-gradient(139.355deg, rgba(255,255,255,0.8) 27.739%, rgba(255,255,255,0.64) 72.261%)';
+const LOGIN_GRADIENT =
+  'linear-gradient(138.409deg, rgba(255,255,255,0.8) 27.739%, rgba(255,255,255,0.64) 72.261%)';
 
-// Hold the clip until the panel's Rise (0.8s delay + 1s) has mostly landed,
-// or until the step crossfade (0.6s) finishes on later visits.
-const SESSION_START_ON_ENTRANCE = 1600;
-const SESSION_START_ON_STEP = 600;
+const PROGRAM_SLOT = 'h-[49.167cqw] w-[46.667cqw]';
+const KIT_SLOT = 'h-[37.5cqw] w-[50cqw]';
 
-type PauseReason = 'focus' | 'hover';
-
-type EyebrowIcon = 'bolt' | 'lock';
+type StepVariant = 'default' | 'login';
 
 interface Step {
-  icon: EyebrowIcon;
-  eyebrow: string;
-  label: string;
+  lead: string;
+  emphasis: string;
+  image: string | { src: string };
+  slotClassName: string;
+  imageClassName?: string;
+  padClassName: string;
+  textClassName: string;
+  beam?: boolean;
 }
 
-const STEPS: Step[] = [
-  {
-    icon: 'bolt',
-    eyebrow: 'Start now · 5 min',
-    label: 'Do your first session, guided in real time',
-  },
-  {
-    icon: 'lock',
-    eyebrow: 'Unlocks after your first session',
-    label: 'Get your free\nwelcome kit',
-  },
-  {
-    icon: 'lock',
-    eyebrow: 'Unlocks after your first session',
-    label: 'Connect with your physical therapist',
-  },
-];
-
-const STEP_VISUALS: { src: string | { src: string }; alt: string }[] = [
-  {
-    src: sessionFeedback,
-    alt: 'A guided session on the phone, with live form cues beside the rep',
-  },
-  {
-    src: welcomeKit,
-    alt: 'The free welcome kit, closed in its Thrive box',
-  },
-];
-
-interface OnboardingValue {
+interface StepSet {
+  aspectClassName: string;
+  gradient: string;
+  badgeClassName: string;
   steps: Step[];
-  active: number;
-  paused: boolean;
-  meters: MotionValue<number>[];
-  select: (index: number) => void;
-  setPaused: (reason: PauseReason, paused: boolean) => void;
 }
 
-const OnboardingContext = createContext<OnboardingValue | null>(null);
+const COPY =
+  'min-w-0 flex-1 text-[4.1667cqw] leading-[5.8333cqw] text-[#0d0d0d]';
+const LOGIN_LEAD =
+  'min-w-0 flex-1 text-[4.1667cqw] leading-[5.8333cqw] text-[#0d0d0d]';
+const LOGIN_BODY =
+  'min-w-0 flex-1 text-[4.5833cqw] leading-[5.8333cqw] text-[#0d0d0d]';
+const LOGIN_KIT =
+  'min-w-0 flex-1 text-[4.5833cqw] leading-[5.8333cqw] tracking-[0.0417cqw] text-[#0d0d0d]';
 
-function useOnboarding() {
-  const value = useContext(OnboardingContext);
-  if (!value) {
-    throw new Error('Onboarding pieces must render inside OnboardingFrame');
-  }
-  return value;
-}
+const STEP_SETS: Record<StepVariant, StepSet> = {
+  default: {
+    aspectClassName: 'aspect-[480/118]',
+    gradient: DEFAULT_GRADIENT,
+    badgeClassName:
+      'text-[3.3333cqw] leading-[4.5833cqw] tracking-[0.0417cqw]',
+    steps: [
+      {
+        lead: 'Unlock your',
+        emphasis: 'personalized program',
+        image: programCard,
+        slotClassName: cn(
+          'top-[-5.833cqw] left-[64.583cqw]',
+          PROGRAM_SLOT,
+        ),
+        padClassName: 'pl-[4.167cqw]',
+        textClassName: COPY,
+      },
+      {
+        lead: 'Get access to your',
+        emphasis: 'Physical Therapist',
+        image: julieScott,
+        slotClassName: 'top-[-1.667cqw] left-[67.083cqw] size-[30cqw]',
+        imageClassName:
+          'top-[-0.95%] left-[-21.951%] h-[121.951%] w-[121.951%] max-w-none object-cover',
+        padClassName: 'pl-[3.333cqw]',
+        textClassName: COPY,
+      },
+      {
+        lead: 'Claim your',
+        emphasis: 'free welcome kit',
+        image: welcomeKitCard,
+        slotClassName: cn('top-[-0.833cqw] left-[62.917cqw]', KIT_SLOT),
+        padClassName: 'pl-[3.333cqw]',
+        textClassName: COPY,
+        beam: true,
+      },
+    ],
+  },
+  login: {
+    aspectClassName: 'aspect-[480/122]',
+    gradient: LOGIN_GRADIENT,
+    badgeClassName:
+      'text-[3.3333cqw] leading-[4.5833cqw] tracking-[0.0417cqw]',
+    steps: [
+      {
+        lead: 'Log in to the',
+        emphasis: 'Sword Health app',
+        image: loginCard,
+        slotClassName: 'top-[-1.667cqw] left-[57.083cqw] size-[54.167cqw]',
+        padClassName: 'pl-[4.167cqw]',
+        textClassName: LOGIN_LEAD,
+      },
+      {
+        lead: 'Unlock your',
+        emphasis: 'personalized program',
+        image: programCard,
+        slotClassName: cn('top-[-5cqw] left-[66.25cqw]', PROGRAM_SLOT),
+        padClassName: 'pl-[4.167cqw]',
+        textClassName: LOGIN_BODY,
+      },
+      {
+        lead: 'Claim your',
+        emphasis: 'free welcome kit',
+        image: welcomeKitCard,
+        slotClassName: cn('top-[-0.417cqw] left-[62.917cqw]', KIT_SLOT),
+        padClassName: 'pl-[3.333cqw]',
+        textClassName: LOGIN_KIT,
+        beam: true,
+      },
+    ],
+  },
+};
 
 function assetSrc(asset: string | { src: string }) {
   return typeof asset === 'string' ? asset : asset.src;
 }
 
-function useAutoProgress(durations: number[]) {
-  const [active, setActive] = useState(0);
-  const activeRef = useRef(0);
-  const meter0 = useMotionValue(0);
-  const meter1 = useMotionValue(0);
-  const meter2 = useMotionValue(0);
-  const meters = useRef([meter0, meter1, meter2]);
-  const pausedBy = useRef(new Set<string>());
-  const [paused, setPausedState] = useState(false);
-
-  function goTo(index: number) {
-    meters.current.forEach((meter, step) => {
-      meter.set(step < index ? 1 : 0);
-    });
-    activeRef.current = index;
-    setActive(index);
-  }
-
-  useAnimationFrame((_, delta) => {
-    if (pausedBy.current.size > 0) return;
-    const step = activeRef.current;
-    const next = meters.current[step].get() + delta / durations[step];
-    if (next >= 1) {
-      goTo((step + 1) % durations.length);
-    } else {
-      meters.current[step].set(next);
-    }
-  });
-
-  function select(index: number) {
-    goTo(index);
-  }
-
-  function setPaused(reason: PauseReason, value: boolean) {
-    if (value) pausedBy.current.add(reason);
-    else pausedBy.current.delete(reason);
-    setPausedState(pausedBy.current.size > 0);
-  }
-
-  return {
-    active,
-    paused,
-    meters: [meter0, meter1, meter2],
-    select,
-    setPaused,
-  };
-}
-
-export function OnboardingFrame({ children }: { children: ReactNode }) {
-  const { active, paused, meters, select, setPaused } =
-    useAutoProgress(STEP_DURATIONS);
-
+export function StepsVariantSwitcher() {
   return (
-    <OnboardingContext.Provider
-      value={{ steps: STEPS, active, paused, meters, select, setPaused }}
+    <VariantSwitcher
+      param="steps"
+      caption="Steps"
+      hotkeys={false}
+      className="lg:bottom-24"
+      variants={STEP_VARIANTS}
     >
-      {children}
-    </OnboardingContext.Provider>
-  );
-}
-
-export function OnboardingWash() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 z-0 lg:hidden"
-    >
-      <Mesh />
-    </div>
+      {() => null}
+    </VariantSwitcher>
   );
 }
 
 export function OnboardingMobileStage() {
-  const value = useOnboarding();
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center gap-2 lg:hidden">
-      <Rise
-        delay={0.8}
-        duration={1}
-        className="flex min-h-0 w-full flex-1 flex-col"
-      >
-        <StepVisual active={value.active} compact />
-      </Rise>
-      <Rise delay={1.1} duration={1} className="shrink-0">
-        <StepMeters {...value} />
-      </Rise>
-    </div>
+    <Rise delay={0.8} duration={1} className="lg:hidden">
+      <div className="relative overflow-hidden rounded-[32px] bg-linear-to-b from-white to-[#c7ddfb] px-4 py-5">
+        <Mesh />
+        <Steps />
+      </div>
+    </Rise>
   );
 }
 
 export function OnboardingMedia() {
-  const value = useOnboarding();
-
   return (
     <aside
-      aria-label="What happens next in the Sword app"
-      className="absolute inset-y-0 right-0 z-3 hidden w-[42.66%] flex-col items-center justify-center overflow-hidden bg-linear-to-b from-white to-[#c7ddfb] px-10 py-12 lg:flex"
-      onMouseEnter={() => value.setPaused('hover', true)}
-      onMouseLeave={() => value.setPaused('hover', false)}
+      aria-label="What you will do in the Sword Health app"
+      className="absolute inset-y-0 right-0 z-3 hidden w-[42.66%] items-center justify-center overflow-hidden bg-linear-to-b from-white to-[#c7ddfb] px-10 py-12 lg:flex"
     >
-      <div className="absolute inset-0 overflow-hidden">
-        <Mesh />
-      </div>
-      <div className="relative z-1 flex w-full max-w-[420px] flex-col items-center gap-6">
-        <Rise delay={0.8} duration={1} className="flex w-full flex-col">
-          <StepVisual active={value.active} />
-        </Rise>
-        <Rise delay={1.1} duration={1} className="shrink-0">
-          <StepMeters {...value} />
-        </Rise>
-      </div>
+      <Mesh />
+      <Rise delay={0.8} duration={1} className="relative z-1 w-full max-w-[480px]">
+        <Steps />
+      </Rise>
     </aside>
   );
 }
@@ -239,301 +192,108 @@ function Mesh() {
   );
 }
 
-function StepVisual({
-  active,
-  compact,
-}: {
-  active: number;
-  compact?: boolean;
-}) {
-  const { paused } = useOnboarding();
-  const reduceMotion = useReducedMotion();
-  const step = STEPS[active];
-  const mounted = useRef(false);
+function Steps() {
+  return (
+    <Suspense fallback={<StepList variant="default" />}>
+      <StepListFromParams />
+    </Suspense>
+  );
+}
 
-  useEffect(() => {
-    mounted.current = true;
-  }, []);
+function StepListFromParams() {
+  const steps = useSearchParams().get('steps');
+  return <StepList variant={steps === 'login' ? 'login' : 'default'} />;
+}
 
-  const motionProps = {
-    initial: reduceMotion
-      ? { opacity: 0 }
-      : { opacity: 0, y: 16, filter: 'blur(8px)' },
-    animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
-    exit: reduceMotion
-      ? { opacity: 0 }
-      : { opacity: 0, y: -16, filter: 'blur(8px)' },
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
-  };
+function StepList({ variant }: { variant: StepVariant }) {
+  const set = STEP_SETS[variant];
 
   return (
-    <div
-      className={cn(
-        'flex w-full flex-col gap-12',
-        compact && 'min-h-0 flex-1',
-      )}
-    >
-      <div
-        className={cn(
-          'relative w-full',
-          compact ? 'min-h-0 flex-1' : 'h-[min(420px,calc(100dvh-23rem))]',
-        )}
-      >
-        <AnimatePresence initial={false}>
-          <motion.div
-            key={active}
-            {...motionProps}
+    <div className="@container mx-auto w-full max-w-[480px]">
+      <style>{`
+        @property --beam-angle {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
+        @keyframes border-beam {
+          to { --beam-angle: 360deg; }
+        }
+      `}</style>
+      <ol className="flex w-full flex-col gap-[5cqw]">
+        {set.steps.map((step, index) => (
+          <li
+            key={step.emphasis}
             className={cn(
-              'absolute inset-0 flex justify-center',
-              compact ? 'items-end' : 'items-center',
+              'relative isolate w-full rounded-[3.333cqw]',
+              set.aspectClassName,
             )}
           >
-            {active === CHAT_STEP ? (
-              <TherapistChat
-                className={compact ? 'h-[92%] max-h-[92%]' : undefined}
-              />
-            ) : active === SESSION_STEP ? (
-              <SessionClip
-                paused={paused}
-                startDelay={
-                  mounted.current
-                    ? SESSION_START_ON_STEP
-                    : SESSION_START_ON_ENTRANCE
-                }
-                reduceMotion={Boolean(reduceMotion)}
-                compact={compact}
-              />
-            ) : active === KIT_STEP ? (
-              <WelcomeKit compact={compact} />
-            ) : null}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-      <div className="relative h-24 w-full shrink-0">
-        <AnimatePresence initial={false}>
-          <motion.div
-            key={active}
-            {...motionProps}
-            className="absolute inset-0 flex items-start justify-center"
-          >
-            <StepCaption step={step} compact={compact} />
-          </motion.div>
-        </AnimatePresence>
-      </div>
+            {step.beam ? <BorderBeam /> : null}
+            <div
+              className={cn(
+                'absolute inset-0 flex items-center gap-[4.167cqw] overflow-hidden rounded-[inherit] border border-white',
+                step.padClassName,
+              )}
+              style={{ backgroundImage: set.gradient }}
+            >
+              <span
+                className={cn(
+                  'flex size-[6.667cqw] shrink-0 items-center justify-center rounded-full bg-[#0d0d0d] font-semibold text-white tabular-nums',
+                  set.badgeClassName,
+                )}
+              >
+                {index + 1}
+              </span>
+              <p className={step.textClassName}>
+                <span className="font-normal">{step.lead}</span>
+                <br />
+                <span className="font-semibold">{step.emphasis}</span>
+              </p>
+              <CardImage step={step} />
+            </div>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
 
-function SessionClip({
-  paused,
-  startDelay,
-  reduceMotion,
-  compact,
-}: {
-  paused: boolean;
-  startDelay: number;
-  reduceMotion: boolean;
-  compact?: boolean;
-}) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const visual = STEP_VISUALS[SESSION_STEP];
-  const [delay] = useState(startDelay);
-  const [started, setStarted] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setStarted(true), delay);
-    return () => clearTimeout(timer);
-  }, [delay]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || reduceMotion || !started) return;
-    if (paused) {
-      video.pause();
-      return;
-    }
-    void video.play().catch(() => {});
-  }, [paused, reduceMotion, started]);
-
+function CardImage({ step }: { step: Step }) {
   return (
-    <div
+    <span
+      aria-hidden
       className={cn(
-        'flex h-full w-full justify-center',
-        compact ? 'items-end' : 'items-center',
+        'pointer-events-none absolute overflow-hidden',
+        step.slotClassName,
       )}
-      style={{ containerType: 'size' }}
     >
-      <div
-        className={cn(
-          'relative max-w-full',
-          compact && 'origin-bottom scale-105',
-        )}
-        style={{
-          aspectRatio: `${SESSION_FRAME.width} / ${SESSION_FRAME.height}`,
-          height: compact
-            ? `min(92cqh, calc(100cqw * ${SESSION_FRAME.height} / ${SESSION_FRAME.width}))`
-            : `min(100cqh, calc(100cqw * ${SESSION_FRAME.height} / ${SESSION_FRAME.width}))`,
-        }}
-      >
-        {reduceMotion ? (
-          <img
-            alt={visual.alt}
-            src={assetSrc(visual.src)}
-            draggable={false}
-            className="pointer-events-none block h-full w-full drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none"
-          />
-        ) : (
-          <video
-            ref={videoRef}
-            aria-label={visual.alt}
-            muted
-            playsInline
-            preload="auto"
-            className="pointer-events-none block h-full w-full drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none"
-          >
-            {SESSION_CLIP_SOURCES.map((source) => (
-              <source key={source.src} src={source.src} type={source.type} />
-            ))}
-          </video>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function WelcomeKit({ compact }: { compact?: boolean }) {
-  const visual = STEP_VISUALS[KIT_STEP];
-
-  return (
-    <div
-      className="flex h-full w-full flex-col items-center"
-      style={{ containerType: 'size' }}
-    >
-      <div className="min-h-0 flex-[3]" />
       <img
-        alt={visual.alt}
-        src={assetSrc(visual.src)}
+        alt=""
+        src={assetSrc(step.image)}
         draggable={false}
         className={cn(
-          'pointer-events-none w-auto max-w-full shrink-0 object-contain drop-shadow-[0_22px_36px_rgba(31,34,44,0.16)] select-none',
-          compact && 'origin-center scale-105',
+          'pointer-events-none absolute select-none',
+          step.imageClassName ?? 'inset-0 size-full max-w-none object-cover',
         )}
-        style={{
-          height: compact
-            ? `min(69cqh, calc(75cqw * ${KIT_FRAME.height} / ${KIT_FRAME.width}))`
-            : `min(75cqh, calc(75cqw * ${KIT_FRAME.height} / ${KIT_FRAME.width}))`,
-        }}
       />
-      <div className="min-h-0 flex-1" />
-    </div>
+    </span>
   );
 }
 
-function StepCaption({ step, compact }: { step: Step; compact?: boolean }) {
+function BorderBeam() {
   return (
-    <div className="flex max-w-[340px] flex-col items-center gap-2 text-center">
-      <p className="flex items-center justify-center gap-1.5 text-[12px] leading-4 font-semibold tracking-[1.2px] text-[#0d0d0d]/55 uppercase">
-        <EyebrowMark icon={step.icon} />
-        {step.eyebrow}
-      </p>
-      <h2
-        className={cn(
-          'font-serif font-semibold tracking-[-0.3px] whitespace-pre-line text-pretty text-[#0d0d0d]',
-          compact ? 'text-[22px] leading-7' : 'text-[26px] leading-8',
-        )}
-      >
-        {step.label}
-      </h2>
-    </div>
-  );
-}
-
-function EyebrowMark({ icon }: { icon: EyebrowIcon }) {
-  if (icon === 'bolt') {
-    return (
-      <svg
-        width="10"
-        height="12"
-        viewBox="0 0 10 12"
-        fill="currentColor"
+    <>
+      <span
         aria-hidden
-        className="shrink-0"
-      >
-        <path d="M6 0 0 7h4l-1 5 7-7H6z" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg
-      width="11"
-      height="12"
-      viewBox="0 0 11 12"
-      fill="none"
-      aria-hidden
-      className="shrink-0"
-    >
-      <rect
-        x=".75"
-        y="5"
-        width="9.5"
-        height="6.25"
-        rx="1.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
+        className="pointer-events-none absolute -inset-px -z-10 rounded-[inherit] p-px opacity-70 blur-[3px] motion-safe:animate-[border-beam_3.2s_linear_infinite]"
+        style={borderBeamMask}
       />
-      <path
-        d="M2.9 5V3.6a2.6 2.6 0 0 1 5.2 0V5"
-        stroke="currentColor"
-        strokeWidth="1.5"
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -inset-px -z-10 rounded-[inherit] p-px motion-safe:animate-[border-beam_3.2s_linear_infinite]"
+        style={borderBeamMask}
       />
-    </svg>
-  );
-}
-
-function StepMeters({
-  steps,
-  active,
-  meters,
-  select,
-  setPaused,
-}: OnboardingValue) {
-  return (
-    <ol
-      className="flex gap-2"
-      onFocus={(event: FocusEvent<HTMLOListElement>) => {
-        if (
-          event.target instanceof Element &&
-          event.target.matches(':focus-visible')
-        ) {
-          setPaused('focus', true);
-        }
-      }}
-      onBlur={(event: FocusEvent<HTMLOListElement>) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          setPaused('focus', false);
-        }
-      }}
-    >
-      {steps.map((step, index) => (
-        <li key={step.label}>
-          <button
-            type="button"
-            onClick={() => select(index)}
-            aria-current={index === active ? 'step' : undefined}
-            aria-label={`Step ${index + 1} of ${steps.length}: ${step.label.replace('\n', ' ')}`}
-            className="w-12 cursor-pointer py-2.5 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d0d0d] lg:w-14"
-          >
-            <span className="block h-1 overflow-hidden rounded-full bg-[#0d0d0d]/15">
-              <motion.span
-                aria-hidden
-                className="block h-full origin-left bg-[#0d0d0d]"
-                style={{ scaleX: meters[index] }}
-              />
-            </span>
-          </button>
-        </li>
-      ))}
-    </ol>
+    </>
   );
 }

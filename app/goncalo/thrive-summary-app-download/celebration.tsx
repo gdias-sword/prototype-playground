@@ -3,12 +3,12 @@
 import { motion, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
 
-const RISE = [0.22, 1, 0.36, 1] as const;
+export const RISE = [0.22, 1, 0.36, 1] as const;
 const POP = [0.34, 1.56, 0.64, 1] as const;
-const SWEEP = [0.65, 0, 0.35, 1] as const;
+export const SWEEP = [0.65, 0, 0.35, 1] as const;
 
-const INK = '#0d0d0d';
-const BLUE = '#4a89e8';
+export const INK = '#0d0d0d';
+export const BLUE = '#4a89e8';
 
 export type Celebration = 'seal' | 'confetti' | 'sparkle' | 'progress' | 'glint';
 
@@ -306,7 +306,7 @@ function ProgressSeal() {
 
 const CONFETTI_COLORS = [BLUE, '#9ec3f7', INK, '#c7ddfb', '#2f6fd1'];
 
-function seeded(index: number, salt: number) {
+export function seeded(index: number, salt: number) {
   const value = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453;
   return value - Math.floor(value);
 }
