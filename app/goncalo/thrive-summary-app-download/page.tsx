@@ -118,22 +118,22 @@ function Content() {
         <CelebrationBloom />
         <div className="relative z-1 flex flex-col">
           <CelebrationMark celebration="confetti" />
-          <Rise delay={0.5} className="pt-4 lg:pt-6">
-            <CelebrationHeadline celebration="confetti" ending="!">
+          <Rise delay={0.4} className="pt-4 lg:pt-6">
+            <p className="text-[16px] leading-6 tracking-[0.2px] text-[#0d0d0d]/50">
               You’re almost done, {MEMBER_FIRST_NAME}
-            </CelebrationHeadline>
-          </Rise>
-          <Rise delay={0.7} className="pt-2 lg:pt-4">
-            <p className="max-w-[460px] text-[15px] leading-[22px] tracking-[0.2px] text-[#0d0d0d]/70 lg:text-[18px] lg:leading-[26px]">
-              Download the Sword Health app to start your neck recovery
             </p>
+          </Rise>
+          <Rise delay={0.5} className="pt-3">
+            <CelebrationHeadline celebration="confetti" ending="">
+              Download the Sword Health app to start your neck program
+            </CelebrationHeadline>
           </Rise>
         </div>
       </div>
       <OnboardingMobileStage />
       <Rise delay={0.9} className="hidden items-center gap-6 lg:flex">
         <QrCode src={assetSrc(qrCode)} />
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-4">
           <p className="text-[18px] leading-[26px] tracking-[0.2px]">
             <span className="font-semibold">Scan the QR code</span> to download
           </p>

@@ -28,6 +28,10 @@ const STEP_VARIANTS = [
   { id: 'login', label: 'Login' },
 ];
 
+const CARD_ENTER = 1;
+const CARD_STAGGER = 0.15;
+const CARD_DURATION = 0.75;
+
 const DEFAULT_GRADIENT =
   'linear-gradient(139.355deg, rgba(255,255,255,0.8) 27.739%, rgba(255,255,255,0.64) 72.261%)';
 const LOGIN_GRADIENT =
@@ -170,9 +174,9 @@ export function OnboardingWash() {
 
 export function OnboardingMobileStage() {
   return (
-    <Rise delay={0.8} duration={1} className="pt-2 lg:hidden">
+    <div className="pt-2 lg:hidden">
       <Steps />
-    </Rise>
+    </div>
   );
 }
 
@@ -183,9 +187,9 @@ export function OnboardingMedia() {
       className="absolute inset-y-0 right-0 z-3 hidden w-[42.66%] items-center justify-center overflow-hidden bg-linear-to-b from-white to-[#c7ddfb] px-10 py-12 lg:flex"
     >
       <Mesh />
-      <Rise delay={0.8} duration={1} className="relative z-1 w-full max-w-[480px]">
+      <div className="relative z-1 w-full max-w-[480px]">
         <Steps />
-      </Rise>
+      </div>
     </aside>
   );
 }
@@ -231,35 +235,38 @@ function StepList({ variant }: { variant: StepVariant }) {
       <ol className="flex w-full flex-col gap-[5cqw]">
         {set.steps.map((step, index) => (
           <li
-            key={step.emphasis}
-            className={cn(
-              'relative isolate w-full rounded-[3.333cqw]',
-              set.aspectClassName,
-            )}
+            key={`${variant}-${step.emphasis}`}
+            className={cn('w-full', set.aspectClassName)}
           >
-            {step.beam ? <BorderBeam /> : null}
-            <div
-              className={cn(
-                'absolute inset-0 flex items-center gap-[4.167cqw] overflow-hidden rounded-[inherit] border border-white',
-                step.padClassName,
-              )}
-              style={{ backgroundImage: set.gradient }}
+            <Rise
+              delay={CARD_ENTER + index * CARD_STAGGER}
+              duration={CARD_DURATION}
+              className="relative isolate size-full rounded-[3.333cqw]"
             >
-              <span
+              {step.beam ? <BorderBeam /> : null}
+              <div
                 className={cn(
-                  'flex size-[6.667cqw] shrink-0 items-center justify-center rounded-full bg-[#0d0d0d] font-semibold text-white tabular-nums',
-                  set.badgeClassName,
+                  'absolute inset-0 flex items-center gap-[4.167cqw] overflow-hidden rounded-[inherit] border border-white',
+                  step.padClassName,
                 )}
+                style={{ backgroundImage: set.gradient }}
               >
-                {index + 1}
-              </span>
-              <p className={step.textClassName}>
-                <span className="font-normal">{step.lead}</span>
-                <br />
-                <span className="font-semibold">{step.emphasis}</span>
-              </p>
-              <CardImage step={step} />
-            </div>
+                <span
+                  className={cn(
+                    'flex size-[6.667cqw] shrink-0 items-center justify-center rounded-full bg-[#0d0d0d] font-semibold text-white tabular-nums',
+                    set.badgeClassName,
+                  )}
+                >
+                  {index + 1}
+                </span>
+                <p className={step.textClassName}>
+                  <span className="font-normal">{step.lead}</span>
+                  <br />
+                  <span className="font-semibold">{step.emphasis}</span>
+                </p>
+                <CardImage step={step} />
+              </div>
+            </Rise>
           </li>
         ))}
       </ol>
