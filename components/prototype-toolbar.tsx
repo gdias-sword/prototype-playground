@@ -36,6 +36,7 @@ export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
     setIsArmed(next);
     if (!next) return;
     setIsHidden(false);
+    setIsHistoryOpen(false);
     if (comments.isOpen) comments.onToggle();
   }
 
@@ -43,13 +44,17 @@ export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
     if (!comments.isOpen) {
       setIsHidden(false);
       setIsArmed(false);
+      setIsHistoryOpen(false);
     }
     comments.onToggle();
   }
 
   function handleHistoryOpenChange(open: boolean) {
     setIsHistoryOpen(open);
-    if (open) setIsHidden(false);
+    if (!open) return;
+    setIsHidden(false);
+    setIsArmed(false);
+    if (comments.isOpen) comments.onToggle();
   }
 
   useEffect(() => {
