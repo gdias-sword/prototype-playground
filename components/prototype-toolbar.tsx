@@ -35,6 +35,17 @@ export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  function handleToggleArmed() {
+    const next = !isArmed;
+    setIsArmed(next);
+    if (next && comments.isOpen) comments.onToggle();
+  }
+
+  function handleToggleComments() {
+    if (!comments.isOpen) setIsArmed(false);
+    comments.onToggle();
+  }
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.repeat) return;
@@ -43,7 +54,19 @@ export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
       if (event.key === 'x') {
         event.preventDefault();
         event.stopPropagation();
-        setIsArmed((armed) => !armed);
+        handleToggleArmed();
+        return;
+      }
+      if (event.key === 'c') {
+        if (
+          comments.availability !== 'ready' &&
+          comments.availability !== 'unconfigured'
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        handleToggleComments();
         return;
       }
       if (event.key !== '\\') return;
@@ -58,7 +81,7 @@ export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
 
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, []);
+  }, [comments, isArmed]);
 
   function handleToggleHidden() {
     setIsHidden((current) => {
@@ -115,7 +138,7 @@ export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
                     shortcut="X"
                     pressed={isArmed}
                     title="Measure layout (X). Hold Option and drag to measure without leaving it on."
-                    onClick={() => setIsArmed((armed) => !armed)}
+                    onClick={handleToggleArmed}
                   >
                     <Scan className="size-4" />
                   </ToolbarButton>
@@ -128,7 +151,7 @@ export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
                     shortcut="C"
                     pressed={comments.isOpen}
                     disabled={comments.availability === 'loading'}
-                    onClick={comments.onToggle}
+                    onClick={handleToggleComments}
                   >
                     <MessageSquare className="size-4" />
                     {comments.availability === 'ready' &&

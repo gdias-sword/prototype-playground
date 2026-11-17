@@ -19,6 +19,10 @@ export interface VariantOption {
 interface VariantSwitcherProps {
   variants: VariantOption[];
   children: (variant: string) => ReactNode;
+  param?: string;
+  caption?: string;
+  hotkeys?: boolean;
+  className?: string;
 }
 
 function isEditableTarget(target: EventTarget | null) {
@@ -30,18 +34,25 @@ function isEditableTarget(target: EventTarget | null) {
   );
 }
 
-function VariantSwitcherInner({ variants, children }: VariantSwitcherProps) {
+function VariantSwitcherInner({
+  variants,
+  children,
+  param = 'variant',
+  caption,
+  hotkeys = true,
+  className,
+}: VariantSwitcherProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const active = useMemo(() => {
-    const requested = searchParams.get('variant');
+    const requested = searchParams.get(param);
     if (requested && variants.some((variant) => variant.id === requested)) {
       return requested;
     }
     return variants[0]?.id ?? '';
-  }, [searchParams, variants]);
+  }, [param, searchParams, variants]);
 
   const activeOption = useMemo(
     () => variants.find((variant) => variant.id === active) ?? variants[0],
@@ -52,13 +63,13 @@ function VariantSwitcherInner({ variants, children }: VariantSwitcherProps) {
     (id: string) => {
       if (!id || id === active) return;
       const params = new URLSearchParams(searchParams.toString());
-      params.set('variant', id);
+      params.set(param, id);
       const query = params.toString();
       router.replace(query ? `${pathname}?${query}` : pathname, {
         scroll: false,
       });
     },
-    [active, pathname, router, searchParams],
+    [active, param, pathname, router, searchParams],
   );
 
   const cycle = useCallback(
@@ -74,6 +85,8 @@ function VariantSwitcherInner({ variants, children }: VariantSwitcherProps) {
   );
 
   useEffect(() => {
+    if (!hotkeys) return;
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (isEditableTarget(event.target)) return;
@@ -92,7 +105,7 @@ function VariantSwitcherInner({ variants, children }: VariantSwitcherProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cycle]);
+  }, [cycle, hotkeys]);
 
   if (variants.length === 0 || !activeOption) {
     return null;
@@ -103,12 +116,13 @@ function VariantSwitcherInner({ variants, children }: VariantSwitcherProps) {
       {children(active)}
       <div
         role="navigation"
-        aria-label="Design variants"
+        aria-label={caption ? `${caption} variants` : 'Design variants'}
         className={cn(
           'bg-background-neutral-inverse/90 text-foreground-neutral-inverse',
           'fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1',
           'rounded-2xl border border-white/12 px-1.5 py-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.22)]',
           'backdrop-blur-xl',
+          className,
         )}
       >
         <button
@@ -123,7 +137,7 @@ function VariantSwitcherInner({ variants, children }: VariantSwitcherProps) {
           className="text-body-small-strong min-w-40 px-2 text-center tabular-nums"
           aria-live="polite"
         >
-          {activeOption.id}
+          {caption ?? activeOption.id}
           <span className="text-white/50"> — </span>
           {activeOption.label}
         </p>

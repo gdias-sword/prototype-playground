@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
-import { Button } from '@/design/components/button';
 import { Input } from '@/design/components/input';
 import { Textarea } from '@/design/components/textarea';
+import { cn } from '@/design/utils';
 import type { PublicThread } from '@/playground/comment-model';
+import { ArrowUp, Check, Trash2, X } from 'lucide-react';
 
 interface CommentThreadProps {
   thread: PublicThread;
@@ -31,48 +32,62 @@ export function CommentThread({
   onDelete,
 }: CommentThreadProps) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-body-small-subtle text-foreground-neutral-subtle">
-          {thread.resolved ? 'Resolved' : 'Open'}
-        </p>
-        <Button
-          type="button"
-          variant="ghost"
-          size="small"
-          disabled={isSaving}
-          onClick={() => onResolve(!thread.resolved)}
-        >
-          {thread.resolved ? 'Reopen' : 'Resolve'}
-        </Button>
-      </div>
-      <ul className="flex flex-col gap-4">
-        {thread.comments.map((comment) => (
+    <div className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-3">
+        {thread.comments.map((comment, index) => (
           <li key={comment.id} className="flex flex-col gap-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="text-body-small-strong text-foreground-neutral-default">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-body-small-strong text-foreground-neutral-default min-w-0 truncate">
                 {comment.authorName}
               </p>
-              <time
-                dateTime={comment.createdAt}
-                className="text-body-small-subtle text-foreground-neutral-faded shrink-0"
-              >
-                {formatCommentTime(comment.createdAt)}
-              </time>
+              <div className="flex shrink-0 items-center gap-0.5">
+                <time
+                  dateTime={comment.createdAt}
+                  className="text-body-small-subtle text-foreground-neutral-faded px-1"
+                >
+                  {formatCommentTime(comment.createdAt)}
+                </time>
+                {index === 0 ? (
+                  <button
+                    type="button"
+                    className="text-foreground-neutral-subtle hover:bg-background-neutral-subtle flex size-7 cursor-pointer items-center justify-center rounded-lg disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-pressed={thread.resolved}
+                    aria-label={
+                      thread.resolved ? 'Reopen comment' : 'Resolve comment'
+                    }
+                    disabled={isSaving}
+                    onClick={() => onResolve(!thread.resolved)}
+                  >
+                    <span
+                      className={cn(
+                        'flex size-4 items-center justify-center rounded-[4px] border',
+                        thread.resolved
+                          ? 'border-background-brand-default bg-background-brand-default text-foreground-neutral-inverse'
+                          : 'border-border-neutral-strong',
+                      )}
+                    >
+                      {thread.resolved ? (
+                        <Check className="size-3" strokeWidth={3} />
+                      ) : null}
+                    </span>
+                  </button>
+                ) : null}
+                {comment.mine ? (
+                  <button
+                    type="button"
+                    className="text-foreground-neutral-subtle hover:bg-background-neutral-subtle hover:text-foreground-neutral-default flex size-7 cursor-pointer items-center justify-center rounded-lg disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Delete comment"
+                    disabled={isSaving}
+                    onClick={() => onDelete(comment.id)}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                ) : null}
+              </div>
             </div>
             <p className="text-body-medium-default text-foreground-neutral-default wrap-break-word whitespace-pre-wrap">
               {comment.body}
             </p>
-            {comment.mine ? (
-              <button
-                type="button"
-                className="text-body-small-subtle text-foreground-neutral-subtle self-start"
-                disabled={isSaving}
-                onClick={() => onDelete(comment.id)}
-              >
-                Delete
-              </button>
-            ) : null}
           </li>
         ))}
       </ul>
@@ -82,6 +97,7 @@ export function CommentThread({
         isSaving={isSaving}
         error={error}
         submitLabel="Reply"
+        placeholder="Reply"
         onAuthorNameChange={onAuthorNameChange}
         onSubmit={onReply}
       />
@@ -95,6 +111,7 @@ interface CommentComposerProps {
   isSaving: boolean;
   error: string | null;
   submitLabel: string;
+  placeholder: string;
   onAuthorNameChange: (name: string) => void;
   onSubmit: (body: string) => Promise<boolean>;
   onCancel?: () => void;
@@ -106,22 +123,28 @@ export function CommentComposer({
   isSaving,
   error,
   submitLabel,
+  placeholder,
   onAuthorNameChange,
   onSubmit,
   onCancel,
 }: CommentComposerProps) {
   const [body, setBody] = useState('');
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
   const canSubmit =
     body.trim().length > 0 && authorName.trim().length > 0 && !isSaving;
 
   return (
     <form
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-2"
       onSubmit={(event) => {
         event.preventDefault();
         if (!canSubmit) return;
         void onSubmit(body).then((saved) => {
-          if (saved) setBody('');
+          if (!saved) return;
+          setBody('');
+          const field = fieldRef.current;
+          if (!field) return;
+          field.style.height = 'auto';
         });
       }}
     >
@@ -131,37 +154,60 @@ export function CommentComposer({
           placeholder="Your name"
           maxLength={40}
           value={authorName}
+          className="py-2"
           onChange={(event) => onAuthorNameChange(event.target.value)}
         />
       ) : null}
-      <Textarea
-        aria-label="Comment"
-        placeholder="Add a comment"
-        rows={3}
-        maxLength={2000}
-        value={body}
-        className="resize-none"
-        onChange={(event) => setBody(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-            event.preventDefault();
-            event.currentTarget.form?.requestSubmit();
-          }
-        }}
-      />
+      <div className="flex items-end gap-1">
+        <div className="relative min-w-0 flex-1">
+          <Textarea
+            ref={fieldRef}
+            aria-label={submitLabel}
+            placeholder={placeholder}
+            rows={1}
+            maxLength={2000}
+            value={body}
+            className="block max-h-24 min-h-10 resize-none py-2 pr-11"
+            onChange={(event) => {
+              setBody(event.target.value);
+              const field = event.currentTarget;
+              field.style.height = 'auto';
+              field.style.height = `${Math.min(field.scrollHeight, 96)}px`;
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' || event.shiftKey) return;
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }}
+          />
+          <button
+            type="submit"
+            aria-label={submitLabel}
+            disabled={!canSubmit}
+            className={cn(
+              'absolute right-1.5 bottom-1.5 flex size-7 items-center justify-center rounded-full',
+              canSubmit
+                ? 'bg-background-brand-default text-foreground-neutral-inverse cursor-pointer'
+                : 'bg-background-neutral-subtle text-foreground-neutral-faded cursor-not-allowed',
+            )}
+          >
+            <ArrowUp className="size-4" />
+          </button>
+        </div>
+        {onCancel ? (
+          <button
+            type="button"
+            aria-label="Cancel"
+            className="text-foreground-neutral-subtle hover:bg-background-neutral-subtle hover:text-foreground-neutral-default mb-1.5 flex size-7 cursor-pointer items-center justify-center rounded-lg"
+            onClick={onCancel}
+          >
+            <X className="size-4" />
+          </button>
+        ) : null}
+      </div>
       {error ? (
         <p className="text-body-small-default text-red-700">{error}</p>
       ) : null}
-      <div className="flex items-center justify-end gap-2">
-        {onCancel ? (
-          <Button type="button" variant="ghost" size="small" onClick={onCancel}>
-            Cancel
-          </Button>
-        ) : null}
-        <Button type="submit" size="small" disabled={!canSubmit}>
-          {submitLabel}
-        </Button>
-      </div>
     </form>
   );
 }

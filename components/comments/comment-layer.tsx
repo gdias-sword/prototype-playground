@@ -45,7 +45,6 @@ export function CommentLayer() {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState<DraftAnchor | null>(null);
   const [openThreadId, setOpenThreadId] = useState<string | null>(null);
-  const [expandedThreadId, setExpandedThreadId] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState('');
   const [needsName, setNeedsName] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,7 +70,6 @@ export function CommentLayer() {
     setIsOpen(false);
     setDraft(null);
     setOpenThreadId(null);
-    setExpandedThreadId(null);
     setActionError(null);
     setThreads([]);
     setAvailability(prototypePath ? 'loading' : 'missing');
@@ -160,27 +158,6 @@ export function CommentLayer() {
       return !open;
     });
   }, []);
-
-  useEffect(() => {
-    if (
-      !prototypePath ||
-      (availability !== 'ready' && availability !== 'unconfigured')
-    ) {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'c' || event.repeat) return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (isTypingTarget(event.target)) return;
-      event.preventDefault();
-      event.stopPropagation();
-      toggleComments();
-    }
-
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [availability, prototypePath, toggleComments]);
 
   useEffect(() => {
     if (!isOpen || availability !== 'ready') return;
@@ -364,10 +341,10 @@ export function CommentLayer() {
   const openThread =
     threads.find((thread) => thread.id === openThreadId) ?? null;
   const openThreadPlacement = openThread ? placements[openThread.id] : null;
-  const offScreen = threads.filter(
-    (thread) => !thread.resolved && placements[thread.id]?.visible === false,
-  );
-  const resolved = threads.filter((thread) => thread.resolved);
+  const statusMessage =
+    availability === 'unconfigured'
+      ? 'Comments storage is not configured.'
+      : loadError;
 
   return (
     <>
@@ -413,7 +390,7 @@ export function CommentLayer() {
       {draft ? (
         <div
           data-comment-ui
-          className="border-border-neutral-default bg-background-neutral-default fixed z-[10001] flex w-80 flex-col rounded-2xl border p-4 shadow-lg"
+          className="border-border-neutral-default bg-background-neutral-default fixed z-[10001] flex w-80 flex-col rounded-2xl border p-3 shadow-lg"
           style={popoverStyle(draft.left, draft.top)}
         >
           <CommentComposer
@@ -422,6 +399,7 @@ export function CommentLayer() {
             isSaving={isSaving}
             error={actionError}
             submitLabel="Comment"
+            placeholder="Add a comment"
             onAuthorNameChange={setAuthorName}
             onCancel={() => {
               setDraft(null);
@@ -442,7 +420,7 @@ export function CommentLayer() {
       {openThread && openThreadPlacement?.visible ? (
         <div
           data-comment-ui
-          className="border-border-neutral-default bg-background-neutral-default fixed z-[10001] max-h-[min(32rem,calc(100dvh-2rem))] w-80 overflow-y-auto rounded-2xl border p-4 shadow-lg"
+          className="border-border-neutral-default bg-background-neutral-default fixed z-[10001] max-h-[min(32rem,calc(100dvh-2rem))] w-80 overflow-y-auto rounded-2xl border p-3 shadow-lg"
           style={popoverStyle(
             openThreadPlacement.left,
             openThreadPlacement.top,
@@ -477,52 +455,13 @@ export function CommentLayer() {
         </div>
       ) : null}
 
-      {isOpen ? (
-        <div
+      {isOpen && statusMessage ? (
+        <p
           data-comment-ui
-          className="border-border-neutral-default bg-background-neutral-default fixed bottom-20 left-1/2 z-[10001] flex max-h-[min(32rem,calc(100dvh-8rem))] w-80 -translate-x-1/2 flex-col gap-4 overflow-y-auto rounded-2xl border p-4 shadow-lg"
+          className="border-border-neutral-default bg-background-neutral-default text-body-small-default text-foreground-neutral-default fixed bottom-20 left-1/2 z-[10001] w-80 -translate-x-1/2 rounded-2xl border px-4 py-3 shadow-lg"
         >
-          {availability === 'unconfigured' ? (
-            <p className="text-body-medium-default text-foreground-neutral-default">
-              Comments storage is not configured.
-            </p>
-          ) : (
-            <ThreadList
-              offScreen={offScreen}
-              resolved={resolved}
-              expandedThreadId={expandedThreadId}
-              authorName={authorName}
-              needsName={needsName}
-              isSaving={isSaving}
-              actionError={actionError}
-              onToggle={(threadId) => {
-                setOpenThreadId(null);
-                setDraft(null);
-                setActionError(null);
-                setExpandedThreadId((current) =>
-                  current === threadId ? null : threadId,
-                );
-              }}
-              onAuthorNameChange={setAuthorName}
-              onReply={(threadId, body) =>
-                mutate({ action: 'reply', threadId, body, authorName })
-              }
-              onResolve={(threadId, resolvedNext) =>
-                void mutate({
-                  action: 'resolve',
-                  threadId,
-                  resolved: resolvedNext,
-                })
-              }
-              onDelete={(commentId) =>
-                void mutate({ action: 'delete', commentId })
-              }
-            />
-          )}
-          {loadError ? (
-            <p className="text-body-small-default text-red-700">{loadError}</p>
-          ) : null}
-        </div>
+          {statusMessage}
+        </p>
       ) : null}
 
       <PrototypeToolbar
@@ -538,165 +477,11 @@ export function CommentLayer() {
   );
 }
 
-function ThreadList({
-  offScreen,
-  resolved,
-  expandedThreadId,
-  authorName,
-  needsName,
-  isSaving,
-  actionError,
-  onToggle,
-  onAuthorNameChange,
-  onReply,
-  onResolve,
-  onDelete,
-}: {
-  offScreen: PublicThread[];
-  resolved: PublicThread[];
-  expandedThreadId: string | null;
-  authorName: string;
-  needsName: boolean;
-  isSaving: boolean;
-  actionError: string | null;
-  onToggle: (threadId: string) => void;
-  onAuthorNameChange: (name: string) => void;
-  onReply: (threadId: string, body: string) => Promise<boolean>;
-  onResolve: (threadId: string, resolved: boolean) => void;
-  onDelete: (commentId: string) => void;
-}) {
-  if (offScreen.length === 0 && resolved.length === 0) {
-    return (
-      <p className="text-body-medium-default text-foreground-neutral-subtle">
-        Open threads on this screen stay on their pins. Threads for other steps,
-        and resolved threads, show up here.
-      </p>
-    );
-  }
-
-  return (
-    <>
-      {offScreen.length > 0 ? (
-        <ThreadSection
-          title="Off this screen"
-          threads={offScreen}
-          expandedThreadId={expandedThreadId}
-          authorName={authorName}
-          needsName={needsName}
-          isSaving={isSaving}
-          actionError={actionError}
-          onToggle={onToggle}
-          onAuthorNameChange={onAuthorNameChange}
-          onReply={onReply}
-          onResolve={onResolve}
-          onDelete={onDelete}
-        />
-      ) : null}
-      {resolved.length > 0 ? (
-        <ThreadSection
-          title="Resolved"
-          threads={[...resolved].reverse()}
-          expandedThreadId={expandedThreadId}
-          authorName={authorName}
-          needsName={needsName}
-          isSaving={isSaving}
-          actionError={actionError}
-          onToggle={onToggle}
-          onAuthorNameChange={onAuthorNameChange}
-          onReply={onReply}
-          onResolve={onResolve}
-          onDelete={onDelete}
-        />
-      ) : null}
-    </>
-  );
-}
-
-function ThreadSection({
-  title,
-  threads,
-  expandedThreadId,
-  authorName,
-  needsName,
-  isSaving,
-  actionError,
-  onToggle,
-  onAuthorNameChange,
-  onReply,
-  onResolve,
-  onDelete,
-}: {
-  title: string;
-  threads: PublicThread[];
-  expandedThreadId: string | null;
-  authorName: string;
-  needsName: boolean;
-  isSaving: boolean;
-  actionError: string | null;
-  onToggle: (threadId: string) => void;
-  onAuthorNameChange: (name: string) => void;
-  onReply: (threadId: string, body: string) => Promise<boolean>;
-  onResolve: (threadId: string, resolved: boolean) => void;
-  onDelete: (commentId: string) => void;
-}) {
-  return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-body-small-strong text-foreground-neutral-subtle">
-        {title}
-      </h2>
-      {threads.map((thread) => {
-        const root = thread.comments[0];
-        const isExpanded = expandedThreadId === thread.id;
-        return (
-          <div key={thread.id} className="flex flex-col gap-3">
-            <button
-              type="button"
-              className="hover:bg-background-neutral-subtle flex w-full cursor-pointer flex-col gap-1 rounded-xl px-2 py-2 text-left"
-              aria-expanded={isExpanded}
-              onClick={() => onToggle(thread.id)}
-            >
-              <span className="text-body-small-strong text-foreground-neutral-default">
-                {root?.authorName}
-              </span>
-              <span className="text-body-small-default text-foreground-neutral-subtle line-clamp-2">
-                {root?.body}
-              </span>
-            </button>
-            {isExpanded ? (
-              <CommentThread
-                thread={thread}
-                authorName={authorName}
-                needsName={needsName}
-                isSaving={isSaving}
-                error={actionError}
-                onAuthorNameChange={onAuthorNameChange}
-                onReply={(body) => onReply(thread.id, body)}
-                onResolve={(resolvedNext) => onResolve(thread.id, resolvedNext)}
-                onDelete={onDelete}
-              />
-            ) : null}
-          </div>
-        );
-      })}
-    </section>
-  );
-}
-
 function isXrayClaim(event: MouseEvent | PointerEvent) {
   return (
     document.documentElement.dataset.xray === 'armed' ||
     document.documentElement.dataset.xrayGesture === '1' ||
     event.altKey
-  );
-}
-
-function isTypingTarget(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      target.tagName === 'INPUT' ||
-      target.tagName === 'TEXTAREA' ||
-      target.tagName === 'SELECT')
   );
 }
 
@@ -717,7 +502,7 @@ function popoverStyle(
 ): { left: number; top: number } {
   const width = 320;
   const margin = 16;
-  const estimatedHeight = 280;
+  const estimatedHeight = 200;
   const maxLeft = Math.max(margin, window.innerWidth - width - margin);
   const maxTop = Math.max(
     margin,
