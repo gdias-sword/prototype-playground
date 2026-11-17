@@ -22,6 +22,7 @@ import {
   OnboardingMobileStage,
   OnboardingWash,
 } from './onboarding-panel';
+import { KitEmphasis } from './kit-emphasis';
 import { QrCode } from './qr-attention';
 
 const MEMBER_FIRST_NAME = 'Gonçalo';
@@ -31,7 +32,11 @@ function assetSrc(asset: string | { src: string }) {
 }
 
 export default function ThriveSummaryAppDownload() {
-  return <Screen />;
+  return (
+    <KitEmphasis>
+      <Screen />
+    </KitEmphasis>
+  );
 }
 
 function Screen() {
@@ -116,7 +121,7 @@ function Content() {
         <div className="relative z-1 flex flex-col">
           <CelebrationMark celebration="confetti" />
           <Rise delay={0.4} className="pt-4 lg:pt-6">
-            <p className="text-[16px] leading-6 tracking-[0.2px] text-[#0d0d0d]/50">
+            <p className="text-[16px] leading-6 tracking-[0.2px] text-foreground-neutral-faded">
               You’re almost done, {MEMBER_FIRST_NAME}
             </p>
           </Rise>
