@@ -121,8 +121,11 @@ function Content() {
             </p>
           </Rise>
           <Rise delay={0.5} className="pt-3">
-            <CelebrationHeadline celebration="confetti" ending="">
-              Download the Sword Health app to start your neck program
+            <CelebrationHeadline
+              celebration="confetti"
+              ending=" to start your neck program"
+            >
+              Download the Sword Health app
             </CelebrationHeadline>
           </Rise>
         </div>

@@ -134,7 +134,7 @@ export function CelebrationHeadline({
   return (
     <h1 className={className}>
       {children}
-      <span className="relative">
+      <span className="relative font-normal">
         {ending}
         {celebration === 'sparkle' && !reduceMotion ? (
           <Sparkles sparkles={HEADLINE_SPARKLES} className="top-1/2 left-full" />

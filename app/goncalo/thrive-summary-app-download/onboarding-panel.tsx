@@ -24,7 +24,7 @@ const CARD_STAGGER = 0.15;
 const CARD_DURATION = 0.75;
 
 const PROGRAM_SLOT = 'h-[49.167cqw] w-[46.667cqw]';
-const KIT_SLOT = 'h-[37.5cqw] w-[50cqw]';
+const KIT_SLOT = 'h-[35cqw] w-[46.667cqw]';
 
 const LOGIN_LEAD =
   'min-w-0 flex-1 text-[4.1667cqw] leading-[5.8333cqw] text-[#0d0d0d]';
@@ -64,7 +64,7 @@ const STEPS: Step[] = [
     lead: 'Claim your',
     emphasis: 'free welcome kit',
     image: welcomeKitCard,
-    slotClassName: cn('top-[-0.417cqw] left-[62.917cqw]', KIT_SLOT),
+    slotClassName: cn('top-[-3.125cqw] left-[61.042cqw]', KIT_SLOT),
     padClassName: 'pl-[3.333cqw]',
     textClassName: LOGIN_KIT,
     beam: true,
