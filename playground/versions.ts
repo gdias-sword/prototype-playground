@@ -269,7 +269,7 @@ async function loadBlob(
     const text = await new Response(result.stream).text();
     return {
       file: parseVersionFile(JSON.parse(text) as unknown),
-      etag: result.blob.etag,
+      etag: matchableEtag(result.blob.etag),
     };
   } catch (error) {
     if (error instanceof BlobNotFoundError) {
@@ -304,6 +304,15 @@ function isVersion(value: unknown): value is Version {
     typeof version.createdAt === 'string' &&
     !Number.isNaN(Date.parse(version.createdAt))
   );
+}
+
+function matchableEtag(etag: string | null | undefined): string | null {
+  if (!etag) return null;
+  // Downloads come back as a weak validator (`W/"<etag>"`). Conditional
+  // writes only match the strong quoted form, so the weak prefix makes
+  // every update fail.
+  const strong = etag.replace(/^W\//, '');
+  return strong.length > 0 ? strong : null;
 }
 
 function isWriteConflict(error: unknown): boolean {

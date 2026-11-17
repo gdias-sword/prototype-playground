@@ -96,7 +96,7 @@ async function loadBlob(
     const text = await new Response(result.stream).text();
     return {
       file: parseCommentFile(JSON.parse(text) as unknown),
-      etag: result.blob.etag,
+      etag: matchableEtag(result.blob.etag),
     };
   } catch (error) {
     if (error instanceof BlobNotFoundError) {
@@ -111,6 +111,12 @@ export function isCommentConfigError(error: unknown): boolean {
     error instanceof BlobError &&
     /credentials|read-write token/i.test(error.message)
   );
+}
+
+function matchableEtag(etag: string | null | undefined): string | null {
+  if (!etag) return null;
+  const strong = etag.replace(/^W\//, '');
+  return strong.length > 0 ? strong : null;
 }
 
 function isWriteConflict(error: unknown): boolean {
