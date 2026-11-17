@@ -117,13 +117,7 @@ export function CardWash({ strong = false }: { strong?: boolean }) {
   );
 }
 
-function KitImage({
-  step,
-  float = false,
-}: {
-  step: KitStep;
-  float?: boolean;
-}) {
+function KitImage({ step, float = false }: { step: KitStep; float?: boolean }) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -134,9 +128,7 @@ function KitImage({
         step.slotClassName,
       )}
       animate={
-        float && !reduceMotion
-          ? { y: ['0cqw', '-1.15cqw', '0cqw'] }
-          : undefined
+        float && !reduceMotion ? { y: ['0cqw', '-1.15cqw', '0cqw'] } : undefined
       }
       transition={{ duration: 5.4, repeat: Infinity, ease: 'easeInOut' }}
     >
@@ -226,7 +218,7 @@ export function KitHero({
           <div className="relative flex h-full flex-col justify-between p-[5cqw]">
             <span className="flex items-center gap-[2.083cqw]">
               <GradientNumber>{number}</GradientNumber>
-              <span className="text-[16px] leading-6 tracking-[0.2px] font-normal whitespace-nowrap text-foreground-neutral-default">
+              <span className="text-foreground-neutral-default text-[16px] leading-6 font-normal tracking-[0.2px] whitespace-nowrap">
                 Included with your program
               </span>
             </span>

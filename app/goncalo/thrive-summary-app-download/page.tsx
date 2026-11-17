@@ -122,7 +122,7 @@ function Content() {
           <CelebrationMark celebration="confetti" />
           <Rise delay={0.4} className="pt-4 lg:pt-6">
             <p className="text-[16px] leading-6 tracking-[0.2px] text-foreground-neutral-faded">
-              You’re almost done, {MEMBER_FIRST_NAME}
+              You’re all set, {MEMBER_FIRST_NAME}
             </p>
           </Rise>
           <Rise delay={0.5} className="pt-3">

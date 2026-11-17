@@ -80,7 +80,7 @@ export function CelebrationMark({ celebration }: { celebration: Celebration }) {
   if (celebration === 'progress' && !reduceMotion) return <ProgressSeal />;
 
   return (
-    <div className="relative size-11 shrink-0">
+    <div className="relative size-9 shrink-0">
       {celebration === 'confetti' && !reduceMotion ? <SealGlow /> : null}
       <CompletionSeal
         accent={
