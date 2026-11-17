@@ -6,7 +6,7 @@ import { useRender } from '@base-ui/react/use-render';
 import { Layers, PanelLeft } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 interface SidebarProps {
   children: ReactNode;
@@ -33,6 +33,18 @@ interface SidebarInsetProps {
 function SidebarInset({ children }: SidebarInsetProps) {
   const [isOpen, setIsOpen] = useState(true);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.repeat || event.altKey || event.shiftKey) return;
+      if (!(event.metaKey || event.ctrlKey) || event.key !== '\\') return;
+      event.preventDefault();
+      setIsOpen((open) => !open);
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div
       className={cn(
@@ -42,10 +54,12 @@ function SidebarInset({ children }: SidebarInsetProps) {
     >
       <button
         type="button"
-        onClick={() => setIsOpen((isOpen) => !isOpen)}
+        onClick={() => setIsOpen((open) => !open)}
         className="text-foreground-neutral-faded hover:bg-background-neutral-subtle hover:text-foreground-neutral-default sticky top-2 left-2 z-10 hidden size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors lg:flex"
         aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
         aria-expanded={isOpen}
+        aria-keyshortcuts="Meta+\\"
+        title={isOpen ? 'Collapse sidebar (⌘\\)' : 'Expand sidebar (⌘\\)'}
       >
         <PanelLeft className="size-4" />
       </button>
