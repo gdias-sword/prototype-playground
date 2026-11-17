@@ -6,6 +6,12 @@ import meshGradient from './assets/thrive-mesh-gradient-01.png';
 import programCard from './assets/program-card.png';
 import welcomeKitCard from './assets/welcome-kit-card.png';
 import { Rise } from './celebration';
+import {
+  KitCard,
+  RewardFinale,
+  RewardHero,
+  useKitVariant,
+} from './kit-emphasis';
 
 const BORDER_BEAM =
   'conic-gradient(from var(--beam-angle), rgba(74,137,232,0) 0deg, rgba(74,137,232,0) 160deg, #4a89e8 320deg, #4a89e8 360deg, rgba(74,137,232,0) 360deg)';
@@ -119,6 +125,8 @@ function Mesh() {
 }
 
 function Steps() {
+  const variant = useKitVariant();
+
   return (
     <div className="@container mx-auto w-full max-w-[480px]">
       <style>{`
@@ -131,40 +139,71 @@ function Steps() {
           to { --beam-angle: 360deg; }
         }
       `}</style>
-      <ol className="flex w-full flex-col gap-[5cqw]">
-        {STEPS.map((step, index) => (
-          <li key={step.emphasis} className="aspect-[480/122] w-full">
-            <Rise
-              delay={CARD_ENTER + index * CARD_STAGGER}
-              duration={CARD_DURATION}
-              className="relative isolate size-full rounded-[3.333cqw]"
-            >
-              {step.beam ? <BorderBeam /> : null}
-              <div
-                className={cn(
-                  'absolute inset-0 flex items-center gap-[4.167cqw] overflow-hidden rounded-[inherit] border border-white',
-                  step.padClassName,
-                )}
-                style={{
-                  backgroundImage:
-                    'linear-gradient(138.409deg, rgba(255,255,255,0.8) 27.739%, rgba(255,255,255,0.64) 72.261%)',
-                }}
+      {variant === 'E' ? (
+        <RewardFinale
+          steps={STEPS}
+          delay={CARD_ENTER}
+          stagger={CARD_STAGGER}
+          duration={CARD_DURATION}
+        />
+      ) : (
+        <ol className="flex w-full flex-col gap-[5cqw]">
+          {(variant === 'F' ? STEPS.slice(0, -1) : STEPS).map((step, index) => (
+            <li key={step.emphasis} className="aspect-[480/122] w-full">
+              <Rise
+                delay={CARD_ENTER + index * CARD_STAGGER}
+                duration={CARD_DURATION}
+                className="relative isolate size-full rounded-[3.333cqw]"
               >
-                <span className="flex size-[6.667cqw] shrink-0 items-center justify-center rounded-full bg-[#0d0d0d] text-[3.3333cqw] leading-[4.5833cqw] font-semibold tracking-[0.0417cqw] text-white tabular-nums">
-                  {index + 1}
-                </span>
-                <p className={step.textClassName}>
-                  <span className="font-normal">{step.lead}</span>
-                  <br />
-                  <span className="font-semibold">{step.emphasis}</span>
-                </p>
-                <CardImage step={step} />
-              </div>
-            </Rise>
-          </li>
-        ))}
-      </ol>
+                {step.beam && variant !== 'A' ? (
+                  <KitCard variant={variant} step={step} index={index} />
+                ) : (
+                  <StepCard step={step} index={index} />
+                )}
+              </Rise>
+            </li>
+          ))}
+          {variant === 'F' ? (
+            <li>
+              <RewardHero
+                kit={STEPS[STEPS.length - 1]}
+                number={STEPS.length}
+                delay={CARD_ENTER + (STEPS.length - 1) * CARD_STAGGER}
+                duration={CARD_DURATION}
+              />
+            </li>
+          ) : null}
+        </ol>
+      )}
     </div>
+  );
+}
+
+function StepCard({ step, index }: { step: Step; index: number }) {
+  return (
+    <>
+      {step.beam ? <BorderBeam /> : null}
+      <div
+        className={cn(
+          'absolute inset-0 flex items-center gap-[4.167cqw] overflow-hidden rounded-[inherit] border border-white',
+          step.padClassName,
+        )}
+        style={{
+          backgroundImage:
+            'linear-gradient(138.409deg, rgba(255,255,255,0.8) 27.739%, rgba(255,255,255,0.64) 72.261%)',
+        }}
+      >
+        <span className="flex size-[6.667cqw] shrink-0 items-center justify-center rounded-full bg-[#0d0d0d] text-[3.3333cqw] leading-[4.5833cqw] font-semibold tracking-[0.0417cqw] text-white tabular-nums">
+          {index + 1}
+        </span>
+        <p className={step.textClassName}>
+          <span className="font-normal">{step.lead}</span>
+          <br />
+          <span className="font-semibold">{step.emphasis}</span>
+        </p>
+        <CardImage step={step} />
+      </div>
+    </>
   );
 }
 

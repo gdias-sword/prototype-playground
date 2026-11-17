@@ -22,6 +22,7 @@ import {
   OnboardingMobileStage,
   OnboardingWash,
 } from './onboarding-panel';
+import { KitEmphasis } from './kit-emphasis';
 import { QrCode } from './qr-attention';
 
 const MEMBER_FIRST_NAME = 'Gonçalo';
@@ -31,7 +32,11 @@ function assetSrc(asset: string | { src: string }) {
 }
 
 export default function ThriveSummaryAppDownload() {
-  return <Screen />;
+  return (
+    <KitEmphasis>
+      <Screen />
+    </KitEmphasis>
+  );
 }
 
 function Screen() {
