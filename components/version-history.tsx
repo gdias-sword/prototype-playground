@@ -2,29 +2,37 @@
 
 import { Popover } from '@base-ui/react/popover';
 import { History } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { Version } from '@/playground/versions';
 
 interface VersionHistoryProps {
   path: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 const triggerClass =
   'text-foreground-neutral-faded hover:bg-background-neutral-subtle hover:text-foreground-neutral-default relative flex size-9 cursor-pointer items-center justify-center rounded-xl transition-colors data-[popup-open]:bg-background-brand-default data-[popup-open]:text-foreground-neutral-inverse data-[popup-open]:hover:bg-background-brand-strong data-[popup-open]:hover:text-foreground-neutral-inverse';
 
-export function VersionHistory({ path }: VersionHistoryProps) {
+export function VersionHistory({
+  path,
+  open,
+  onOpenChange,
+}: VersionHistoryProps) {
   const [versions, setVersions] = useState<Version[] | null>(null);
   const [currentSha, setCurrentSha] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const versionsRef = useRef(versions);
+  versionsRef.current = versions;
 
-  function handleOpenChange(open: boolean) {
+  useEffect(() => {
     if (!open) return;
     setSearch(window.location.search);
-    if (versions) return;
+    if (versionsRef.current) return;
     void load();
-  }
+  }, [open, path]);
 
   async function load() {
     setError(null);
@@ -52,11 +60,12 @@ export function VersionHistory({ path }: VersionHistoryProps) {
   const activeSha = currentVersionSha(versions ?? [], currentSha);
 
   return (
-    <Popover.Root onOpenChange={handleOpenChange}>
+    <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger
         className={triggerClass}
         aria-label="Versions"
-        title="Versions"
+        aria-keyshortcuts="H"
+        title="Versions (H)"
       >
         <History className="size-4" />
       </Popover.Trigger>

@@ -3,12 +3,11 @@
 import { cn } from '@/design/utils';
 import { MessageSquare, Scan } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { VersionHistory } from '@/components/version-history';
 import { XrayLayer } from '@/components/xray-layer';
 
-const STORAGE_KEY = 'prototype-toolbar-hidden';
 const EASE = [0.4, 0.8, 0, 1] as const;
 
 interface PrototypeToolbarProps {
@@ -22,28 +21,35 @@ interface PrototypeToolbarProps {
 }
 
 export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
-  const [isHidden, setIsHidden] = useState(false);
+  const [isHidden, setIsHidden] = useState(true);
   const [isArmed, setIsArmed] = useState(false);
-  const skipAnimation = useRef(true);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
-    setIsHidden(localStorage.getItem(STORAGE_KEY) === '1');
-    const frame = requestAnimationFrame(() => {
-      skipAnimation.current = false;
-    });
-    return () => cancelAnimationFrame(frame);
-  }, []);
+    if (isArmed || comments.isOpen || isHistoryOpen) return;
+    setIsHidden(true);
+  }, [comments.isOpen, isArmed, isHistoryOpen]);
 
   function handleToggleArmed() {
     const next = !isArmed;
     setIsArmed(next);
-    if (next && comments.isOpen) comments.onToggle();
+    if (!next) return;
+    setIsHidden(false);
+    if (comments.isOpen) comments.onToggle();
   }
 
   function handleToggleComments() {
-    if (!comments.isOpen) setIsArmed(false);
+    if (!comments.isOpen) {
+      setIsHidden(false);
+      setIsArmed(false);
+    }
     comments.onToggle();
+  }
+
+  function handleHistoryOpenChange(open: boolean) {
+    setIsHistoryOpen(open);
+    if (open) setIsHidden(false);
   }
 
   useEffect(() => {
@@ -69,29 +75,17 @@ export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
         handleToggleComments();
         return;
       }
-      if (event.key !== '\\') return;
+      if (event.key !== 'h') return;
       event.preventDefault();
       event.stopPropagation();
-      setIsHidden((current) => {
-        const next = !current;
-        localStorage.setItem(STORAGE_KEY, next ? '1' : '0');
-        return next;
-      });
+      handleHistoryOpenChange(!isHistoryOpen);
     }
 
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [comments, isArmed]);
+  }, [comments, isArmed, isHistoryOpen]);
 
-  function handleToggleHidden() {
-    setIsHidden((current) => {
-      const next = !current;
-      localStorage.setItem(STORAGE_KEY, next ? '1' : '0');
-      return next;
-    });
-  }
-
-  const instant = skipAnimation.current || reduceMotion;
+  const instant = Boolean(reduceMotion);
 
   return (
     <>
@@ -161,22 +155,15 @@ export function PrototypeToolbar({ path, comments }: PrototypeToolbarProps) {
                       </span>
                     ) : null}
                   </ToolbarButton>
-                  <VersionHistory path={path} />
+                  <VersionHistory
+                    path={path}
+                    open={isHistoryOpen}
+                    onOpenChange={handleHistoryOpenChange}
+                  />
                 </motion.div>
               ) : null}
             </AnimatePresence>
           </motion.div>
-          {isHidden ? (
-            <button
-              type="button"
-              className="absolute -inset-x-5 top-[-8px] -bottom-4 cursor-pointer rounded-full"
-              aria-label="Show toolbar"
-              aria-expanded={false}
-              aria-keyshortcuts="\\"
-              title="Show toolbar (\)"
-              onClick={handleToggleHidden}
-            />
-          ) : null}
         </div>
       </div>
     </>
