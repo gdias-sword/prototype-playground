@@ -6,24 +6,7 @@ import meshGradient from './assets/thrive-mesh-gradient-01.png';
 import programCard from './assets/program-card.png';
 import welcomeKitCard from './assets/welcome-kit-card.png';
 import { Rise } from './celebration';
-import {
-  KitCard,
-  RewardFinale,
-  RewardHero,
-  useKitVariant,
-} from './kit-emphasis';
-
-const BORDER_BEAM =
-  'conic-gradient(from var(--beam-angle), rgba(74,137,232,0) 0deg, rgba(74,137,232,0) 160deg, #4a89e8 320deg, #4a89e8 360deg, rgba(74,137,232,0) 360deg)';
-
-const borderBeamMask = {
-  background: BORDER_BEAM,
-  mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-  WebkitMask:
-    'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-  maskComposite: 'exclude',
-  WebkitMaskComposite: 'xor',
-} as const;
+import { CardWash, KitCard, KitHero, useKitVariant } from './kit-emphasis';
 
 const CARD_ENTER = 1;
 const CARD_STAGGER = 0.15;
@@ -103,7 +86,7 @@ export function OnboardingMobileStage() {
 export function OnboardingMedia() {
   return (
     <aside
-      aria-label="What you will do in the Sword Health app"
+      aria-label="Your program and welcome kit are waiting inside"
       className="absolute inset-y-0 right-0 z-3 hidden w-[42.66%] items-center justify-center overflow-hidden bg-linear-to-b from-white to-[#c7ddfb] px-10 py-12 lg:flex"
     >
       <Mesh />
@@ -128,82 +111,66 @@ function Steps() {
   const variant = useKitVariant();
 
   return (
-    <div className="@container mx-auto w-full max-w-[480px]">
-      <style>{`
-        @property --beam-angle {
-          syntax: '<angle>';
-          initial-value: 0deg;
-          inherits: false;
-        }
-        @keyframes border-beam {
-          to { --beam-angle: 360deg; }
-        }
-      `}</style>
-      {variant === 'E' ? (
-        <RewardFinale
-          steps={STEPS}
-          delay={CARD_ENTER}
-          stagger={CARD_STAGGER}
-          duration={CARD_DURATION}
-        />
-      ) : (
-        <ol className="flex w-full flex-col gap-[5cqw]">
-          {(variant === 'F' ? STEPS.slice(0, -1) : STEPS).map((step, index) => (
-            <li key={step.emphasis} className="aspect-[480/122] w-full">
-              <Rise
-                delay={CARD_ENTER + index * CARD_STAGGER}
-                duration={CARD_DURATION}
-                className="relative isolate size-full rounded-[3.333cqw]"
-              >
-                {step.beam && variant !== 'A' ? (
-                  <KitCard variant={variant} step={step} index={index} />
-                ) : (
-                  <StepCard step={step} index={index} />
-                )}
-              </Rise>
-            </li>
-          ))}
-          {variant === 'F' ? (
-            <li>
-              <RewardHero
-                kit={STEPS[STEPS.length - 1]}
-                number={STEPS.length}
-                delay={CARD_ENTER + (STEPS.length - 1) * CARD_STAGGER}
-                duration={CARD_DURATION}
-              />
-            </li>
-          ) : null}
-        </ol>
-      )}
+    <div className="@container mx-auto flex w-full max-w-[480px] flex-col gap-6">
+      <Rise delay={0.85}>
+        <p className="text-[16px] leading-6 tracking-[0.2px] text-pretty text-foreground-neutral-faded">
+          Your program and welcome kit are waiting inside.
+        </p>
+      </Rise>
+      <ol className="flex w-full flex-col gap-[5cqw]">
+        {(variant === 'B' ? STEPS.slice(0, -1) : STEPS).map((step, index) => (
+          <li key={step.emphasis} className="aspect-[480/122] w-full">
+            <Rise
+              delay={CARD_ENTER + index * CARD_STAGGER}
+              duration={CARD_DURATION}
+              className="relative isolate size-full rounded-[3.333cqw]"
+            >
+              {step.beam && variant === 'A' ? (
+                <KitCard step={step} index={index} />
+              ) : (
+                <StepCard step={step} index={index} />
+              )}
+            </Rise>
+          </li>
+        ))}
+        {variant === 'B' ? (
+          <li>
+            <KitHero
+              kit={STEPS[STEPS.length - 1]}
+              number={STEPS.length}
+              delay={CARD_ENTER + (STEPS.length - 1) * CARD_STAGGER}
+              duration={CARD_DURATION}
+            />
+          </li>
+        ) : null}
+      </ol>
     </div>
   );
 }
 
 function StepCard({ step, index }: { step: Step; index: number }) {
   return (
-    <>
-      {step.beam ? <BorderBeam /> : null}
-      <div
-        className={cn(
-          'absolute inset-0 flex items-center gap-[4.167cqw] overflow-hidden rounded-[inherit] border border-white',
-          step.padClassName,
-        )}
-        style={{
-          backgroundImage:
-            'linear-gradient(138.409deg, rgba(255,255,255,0.8) 27.739%, rgba(255,255,255,0.64) 72.261%)',
-        }}
-      >
-        <span className="flex size-[6.667cqw] shrink-0 items-center justify-center rounded-full bg-[#0d0d0d] text-[3.3333cqw] leading-[4.5833cqw] font-semibold tracking-[0.0417cqw] text-white tabular-nums">
-          {index + 1}
-        </span>
-        <p className={step.textClassName}>
-          <span className="font-normal">{step.lead}</span>
-          <br />
-          <span className="font-semibold">{step.emphasis}</span>
-        </p>
-        <CardImage step={step} />
-      </div>
-    </>
+    <div
+      className={cn(
+        'absolute inset-0 flex items-center gap-[4.167cqw] overflow-hidden rounded-[inherit] border border-white',
+        step.padClassName,
+      )}
+      style={{
+        backgroundImage:
+          'linear-gradient(138.409deg, rgba(255,255,255,0.8) 27.739%, rgba(255,255,255,0.64) 72.261%)',
+      }}
+    >
+      <CardWash />
+      <span className="relative flex size-[6.667cqw] shrink-0 items-center justify-center rounded-full bg-[#0d0d0d] text-[3.3333cqw] leading-[4.5833cqw] font-semibold tracking-[0.0417cqw] text-white tabular-nums">
+        {index + 1}
+      </span>
+      <p className={cn('relative', step.textClassName)}>
+        <span className="font-normal">{step.lead}</span>
+        <br />
+        <span className="font-semibold">{step.emphasis}</span>
+      </p>
+      <CardImage step={step} />
+    </div>
   );
 }
 
@@ -226,19 +193,3 @@ function CardImage({ step }: { step: Step }) {
   );
 }
 
-function BorderBeam() {
-  return (
-    <>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -inset-px -z-10 rounded-[inherit] p-px opacity-70 blur-[3px] motion-safe:animate-[border-beam_3.2s_linear_infinite]"
-        style={borderBeamMask}
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -inset-px -z-10 rounded-[inherit] p-px motion-safe:animate-[border-beam_3.2s_linear_infinite]"
-        style={borderBeamMask}
-      />
-    </>
-  );
-}
