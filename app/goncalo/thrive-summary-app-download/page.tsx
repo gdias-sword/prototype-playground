@@ -21,9 +21,8 @@ import {
   OnboardingMedia,
   OnboardingMobileStage,
   OnboardingWash,
-  StepsVariantSwitcher,
 } from './onboarding-panel';
-import { QrCode, QrVariantSwitcher } from './qr-attention';
+import { QrCode } from './qr-attention';
 
 const MEMBER_FIRST_NAME = 'Gonçalo';
 
@@ -51,8 +50,6 @@ function Screen() {
       >
         <DownloadBar />
       </Rise>
-      <QrVariantSwitcher />
-      <StepsVariantSwitcher />
     </div>
   );
 }
