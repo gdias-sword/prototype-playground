@@ -216,12 +216,7 @@ export function KitHero({
             transition={{ duration: 5.4, repeat: Infinity, ease: 'easeInOut' }}
           />
           <div className="relative flex h-full flex-col justify-between p-[5cqw]">
-            <span className="flex items-center gap-[2.083cqw]">
-              <GradientNumber>{number}</GradientNumber>
-              <span className="text-foreground-neutral-default text-[16px] leading-6 font-normal tracking-[0.2px] whitespace-nowrap">
-                Included with your program
-              </span>
-            </span>
+            <GradientNumber>{number}</GradientNumber>
             <p className="w-[58%] text-[5.833cqw] leading-[7.083cqw] tracking-[-0.05cqw] text-[#0d0d0d]">
               {kit.lead}
               <br />

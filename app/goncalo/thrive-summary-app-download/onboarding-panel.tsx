@@ -86,7 +86,7 @@ export function OnboardingMobileStage() {
 export function OnboardingMedia() {
   return (
     <aside
-      aria-label="Your program and welcome kit are waiting inside"
+      aria-label="Here's what comes next"
       className="absolute inset-y-0 right-0 z-3 hidden w-[42.66%] items-center justify-center overflow-hidden bg-linear-to-b from-white to-[#c7ddfb] px-10 py-12 lg:flex"
     >
       <Mesh />
@@ -114,7 +114,7 @@ function Steps() {
     <div className="@container mx-auto flex w-full max-w-[480px] flex-col gap-6">
       <Rise delay={0.85}>
         <p className="text-[16px] leading-6 tracking-[0.2px] text-pretty text-foreground-neutral-faded">
-          Your program and welcome kit are waiting inside.
+          Here's what comes next
         </p>
       </Rise>
       <ol className="flex w-full flex-col gap-[5cqw]">
