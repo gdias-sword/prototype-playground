@@ -4,7 +4,7 @@ import { cn } from '@/design/utils';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { KitFinish } from './kit-layouts';
-import { Footer } from './shell';
+import { Container, Footer, SubHeader } from './shell';
 import { useTuning } from './tuning';
 
 type Phase = 'plan' | 'next' | 'steps';
@@ -19,22 +19,80 @@ interface JourneyIntroProps {
 }
 
 export function JourneyIntro({ firstName, onContinue }: JourneyIntroProps) {
+  const { intro } = useTuning();
+  const first = `Welcome, ${firstName}!`;
+  const second = 'Let’s start by getting to know you.';
+
+  if (intro === 'none') {
+    return (
+      <DirectWelcome title={`${first} ${second}`} onContinue={onContinue} />
+    );
+  }
+
+  return (
+    <SpokenWelcome
+      lines={intro === 'one-line' ? [`${first} ${second}`] : [first, second]}
+      onContinue={onContinue}
+    />
+  );
+}
+
+/* Skips the spoken lines and enters like every other enrollment step. */
+
+function DirectWelcome({
+  title,
+  onContinue,
+}: {
+  title: string;
+  onContinue: () => void;
+}) {
+  const tuning = useTuning();
+  return (
+    <>
+      <Container header={<SubHeader title={title} />}>
+        <KitFinish start={tuning.contentDelay} />
+      </Container>
+      <Footer label="Continue" isSolid={false} onContinue={onContinue} />
+    </>
+  );
+}
+
+function SpokenWelcome({
+  lines,
+  onContinue,
+}: {
+  lines: string[];
+  onContinue: () => void;
+}) {
   const isReduced = useReducedMotion();
   const tuning = useTuning();
   const [phase, setPhase] = useState<Phase>(isReduced ? 'steps' : 'plan');
+  const isSingle = lines.length === 1;
 
   useEffect(() => {
     if (isReduced) return;
-    const timers = [
-      window.setTimeout(() => setPhase('next'), tuning.secondLineAt * 1000),
-      window.setTimeout(() => setPhase('steps'), tuning.settleAt * 1000),
-    ];
+    const timers = isSingle
+      ? [
+          window.setTimeout(
+            () => setPhase('steps'),
+            tuning.combinedSettleAt * 1000,
+          ),
+        ]
+      : [
+          window.setTimeout(() => setPhase('next'), tuning.secondLineAt * 1000),
+          window.setTimeout(() => setPhase('steps'), tuning.settleAt * 1000),
+        ];
     return () => timers.forEach(window.clearTimeout);
-  }, [isReduced, tuning.secondLineAt, tuning.settleAt]);
+  }, [
+    isReduced,
+    isSingle,
+    tuning.secondLineAt,
+    tuning.settleAt,
+    tuning.combinedSettleAt,
+  ]);
 
   const isSettled = phase === 'steps';
-  const first = `Welcome, ${firstName}!`;
-  const second = 'Let’s start by getting to know you.';
+  const index = phase === 'plan' || isSingle ? 0 : 1;
 
   return (
     <>
@@ -53,16 +111,12 @@ export function JourneyIntro({ firstName, onContinue }: JourneyIntroProps) {
           )}
         >
           <AnimatePresence mode="wait">
-            {phase === 'plan' ? (
-              <Sentence key="plan" id="plan" words={first} isSettled={false} />
-            ) : (
-              <Sentence
-                key="next"
-                id="next"
-                words={second}
-                isSettled={isSettled}
-              />
-            )}
+            <Sentence
+              key={index}
+              id={String(index)}
+              words={lines[index]}
+              isSettled={isSettled}
+            />
           </AnimatePresence>
           {isSettled && <KitFinish />}
         </div>
@@ -76,7 +130,7 @@ export function JourneyIntro({ firstName, onContinue }: JourneyIntroProps) {
         />
       )}
       <p className="sr-only" aria-live="polite">
-        {phase === 'plan' ? first : second}
+        {lines[index]}
       </p>
     </>
   );

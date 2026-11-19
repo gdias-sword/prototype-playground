@@ -6,20 +6,20 @@ import { motion, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
 import icClock from './assets/ic-clock.svg';
 import icGift from './assets/ic-gift.svg';
-import kitClosed from './assets/kit-closed.png';
+import kitClosed from './assets/kit-closed.webp';
 import { assetSrc } from './shell';
 import { useTuning } from './tuning';
 
 const EASE = [0.2, 1, 0.4, 1] as const;
-function useEnter() {
+function useEnter(start: number) {
   const isReduced = useReducedMotion();
-  const { stepDuration, stepDistance, stepsStart, rowStagger } = useTuning();
+  const { stepDuration, stepDistance, rowStagger } = useTuning();
   return (order: number) => ({
     initial: isReduced ? false : { opacity: 0, y: stepDistance },
     animate: { opacity: 1, y: 0 },
     transition: {
       duration: stepDuration,
-      delay: isReduced ? 0 : stepsStart + order * rowStagger,
+      delay: isReduced ? 0 : start + order * rowStagger,
       ease: EASE,
     },
   });
@@ -128,9 +128,10 @@ function BoxImage({ className, delay }: { className: string; delay: number }) {
 
 /* The kit is the finish line of a vertical timeline. */
 
-export function KitFinish() {
-  const enter = useEnter();
+export function KitFinish({ start }: { start?: number }) {
   const { stepsStart, rowStagger } = useTuning();
+  const from = start ?? stepsStart;
+  const enter = useEnter(from);
   return (
     <div className="flex flex-col">
       {JOURNEY.map((step, index) => (
@@ -201,7 +202,7 @@ export function KitFinish() {
           </p>
           <Free className="self-start" />
           <BoxImage
-            delay={stepsStart + rowStagger * (JOURNEY.length + 0.5)}
+            delay={from + rowStagger * (JOURNEY.length + 0.5)}
             className="absolute -top-10 left-1/2 w-[64%] -translate-x-1/2 sm:top-auto sm:right-[-6%] sm:bottom-[10%] sm:left-auto sm:w-[52%] sm:translate-x-0"
           />
         </div>

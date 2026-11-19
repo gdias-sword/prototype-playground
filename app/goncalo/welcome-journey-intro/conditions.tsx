@@ -2,14 +2,14 @@
 
 import { cn } from '@/design/utils';
 import { useState } from 'react';
-import ankle from './assets/condition-ankle.png';
-import back from './assets/condition-back.png';
-import elbow from './assets/condition-elbow.png';
-import hip from './assets/condition-hip.png';
-import knee from './assets/condition-knee.png';
-import neck from './assets/condition-neck.png';
-import shoulder from './assets/condition-shoulder.png';
-import wrist from './assets/condition-wrist.png';
+import ankle from './assets/condition-ankle.webp';
+import back from './assets/condition-back.webp';
+import elbow from './assets/condition-elbow.webp';
+import hip from './assets/condition-hip.webp';
+import knee from './assets/condition-knee.webp';
+import neck from './assets/condition-neck.webp';
+import shoulder from './assets/condition-shoulder.webp';
+import wrist from './assets/condition-wrist.webp';
 import { assetSrc, Container, ProgressBar, SubHeader } from './shell';
 
 export const CONDITIONS = [

@@ -11,7 +11,10 @@ import {
   type ReactNode,
 } from 'react';
 
+export type Intro = 'two-lines' | 'one-line' | 'none';
+
 export interface Tuning {
+  intro: Intro;
   stepDuration: number;
   stepDistance: number;
   headerDelay: number;
@@ -24,6 +27,7 @@ export interface Tuning {
   readSpeed: number;
   secondLineAt: number;
   settleAt: number;
+  combinedSettleAt: number;
   moveDuration: number;
   stepsStart: number;
   rowStagger: number;
@@ -31,6 +35,7 @@ export interface Tuning {
 }
 
 const DEFAULTS: Tuning = {
+  intro: 'two-lines',
   stepDuration: 1.2,
   stepDistance: 40,
   headerDelay: 0.2,
@@ -43,13 +48,14 @@ const DEFAULTS: Tuning = {
   readSpeed: 0.11,
   secondLineAt: 3.2,
   settleAt: 7,
+  combinedSettleAt: 4.5,
   moveDuration: 1,
   stepsStart: 0.45,
   rowStagger: 0.25,
   continueDelay: 1.3,
 };
 
-type NumberKey = Exclude<keyof Tuning, 'textReveal'>;
+type NumberKey = Exclude<keyof Tuning, 'textReveal' | 'intro'>;
 
 interface Control {
   key: NumberKey;
@@ -58,9 +64,16 @@ interface Control {
   max: number;
   step: number;
   unit: string;
+  intros?: Intro[];
 }
 
-const GROUPS: { title: string; controls: Control[] }[] = [
+const INTROS: { value: Intro; label: string }[] = [
+  { value: 'two-lines', label: 'Two lines' },
+  { value: 'one-line', label: 'One line' },
+  { value: 'none', label: 'No intro' },
+];
+
+const GROUPS: { title: string; intros?: Intro[]; controls: Control[] }[] = [
   {
     title: 'Step screens',
     controls: [
@@ -108,6 +121,7 @@ const GROUPS: { title: string; controls: Control[] }[] = [
   },
   {
     title: 'Welcome text',
+    intros: ['two-lines', 'one-line'],
     controls: [
       {
         key: 'lineStagger',
@@ -148,6 +162,7 @@ const GROUPS: { title: string; controls: Control[] }[] = [
         max: 8,
         step: 0.1,
         unit: 's',
+        intros: ['two-lines'],
       },
       {
         key: 'settleAt',
@@ -156,6 +171,16 @@ const GROUPS: { title: string; controls: Control[] }[] = [
         max: 14,
         step: 0.1,
         unit: 's',
+        intros: ['two-lines'],
+      },
+      {
+        key: 'combinedSettleAt',
+        label: 'Move up at',
+        min: 1,
+        max: 14,
+        step: 0.1,
+        unit: 's',
+        intros: ['one-line'],
       },
       {
         key: 'moveDuration',
@@ -177,6 +202,7 @@ const GROUPS: { title: string; controls: Control[] }[] = [
         max: 2,
         step: 0.05,
         unit: 's',
+        intros: ['two-lines', 'one-line'],
       },
       {
         key: 'rowStagger',
@@ -193,6 +219,7 @@ const GROUPS: { title: string; controls: Control[] }[] = [
         max: 4,
         step: 0.05,
         unit: 's',
+        intros: ['two-lines', 'one-line'],
       },
     ],
   },
@@ -277,31 +304,32 @@ export function TuningPanel({ onReplay }: { onReplay: () => void }) {
         </button>
       </div>
       <div className="flex flex-col gap-5 overflow-y-auto px-4 py-4">
-        {GROUPS.map((group) => (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-[11px] font-semibold tracking-[0.6px] text-white/50 uppercase">
+            Intro sequence
+          </h2>
+          <Segmented
+            options={INTROS}
+            value={tuning.intro}
+            onChange={(intro) => handleChange({ ...tuning, intro })}
+          />
+        </section>
+        {visible(GROUPS, tuning.intro).map((group) => (
           <section key={group.title} className="flex flex-col gap-3">
             <h2 className="text-[11px] font-semibold tracking-[0.6px] text-white/50 uppercase">
               {group.title}
             </h2>
             {group.title === 'Welcome text' && (
-              <div className="flex rounded-lg bg-white/8 p-0.5 text-[12px]">
-                {(['lines', 'words'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() =>
-                      handleChange({ ...tuning, textReveal: mode })
-                    }
-                    className={cn(
-                      'h-7 flex-1 cursor-pointer rounded-md capitalize',
-                      tuning.textReveal === mode
-                        ? 'bg-white/16 font-semibold'
-                        : 'text-white/60 hover:text-white',
-                    )}
-                  >
-                    {mode === 'lines' ? 'Lines rise in' : 'Words fade in'}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                options={[
+                  { value: 'lines', label: 'Lines rise in' },
+                  { value: 'words', label: 'Words fade in' },
+                ]}
+                value={tuning.textReveal}
+                onChange={(textReveal) =>
+                  handleChange({ ...tuning, textReveal })
+                }
+              />
             )}
             {group.controls.map((control) => (
               <label key={control.key} className="flex flex-col gap-1.5">
@@ -356,6 +384,47 @@ export function TuningPanel({ onReplay }: { onReplay: () => void }) {
           Reset
         </button>
       </div>
+    </div>
+  );
+}
+
+function visible(groups: typeof GROUPS, intro: Intro) {
+  return groups
+    .filter((group) => !group.intros || group.intros.includes(intro))
+    .map((group) => ({
+      ...group,
+      controls: group.controls.filter(
+        (control) => !control.intros || control.intros.includes(intro),
+      ),
+    }));
+}
+
+function Segmented<Value extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: Value; label: string }[];
+  value: Value;
+  onChange: (value: Value) => void;
+}) {
+  return (
+    <div className="flex rounded-lg bg-white/8 p-0.5 text-[12px]">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={cn(
+            'h-7 flex-1 cursor-pointer rounded-md',
+            value === option.value
+              ? 'bg-white/16 font-semibold'
+              : 'text-white/60 hover:text-white',
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }
