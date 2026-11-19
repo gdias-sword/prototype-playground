@@ -1,9 +1,8 @@
 'use client';
 
-import { VariantSwitcher } from '@/components/variant-switcher';
 import { cn } from '@/design/utils';
 import { motion, useReducedMotion } from 'motion/react';
-import { createContext, useContext, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Rise } from './celebration';
 
 const SWORD_GRADIENT =
@@ -19,33 +18,6 @@ const ringMask = {
   maskComposite: 'exclude',
   WebkitMaskComposite: 'xor',
 } as const;
-
-const VARIANTS = [
-  { id: 'A', label: 'Holo foil' },
-  { id: 'B', label: 'Expanded kit' },
-];
-
-const KitVariantContext = createContext('A');
-
-export function KitEmphasis({ children }: { children: ReactNode }) {
-  return (
-    <VariantSwitcher
-      variants={VARIANTS}
-      caption="Kit"
-      className="max-lg:bottom-28"
-    >
-      {(variant) => (
-        <KitVariantContext.Provider value={variant}>
-          {children}
-        </KitVariantContext.Provider>
-      )}
-    </VariantSwitcher>
-  );
-}
-
-export function useKitVariant() {
-  return useContext(KitVariantContext);
-}
 
 export interface KitStep {
   lead: string;

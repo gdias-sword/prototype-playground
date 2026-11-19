@@ -6,7 +6,7 @@ import meshGradient from './assets/thrive-mesh-gradient-01.png';
 import programCard from './assets/program-card.png';
 import welcomeKitCard from './assets/welcome-kit-card.png';
 import { Rise } from './celebration';
-import { CardWash, KitCard, KitHero, useKitVariant } from './kit-emphasis';
+import { CardWash, KitCard, KitHero } from './kit-emphasis';
 
 const CARD_ENTER = 1.2;
 const CARD_STAGGER = 0.2;
@@ -78,7 +78,7 @@ export function OnboardingWash() {
 export function OnboardingMobileStage() {
   return (
     <div className="pt-2 lg:hidden">
-      <Steps />
+      <Steps layout="compact" />
     </div>
   );
 }
@@ -91,7 +91,7 @@ export function OnboardingMedia() {
     >
       <Mesh />
       <div className="relative z-1 w-full max-w-[480px]">
-        <Steps />
+        <Steps layout="large" />
       </div>
     </aside>
   );
@@ -107,8 +107,8 @@ function Mesh() {
   );
 }
 
-function Steps() {
-  const variant = useKitVariant();
+function Steps({ layout }: { layout: 'compact' | 'large' }) {
+  const steps = layout === 'large' ? STEPS.slice(0, -1) : STEPS;
 
   return (
     <div className="@container mx-auto flex w-full max-w-[480px] flex-col gap-6">
@@ -118,14 +118,14 @@ function Steps() {
         </p>
       </Rise>
       <ol className="flex w-full flex-col gap-[5cqw]">
-        {(variant === 'B' ? STEPS.slice(0, -1) : STEPS).map((step, index) => (
+        {steps.map((step, index) => (
           <li key={step.emphasis} className="aspect-[480/122] w-full">
             <Rise
               delay={CARD_ENTER + index * CARD_STAGGER}
               duration={CARD_DURATION}
               className="relative isolate size-full rounded-[3.333cqw]"
             >
-              {step.beam && variant === 'A' ? (
+              {step.beam && layout === 'compact' ? (
                 <KitCard step={step} index={index} />
               ) : (
                 <StepCard step={step} index={index} />
@@ -133,7 +133,7 @@ function Steps() {
             </Rise>
           </li>
         ))}
-        {variant === 'B' ? (
+        {layout === 'large' ? (
           <li>
             <KitHero
               kit={STEPS[STEPS.length - 1]}

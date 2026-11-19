@@ -1,9 +1,9 @@
 import { SwordLogo } from '@/design/assets/logos/sword';
+import { Button } from '@/design/components/button';
 import { cn } from '@/design/utils';
 import appStore from './assets/app-store.svg';
 import googlePlay from './assets/google-play.svg';
 import icAccessibility from './assets/ic-accessibility.svg';
-import icApple from './assets/ic-apple.svg';
 import icChevronDown16 from './assets/ic-chevron-down-16.svg';
 import icChevronDown20 from './assets/ic-chevron-down-20.svg';
 import icStar from './assets/ic-star.svg';
@@ -16,7 +16,6 @@ import {
   CelebrationMark,
   Rise,
 } from './celebration';
-import { KitEmphasis } from './kit-emphasis';
 import {
   OnboardingMedia,
   OnboardingMobileStage,
@@ -31,11 +30,7 @@ function assetSrc(asset: string | { src: string }) {
 }
 
 export default function ThriveSummaryAppDownload() {
-  return (
-    <KitEmphasis>
-      <Screen />
-    </KitEmphasis>
-  );
+  return <Screen />;
 }
 
 function Screen() {
@@ -44,7 +39,7 @@ function Screen() {
       <OnboardingWash />
       <OnboardingMedia />
       <Header />
-      <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-y-auto px-6 pt-[max(64px,calc(env(safe-area-inset-top)+40px))] lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 xl:px-0">
+      <main className="relative z-2 mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 flex-col overflow-x-clip overflow-y-auto px-6 pt-[max(64px,calc(env(safe-area-inset-top)+40px))] lg:flex-row lg:items-center lg:overflow-visible lg:px-16 lg:py-10 xl:px-0">
         <Content />
       </main>
       <Rise
@@ -136,13 +131,9 @@ function Content() {
 
 function DownloadBar() {
   return (
-    <button
-      type="button"
-      className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#2e2e2e] text-[14px] leading-5 font-semibold tracking-[0.2px] text-white"
-    >
-      <img alt="" src={assetSrc(icApple)} />
-      Download the Sword Health app
-    </button>
+    <Button size="large" className="w-full">
+      Continue in the Sword app
+    </Button>
   );
 }
 
