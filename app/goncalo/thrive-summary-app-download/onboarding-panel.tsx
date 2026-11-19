@@ -8,9 +8,9 @@ import welcomeKitCard from './assets/welcome-kit-card.png';
 import { Rise } from './celebration';
 import { CardWash, KitCard, KitHero, useKitVariant } from './kit-emphasis';
 
-const CARD_ENTER = 1;
-const CARD_STAGGER = 0.15;
-const CARD_DURATION = 0.75;
+const CARD_ENTER = 1.2;
+const CARD_STAGGER = 0.2;
+const CARD_DURATION = 0.8;
 
 const PROGRAM_SLOT = 'h-[49.167cqw] w-[46.667cqw]';
 const KIT_SLOT = 'h-[35cqw] w-[46.667cqw]';
@@ -112,7 +112,7 @@ function Steps() {
 
   return (
     <div className="@container mx-auto flex w-full max-w-[480px] flex-col gap-6">
-      <Rise delay={0.85}>
+      <Rise delay={1}>
         <p className="text-[16px] leading-6 tracking-[0.2px] text-pretty text-foreground-neutral-faded">
           Here's what comes next
         </p>

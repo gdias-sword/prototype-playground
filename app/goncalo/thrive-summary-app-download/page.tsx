@@ -8,7 +8,6 @@ import icChevronDown16 from './assets/ic-chevron-down-16.svg';
 import icChevronDown20 from './assets/ic-chevron-down-20.svg';
 import icStar from './assets/ic-star.svg';
 import icWorld from './assets/ic-world.svg';
-import pageGradient from './assets/page-gradient.svg';
 import qrCode from './assets/qr.svg';
 import swordSymbol from './assets/sword-symbol.svg';
 import {
@@ -42,7 +41,6 @@ export default function ThriveSummaryAppDownload() {
 function Screen() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d] max-lg:bg-linear-to-b max-lg:from-white max-lg:to-[#c7ddfb]">
-      <PageGradient />
       <OnboardingWash />
       <OnboardingMedia />
       <Header />
@@ -50,28 +48,11 @@ function Screen() {
         <Content />
       </main>
       <Rise
-        delay={1}
+        delay={2}
         className="relative z-2 shrink-0 px-6 pt-4 pb-[max(16px,env(safe-area-inset-bottom))] lg:hidden"
       >
         <DownloadBar />
       </Rise>
-    </div>
-  );
-}
-
-function PageGradient() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 z-1 hidden overflow-hidden lg:block"
-    >
-      <div className="absolute bottom-[-1840px] left-1/2 size-[2000px] -translate-x-1/2">
-        <img
-          alt=""
-          src={assetSrc(pageGradient)}
-          className="absolute top-[-12%] left-[-12%] block max-w-none"
-        />
-      </div>
     </div>
   );
 }
@@ -136,7 +117,7 @@ function Content() {
         </div>
       </div>
       <OnboardingMobileStage />
-      <Rise delay={0.9} className="hidden items-center gap-6 lg:flex">
+      <Rise delay={0.8} className="hidden items-center gap-6 lg:flex">
         <QrCode src={assetSrc(qrCode)} />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-4">
           <p className="text-[18px] leading-[26px] tracking-[0.2px]">
