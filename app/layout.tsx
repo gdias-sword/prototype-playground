@@ -13,7 +13,7 @@ const serif = Lora({
 
 export const metadata: Metadata = {
   title: 'Sword Prototype Playground',
-  description: 'A playground for prototyping, powered by Sword',
+  description: 'From idea to live prototype, built on Sword design system.',
 };
 
 export default function RootLayout({
