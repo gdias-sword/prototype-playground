@@ -7,11 +7,24 @@ import type { ReactNode } from 'react';
 import icClock from './assets/ic-clock.svg';
 import icGift from './assets/ic-gift.svg';
 import kitClosed from './assets/kit-closed.png';
-import { useEnter } from './benefits';
 import { assetSrc } from './shell';
 import { useTuning } from './tuning';
 
 const EASE = [0.2, 1, 0.4, 1] as const;
+function useEnter() {
+  const isReduced = useReducedMotion();
+  const { stepDuration, stepDistance, stepsStart, rowStagger } = useTuning();
+  return (order: number) => ({
+    initial: isReduced ? false : { opacity: 0, y: stepDistance },
+    animate: { opacity: 1, y: 0 },
+    transition: {
+      duration: stepDuration,
+      delay: isReduced ? 0 : stepsStart + order * rowStagger,
+      ease: EASE,
+    },
+  });
+}
+
 const KIT_GRADIENT =
   'bg-linear-to-br from-[#fbe3ea] via-[#ece5fb] to-[#d6e6fd]';
 
@@ -33,15 +46,9 @@ const JOURNEY: JourneyStep[] = [
     state: 'current',
   },
   {
-    title: 'Movement check‑up',
-    meta: '10 min',
-    description: 'Guided by real-time feedback in the Sword app.',
-    state: 'upcoming',
-  },
-  {
-    title: 'Meet your physical therapist',
-    meta: 'Video call',
-    description: 'They build your plan, fully covered by PepsiCo.',
+    title: 'Unlock your personalized program',
+    meta: '5 min',
+    description: 'Perform a few exercises in the Sword app.',
     state: 'upcoming',
   },
 ];
@@ -119,7 +126,7 @@ function BoxImage({ className, delay }: { className: string; delay: number }) {
   );
 }
 
-/* A · The kit is the finish line of a vertical timeline. */
+/* The kit is the finish line of a vertical timeline. */
 
 export function KitFinish() {
   const enter = useEnter();
@@ -189,7 +196,8 @@ export function KitFinish() {
             Your welcome kit
           </p>
           <p className="text-[14px] leading-5 tracking-[0.2px] text-[#3d3d3d]">
-            A welcome gift from Sword, shipped to your door.
+            A welcome gift from Sword, with accessories to support you during
+            your program.
           </p>
           <Free className="self-start" />
           <BoxImage
@@ -198,94 +206,6 @@ export function KitFinish() {
           />
         </div>
       </motion.div>
-    </div>
-  );
-}
-
-/* B · A horizontal track whose last, biggest stop is the kit. */
-
-export function KitTrack() {
-  const enter = useEnter();
-  const { stepsStart, rowStagger } = useTuning();
-  return (
-    <div className="flex flex-col gap-6">
-      <motion.p
-        {...enter(0)}
-        className="text-[16px] leading-[22px] tracking-[0.2px]"
-      >
-        Everything here is covered by PepsiCo. Finish these steps and your kit
-        ships free.
-      </motion.p>
-      <div className="relative grid gap-4 lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.7fr)] lg:gap-5">
-        <motion.span
-          aria-hidden
-          className="absolute top-4 right-[20%] left-4 hidden h-0.5 origin-left rounded-full bg-linear-to-r from-[#4a89e8] via-[#e8e8e8] to-[#be95e5] lg:block"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{
-            duration: 1.6,
-            delay: stepsStart + rowStagger,
-            ease: EASE,
-          }}
-        />
-        {JOURNEY.map((step, index) => (
-          <motion.div
-            key={step.title}
-            {...enter(index + 1)}
-            className="flex gap-4 lg:flex-col lg:gap-4"
-          >
-            <Marker state={step.state} />
-            <div className="flex min-w-0 flex-col gap-1.5 pt-1 lg:pt-0 lg:pr-2">
-              <p
-                className={cn(
-                  'text-[16px] leading-[22px] font-semibold tracking-[0.2px]',
-                  step.state === 'done' && 'text-[#5e5e5e]',
-                  step.state === 'upcoming' && 'opacity-70',
-                )}
-              >
-                {step.title}
-              </p>
-              {step.meta && (
-                <span className="flex">
-                  <Meta isCurrent={step.state === 'current'}>{step.meta}</Meta>
-                </span>
-              )}
-              {step.description && (
-                <p
-                  className={cn(
-                    'text-[14px] leading-5 tracking-[0.2px] text-[#5e5e5e]',
-                    step.state === 'upcoming' && 'opacity-70',
-                  )}
-                >
-                  {step.description}
-                </p>
-              )}
-            </div>
-          </motion.div>
-        ))}
-        <motion.div
-          {...enter(JOURNEY.length + 1)}
-          className={cn(
-            'relative flex min-h-[220px] flex-col justify-end gap-2 overflow-visible rounded-3xl p-5 lg:-mt-2 lg:min-h-[340px]',
-            KIT_GRADIENT,
-          )}
-        >
-          <span className="absolute top-4 left-4 flex items-center gap-2">
-            <Marker state="kit" />
-          </span>
-          <Free className="absolute top-5 right-4" />
-          <BoxImage
-            delay={stepsStart + rowStagger * (JOURNEY.length + 1.5)}
-            className="absolute top-[10%] left-1/2 w-[86%] -translate-x-1/2 max-lg:top-auto max-lg:right-[4%] max-lg:bottom-[14%] max-lg:left-auto max-lg:w-[44%] max-lg:translate-x-0"
-          />
-          <p className="relative font-serif text-[24px] leading-8 tracking-[-0.3px] max-lg:pr-[48%]">
-            Your welcome kit
-          </p>
-          <p className="relative text-[14px] leading-5 tracking-[0.2px] text-[#3d3d3d] max-lg:pr-[48%]">
-            Ships after you meet your physical therapist.
-          </p>
-        </motion.div>
-      </div>
     </div>
   );
 }

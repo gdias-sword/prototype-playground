@@ -1,6 +1,5 @@
 'use client';
 
-import { VariantSwitcher } from '@/components/variant-switcher';
 import { cn } from '@/design/utils';
 import { AnimatePresence, motion, MotionConfig } from 'motion/react';
 import { useState } from 'react';
@@ -9,7 +8,7 @@ import {
   ConditionQuestion,
   ConditionSelection,
 } from './conditions';
-import { AccountSetup, Eligibility } from './forms';
+import { AccountSetup, Address, Eligibility } from './forms';
 import { JourneyIntro } from './journey-intro';
 import { Footer, Header } from './shell';
 import { TuningPanel, TuningProvider } from './tuning';
@@ -18,20 +17,11 @@ const SCREENS = [
   'Eligibility',
   'Account',
   'Welcome',
+  'Address',
   'Conditions',
   'Focus',
   'Question',
 ] as const;
-
-const VARIANTS = [
-  { id: 'care', label: 'F · Care team' },
-  { id: 'included', label: 'What’s included' },
-  { id: 'kit', label: 'Welcome kit' },
-  { id: 'pass', label: 'Access pass' },
-  { id: 'kit-finish', label: 'Kit · Finish line' },
-  { id: 'kit-track', label: 'Kit · Track' },
-  { id: 'timeline', label: 'Timeline (previous)' },
-];
 
 export function EnrollmentFlow() {
   const [screen, setScreen] = useState(0);
@@ -62,20 +52,7 @@ export function EnrollmentFlow() {
               transition={{ duration: 0.3, ease: [0.2, 1, 0.4, 1] }}
             >
               {SCREENS[screen] === 'Welcome' ? (
-                <VariantSwitcher
-                  variants={VARIANTS}
-                  caption="Layout"
-                  hotkeys={false}
-                  className="top-24 bottom-auto left-6 translate-x-0"
-                >
-                  {(variant) => (
-                    <JourneyIntro
-                      firstName={name}
-                      variant={variant}
-                      onContinue={next}
-                    />
-                  )}
-                </VariantSwitcher>
+                <JourneyIntro firstName={name} onContinue={next} />
               ) : (
                 <>
                   {SCREENS[screen] === 'Eligibility' && (
@@ -85,6 +62,7 @@ export function EnrollmentFlow() {
                     />
                   )}
                   {SCREENS[screen] === 'Account' && <AccountSetup />}
+                  {SCREENS[screen] === 'Address' && <Address />}
                   {SCREENS[screen] === 'Conditions' && (
                     <ConditionSelection
                       condition={condition}
@@ -98,6 +76,9 @@ export function EnrollmentFlow() {
                     <ConditionQuestion condition={condition} />
                   )}
                   <Footer
+                    label={
+                      SCREENS[screen] === 'Address' ? 'Send my kit' : undefined
+                    }
                     isSolid={SCREENS[screen] !== 'Focus'}
                     onPrevious={previous}
                     onContinue={next}

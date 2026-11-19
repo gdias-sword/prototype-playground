@@ -1,9 +1,9 @@
 'use client';
 
 import { Input } from '@/design/components/input';
-import { Check, Eye, EyeOff, Info } from 'lucide-react';
+import { Check, ChevronDown, Eye, EyeOff, Info } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { Container, SubHeader } from './shell';
+import { Container, ProgressBar, SubHeader } from './shell';
 
 const FIELD = 'h-[52px] rounded-2xl border-[#c2c2c2] px-3 text-[14px]';
 
@@ -139,6 +139,73 @@ export function AccountSetup() {
         message frequency will vary based on my program and that I can opt out
         at any time.
       </Checkbox>
+    </Container>
+  );
+}
+
+export function Address() {
+  const [country, setCountry] = useState('');
+  return (
+    <Container
+      header={
+        <>
+          <ProgressBar total={5} current={0} />
+          <SubHeader
+            title="Where should we send your kit?"
+            description="Enter the address where you’d like to receive your welcome kit."
+          />
+        </>
+      }
+    >
+      <div className="grid gap-10 sm:grid-cols-2 sm:gap-x-4">
+        <div className="sm:col-span-2">
+          <Input
+            label="Address line 1"
+            placeholder="Street address"
+            autoComplete="address-line1"
+            className={FIELD}
+          />
+        </div>
+        <Input
+          label="Apartment, suite, etc."
+          placeholder="Optional"
+          autoComplete="address-line2"
+          className={FIELD}
+        />
+        <Input
+          label="City"
+          placeholder="City"
+          autoComplete="address-level2"
+          className={FIELD}
+        />
+        <label className="flex flex-col gap-2">
+          <span className="text-body-medium-strong">Country</span>
+          <span className="relative">
+            <select
+              value={country}
+              onChange={(event) => setCountry(event.target.value)}
+              autoComplete="country"
+              className={`${FIELD} w-full cursor-pointer appearance-none border border-[#c2c2c2] bg-white pr-10 outline-none focus:ring-2 focus:ring-[#4a89e8] ${country ? 'text-foreground-neutral-default' : 'text-foreground-neutral-faded'}`}
+            >
+              <option value="" disabled>
+                Choose
+              </option>
+              <option>United States</option>
+              <option>Canada</option>
+            </select>
+            <ChevronDown
+              className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2"
+              strokeWidth={1.5}
+            />
+          </span>
+        </label>
+        <Input
+          label="Postal code"
+          placeholder="ZIP / postal code"
+          autoComplete="postal-code"
+          className={FIELD}
+        />
+      </div>
     </Container>
   );
 }
