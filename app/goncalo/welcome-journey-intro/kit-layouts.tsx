@@ -202,7 +202,10 @@ export function KitFinish() {
         {[current, upcoming].map((step, index) => (
           <div key={step.title} className="relative z-10 flex gap-4">
             <div className="flex w-8 shrink-0 justify-center pt-1">
-              <Marker state={step.state} delay={markerDelays[index + 1]} />
+              <Marker
+                state={step.state === 'upcoming' ? 'upcoming' : 'current'}
+                delay={markerDelays[index + 1]}
+              />
             </div>
             <motion.div
               {...enterContent(index + 1)}
