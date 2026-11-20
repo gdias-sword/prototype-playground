@@ -12,7 +12,13 @@ export function JourneyIntro({ firstName, onContinue }: JourneyIntroProps) {
       <Container
         header={
           <SubHeader
-            title={`Welcome, ${firstName}! Let’s start by getting to know you.`}
+            title={
+              <>
+                Welcome, {firstName}!
+                <br />
+                Let’s start by getting to know you.
+              </>
+            }
           />
         }
       >

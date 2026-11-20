@@ -12,11 +12,11 @@ import { useTuning } from './tuning';
 const EASE = [0.2, 1, 0.4, 1] as const;
 const RAIL_EASE = [0.25, 0.9, 0.35, 1] as const;
 
-const KIT_GRADIENT =
-  'bg-linear-to-br from-[#fbe3ea] via-[#ece5fb] to-[#d6e6fd]';
+const PRIMARY_WASH =
+  'linear-gradient(157deg, color-mix(in srgb, #ff7e7e 20%, transparent) 0%, color-mix(in srgb, #be95e5 20%, transparent) 50%, color-mix(in srgb, #4a89e8 20%, transparent) 100%)';
 
 const RAIL_GRADIENT =
-  'bg-[linear-gradient(to_bottom,#4a89e8_0%,#6c9eeb_24%,#b5c7e6_48%,#cfc3e8_74%,#be95e5_100%)]';
+  'linear-gradient(to bottom, var(--color-background-brand-default) 0%, #b5c7e6 49%, #be95e5 100%)';
 
 type StepState = 'done' | 'current' | 'upcoming';
 
@@ -31,7 +31,7 @@ const JOURNEY: JourneyStep[] = [
   { title: 'Account created', state: 'done' },
   {
     title: 'Tell us about yourself',
-    meta: 'About 5 min',
+    meta: '5 min',
     description: 'So we can match you with your own physical therapist.',
     state: 'current',
   },
@@ -56,60 +56,22 @@ function useEnterContent() {
   });
 }
 
-function DoneMarker({
-  delay,
-  checkDelay,
-}: {
-  delay: number;
-  checkDelay: number;
-}) {
+function DoneMarker({ delay }: { delay: number }) {
   const isReduced = useReducedMotion();
   return (
-    <span className="relative z-10 flex size-8 shrink-0 items-center justify-center">
-      {!isReduced && (
-        <motion.span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-full bg-[#4a89e8]/35"
-          initial={{ scale: 1, opacity: 0 }}
-          animate={{ scale: [1, 1.85], opacity: [0.65, 0] }}
-          transition={{ duration: 0.9, delay: checkDelay, ease: EASE }}
+    <motion.span
+      initial={isReduced ? false : { opacity: 0, scale: 0.6 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.35, delay: isReduced ? 0 : delay, ease: EASE }}
+      className="text-foreground-neutral-default/50 relative z-10 flex size-4 shrink-0 items-center justify-center"
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true" className="size-4">
+        <path
+          d="M14.166 3.434a.8.8 0 0 1 0 1.132l-7.467 7.466a.8.8 0 0 1-1.131 0L1.834 8.299a.8.8 0 1 1 1.132-1.132L6.133 10.335l6.901-6.901a.8.8 0 0 1 1.132 0Z"
+          fill="currentColor"
         />
-      )}
-      <motion.span
-        initial={isReduced ? false : { opacity: 0, scale: 0.6 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.35, delay: isReduced ? 0 : delay, ease: EASE }}
-        className="relative flex size-8 items-center justify-center rounded-full bg-[#4a89e8] text-white"
-      >
-        <svg
-          viewBox="0 0 16 16"
-          fill="none"
-          aria-hidden="true"
-          className="size-4"
-        >
-          <motion.path
-            d="M3.5 8.5L6.5 11.5L12.5 5"
-            stroke="currentColor"
-            strokeWidth={2.4}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            initial={isReduced ? false : { pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{
-              pathLength: {
-                duration: 0.38,
-                delay: isReduced ? 0 : checkDelay,
-                ease: EASE,
-              },
-              opacity: {
-                duration: 0.08,
-                delay: isReduced ? 0 : checkDelay,
-              },
-            }}
-          />
-        </svg>
-      </motion.span>
-    </span>
+      </svg>
+    </motion.span>
   );
 }
 
@@ -127,24 +89,15 @@ function Marker({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.35, delay: isReduced ? 0 : delay, ease: EASE }}
       className={cn(
-        'relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full bg-white shadow-[0_0_0_4px_white]',
-        state === 'current' && 'border-2 border-[#4a89e8]',
-        state === 'upcoming' && 'border-[1.5px] border-[#e0e0e0]',
-        state === 'kit' && KIT_GRADIENT,
+        'relative z-10 flex shrink-0 items-center justify-center rounded-full shadow-[0_0_0_2px_var(--color-white)]',
+        state === 'kit' && 'size-8',
+        state === 'current' &&
+          'bg-background-brand-default size-4 border border-white',
+        state === 'upcoming' &&
+          'border-border-neutral-default bg-background-neutral-default size-4 border-2',
       )}
+      style={state === 'kit' ? { backgroundImage: PRIMARY_WASH } : undefined}
     >
-      {state === 'current' && (
-        <motion.span
-          initial={isReduced ? false : { scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{
-            duration: 0.3,
-            delay: isReduced ? 0 : delay + 0.08,
-            ease: EASE,
-          }}
-          className="size-2.5 rounded-full bg-[#4a89e8]"
-        />
-      )}
       {state === 'kit' && (
         <img alt="" src={assetSrc(icGift)} className="size-5" />
       )}
@@ -165,7 +118,7 @@ function TimeBadge({
       initial={isReduced ? false : { opacity: 0, scale: 0.92 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.35, delay: isReduced ? 0 : delay, ease: EASE }}
-      className="inline-flex items-center gap-1 rounded-full bg-[#eaf2fe] px-2.5 py-1 text-[12px] leading-4 font-semibold tracking-[0.1px] text-[#2f5aa3]"
+      className="inline-flex items-center gap-1.5 rounded-full bg-[#eaf2fe] px-2.5 py-1 text-[12px] leading-4 font-semibold tracking-[0.1px] text-[#2f5aa3]"
     >
       <Clock
         className="size-3 shrink-0"
@@ -177,20 +130,15 @@ function TimeBadge({
   );
 }
 
-function BoxImage({ className, delay }: { className: string; delay: number }) {
+function BoxImage({ delay }: { delay: number }) {
   const isReduced = useReducedMotion();
   return (
     <motion.img
       alt="Sword Thrive welcome kit box"
       src={assetSrc(kitClosed)}
-      className={cn(
-        'pointer-events-none drop-shadow-[0_24px_32px_rgba(26,38,77,0.2)]',
-        className,
-      )}
-      initial={
-        isReduced ? false : { opacity: 0, y: 32, rotate: -6, scale: 0.92 }
-      }
-      animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
+      className="pointer-events-none absolute top-2.5 -right-7 aspect-[1000/704] w-[216px] max-w-[42%] object-contain"
+      initial={isReduced ? false : { opacity: 0, y: 16, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 1.6, delay: isReduced ? 0 : delay, ease: EASE }}
     />
   );
@@ -209,12 +157,26 @@ export function KitFinish() {
   const markerDelays = [
     doneDelay,
     railDelay + railDuration * 0.05,
-    railDelay + railDuration * 0.24,
-    railDelay + railDuration * 0.55,
+    railDelay + railDuration * 0.4,
+    railDelay + railDuration * 0.72,
   ];
+
+  const [done, current, upcoming] = JOURNEY;
 
   return (
     <div className="flex flex-col">
+      <div className="flex gap-4">
+        <div className="flex w-8 shrink-0 justify-center pt-1">
+          <DoneMarker delay={doneDelay} />
+        </div>
+        <motion.p
+          {...enterContent(0)}
+          className="text-body-large-strong text-foreground-neutral-default/50 pb-6"
+        >
+          {done.title}
+        </motion.p>
+      </div>
+
       <div className="relative flex flex-col">
         <motion.span
           aria-hidden="true"
@@ -233,39 +195,27 @@ export function KitFinish() {
               delay: isReduced ? 0 : railDelay,
             },
           }}
-          className={cn(
-            'pointer-events-none absolute top-9 -bottom-10 left-[15px] z-0 w-0.5 rounded-full',
-            RAIL_GRADIENT,
-          )}
+          className="pointer-events-none absolute top-6 -bottom-1 left-[15px] z-0 w-0.5 rounded-full"
+          style={{ backgroundImage: RAIL_GRADIENT }}
         />
-        {JOURNEY.map((step, index) => (
+
+        {[current, upcoming].map((step, index) => (
           <div key={step.title} className="relative z-10 flex gap-4">
-            <div className="flex w-8 shrink-0 flex-col items-center">
-              {step.state === 'done' ? (
-                <DoneMarker delay={doneDelay} checkDelay={checkDelay} />
-              ) : (
-                <Marker state={step.state} delay={markerDelays[index]} />
-              )}
+            <div className="flex w-8 shrink-0 justify-center pt-1">
+              <Marker state={step.state} delay={markerDelays[index + 1]} />
             </div>
             <motion.div
-              {...enterContent(index)}
+              {...enterContent(index + 1)}
               className={cn(
-                'flex min-w-0 flex-1 flex-col gap-1 pt-1',
-                step.state === 'done' ? 'pb-5' : 'pb-6',
+                'flex min-w-0 flex-1 flex-col gap-2 pb-8',
+                step.state === 'upcoming' &&
+                  'text-foreground-neutral-default/50',
               )}
             >
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                <p
-                  className={cn(
-                    'text-[16px] leading-[24px] font-semibold tracking-[0.2px]',
-                    step.state === 'done' && 'text-[#5e5e5e]',
-                    step.state === 'upcoming' && 'opacity-70',
-                  )}
-                >
-                  {step.title}
-                </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-body-large-strong">{step.title}</p>
                 {step.meta && (
-                  <TimeBadge delay={markerDelays[index] + 0.14}>
+                  <TimeBadge delay={markerDelays[index + 1] + 0.14}>
                     {step.meta}
                   </TimeBadge>
                 )}
@@ -273,8 +223,8 @@ export function KitFinish() {
               {step.description && (
                 <p
                   className={cn(
-                    'text-[14px] leading-5 tracking-[0.2px] text-[#5e5e5e]',
-                    step.state === 'upcoming' && 'opacity-70',
+                    'text-body-medium-default',
+                    step.state === 'current' && 'text-foreground-neutral-faded',
                   )}
                 >
                   {step.description}
@@ -284,28 +234,24 @@ export function KitFinish() {
           </div>
         ))}
       </div>
+
       <div className="relative z-10 flex gap-4">
-        <div className="flex w-8 shrink-0 justify-center pt-6">
-          <Marker state="kit" delay={markerDelays[JOURNEY.length]} />
+        <div className="flex w-8 shrink-0 justify-center pt-2">
+          <Marker state="kit" delay={markerDelays[3]} />
         </div>
         <motion.div
-          {...enterContent(JOURNEY.length)}
-          className={cn(
-            'relative flex min-w-0 flex-1 flex-col gap-2 rounded-3xl p-6 max-sm:pt-[132px] sm:min-h-[156px] sm:pr-[46%]',
-            KIT_GRADIENT,
-          )}
+          {...enterContent(3)}
+          className="relative flex min-w-0 flex-1 flex-col gap-2 overflow-hidden rounded-3xl p-6"
+          style={{ backgroundImage: PRIMARY_WASH }}
         >
-          <p className="font-serif text-[24px] leading-8 tracking-[-0.3px]">
+          <p className="text-title-medium-strong font-sans max-w-[min(240px,58%)]">
             Your welcome kit
           </p>
-          <p className="text-[14px] leading-5 tracking-[0.2px] text-[#3d3d3d]">
+          <p className="text-body-medium-default text-foreground-neutral-default max-w-[min(240px,58%)]">
             A gift from Sword with accessories to support you during your
             program
           </p>
-          <BoxImage
-            delay={markerDelays[JOURNEY.length] + 0.08}
-            className="absolute -top-10 left-1/2 w-[64%] -translate-x-1/2 sm:top-auto sm:right-[-6%] sm:bottom-[10%] sm:left-auto sm:w-[52%] sm:translate-x-0"
-          />
+          <BoxImage delay={markerDelays[3] + 0.08} />
         </motion.div>
       </div>
     </div>
