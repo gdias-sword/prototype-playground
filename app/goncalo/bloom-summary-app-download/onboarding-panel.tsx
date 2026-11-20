@@ -148,7 +148,10 @@ function Steps({ layout }: { layout: 'compact' | 'large' }) {
         {layout === 'large' ? (
           <li>
             <KitHero
-              kit={STEPS[STEPS.length - 1]}
+              kit={{
+                ...STEPS[STEPS.length - 1],
+                slotClassName: STEPS[STEPS.length - 1].largeSlot,
+              }}
               number={STEPS.length}
               delay={CARD_ENTER + (STEPS.length - 1) * CARD_STAGGER}
               duration={CARD_DURATION}
