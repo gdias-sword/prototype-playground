@@ -16,7 +16,7 @@ export function JourneyIntro({ firstName, onContinue }: JourneyIntroProps) {
               <>
                 Welcome, {firstName}!
                 <br />
-                Let’s start by getting to know you.
+                Here’s how you’ll get started.
               </>
             }
           />
