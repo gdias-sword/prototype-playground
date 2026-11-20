@@ -16,7 +16,7 @@ function rise(tuning: Tuning, delay: number) {
     transition: {
       duration: tuning.stepDuration,
       delay,
-      ease: [0.2, 1, 0.4, 1] as const,
+      ease: [0.2, 0.8, 0, 1] as const,
     },
   };
 }

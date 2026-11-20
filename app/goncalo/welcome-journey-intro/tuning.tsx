@@ -11,69 +11,34 @@ import {
   type ReactNode,
 } from 'react';
 
-export type Intro = 'two-lines' | 'one-line' | 'none';
-
 export interface Tuning {
-  intro: Intro;
   stepDuration: number;
   stepDistance: number;
   headerDelay: number;
   contentDelay: number;
   footerDelay: number;
-  textReveal: 'lines' | 'words';
-  lineStagger: number;
-  wordStagger: number;
-  readStart: number;
-  readSpeed: number;
-  secondLineAt: number;
-  settleAt: number;
-  combinedSettleAt: number;
-  moveDuration: number;
-  stepsStart: number;
   rowStagger: number;
-  continueDelay: number;
 }
 
 const DEFAULTS: Tuning = {
-  intro: 'two-lines',
-  stepDuration: 1.2,
+  stepDuration: 1.6,
   stepDistance: 40,
   headerDelay: 0.2,
   contentDelay: 0.6,
   footerDelay: 1.2,
-  textReveal: 'lines',
-  lineStagger: 0.15,
-  wordStagger: 0.06,
-  readStart: 0.7,
-  readSpeed: 0.11,
-  secondLineAt: 3.2,
-  settleAt: 7,
-  combinedSettleAt: 4.5,
-  moveDuration: 1,
-  stepsStart: 0.45,
-  rowStagger: 0.25,
-  continueDelay: 1.3,
+  rowStagger: 0.2,
 };
 
-type NumberKey = Exclude<keyof Tuning, 'textReveal' | 'intro'>;
-
 interface Control {
-  key: NumberKey;
+  key: keyof Tuning;
   label: string;
   min: number;
   max: number;
   step: number;
   unit: string;
-  intros?: Intro[];
 }
 
-const INTROS: { value: Intro; label: string }[] = [
-  { value: 'two-lines', label: 'Two lines' },
-  { value: 'one-line', label: 'One line' },
-  { value: 'none', label: 'No intro' },
-];
-
-const GROUPS: { title: string; intros?: Intro[]; controls: Control[] }[] = [
+const GROUPS: { title: string; controls: Control[] }[] = [
   {
     title: 'Step screens',
     controls: [
@@ -120,90 +85,8 @@ const GROUPS: { title: string; intros?: Intro[]; controls: Control[] }[] = [
     ],
   },
   {
-    title: 'Welcome text',
-    intros: ['two-lines', 'one-line'],
+    title: 'Kit timeline',
     controls: [
-      {
-        key: 'lineStagger',
-        label: 'Line stagger',
-        min: 0,
-        max: 0.6,
-        step: 0.01,
-        unit: 's',
-      },
-      {
-        key: 'wordStagger',
-        label: 'Word stagger',
-        min: 0,
-        max: 0.3,
-        step: 0.01,
-        unit: 's',
-      },
-      {
-        key: 'readStart',
-        label: 'Reading starts',
-        min: 0,
-        max: 3,
-        step: 0.05,
-        unit: 's',
-      },
-      {
-        key: 'readSpeed',
-        label: 'Reading pace',
-        min: 0.02,
-        max: 0.4,
-        step: 0.01,
-        unit: 's/word',
-      },
-      {
-        key: 'secondLineAt',
-        label: 'Second line at',
-        min: 1,
-        max: 8,
-        step: 0.1,
-        unit: 's',
-        intros: ['two-lines'],
-      },
-      {
-        key: 'settleAt',
-        label: 'Move up at',
-        min: 2,
-        max: 14,
-        step: 0.1,
-        unit: 's',
-        intros: ['two-lines'],
-      },
-      {
-        key: 'combinedSettleAt',
-        label: 'Move up at',
-        min: 1,
-        max: 14,
-        step: 0.1,
-        unit: 's',
-        intros: ['one-line'],
-      },
-      {
-        key: 'moveDuration',
-        label: 'Move duration',
-        min: 0.2,
-        max: 3,
-        step: 0.05,
-        unit: 's',
-      },
-    ],
-  },
-  {
-    title: 'Welcome steps',
-    controls: [
-      {
-        key: 'stepsStart',
-        label: 'Steps start',
-        min: 0,
-        max: 2,
-        step: 0.05,
-        unit: 's',
-        intros: ['two-lines', 'one-line'],
-      },
       {
         key: 'rowStagger',
         label: 'Row stagger',
@@ -211,15 +94,6 @@ const GROUPS: { title: string; intros?: Intro[]; controls: Control[] }[] = [
         max: 1,
         step: 0.05,
         unit: 's',
-      },
-      {
-        key: 'continueDelay',
-        label: 'Continue delay',
-        min: 0,
-        max: 4,
-        step: 0.05,
-        unit: 's',
-        intros: ['two-lines', 'one-line'],
       },
     ],
   },
@@ -304,33 +178,11 @@ export function TuningPanel({ onReplay }: { onReplay: () => void }) {
         </button>
       </div>
       <div className="flex flex-col gap-5 overflow-y-auto px-4 py-4">
-        <section className="flex flex-col gap-3">
-          <h2 className="text-[11px] font-semibold tracking-[0.6px] text-white/50 uppercase">
-            Intro sequence
-          </h2>
-          <Segmented
-            options={INTROS}
-            value={tuning.intro}
-            onChange={(intro) => handleChange({ ...tuning, intro })}
-          />
-        </section>
-        {visible(GROUPS, tuning.intro).map((group) => (
+        {GROUPS.map((group) => (
           <section key={group.title} className="flex flex-col gap-3">
             <h2 className="text-[11px] font-semibold tracking-[0.6px] text-white/50 uppercase">
               {group.title}
             </h2>
-            {group.title === 'Welcome text' && (
-              <Segmented
-                options={[
-                  { value: 'lines', label: 'Lines rise in' },
-                  { value: 'words', label: 'Words fade in' },
-                ]}
-                value={tuning.textReveal}
-                onChange={(textReveal) =>
-                  handleChange({ ...tuning, textReveal })
-                }
-              />
-            )}
             {group.controls.map((control) => (
               <label key={control.key} className="flex flex-col gap-1.5">
                 <span className="flex items-center justify-between text-[12px]">
@@ -384,47 +236,6 @@ export function TuningPanel({ onReplay }: { onReplay: () => void }) {
           Reset
         </button>
       </div>
-    </div>
-  );
-}
-
-function visible(groups: typeof GROUPS, intro: Intro) {
-  return groups
-    .filter((group) => !group.intros || group.intros.includes(intro))
-    .map((group) => ({
-      ...group,
-      controls: group.controls.filter(
-        (control) => !control.intros || control.intros.includes(intro),
-      ),
-    }));
-}
-
-function Segmented<Value extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { value: Value; label: string }[];
-  value: Value;
-  onChange: (value: Value) => void;
-}) {
-  return (
-    <div className="flex rounded-lg bg-white/8 p-0.5 text-[12px]">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={cn(
-            'h-7 flex-1 cursor-pointer rounded-md',
-            value === option.value
-              ? 'bg-white/16 font-semibold'
-              : 'text-white/60 hover:text-white',
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
     </div>
   );
 }
