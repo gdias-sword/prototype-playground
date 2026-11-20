@@ -5,6 +5,7 @@ import { Clock } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
 import icGift from './assets/ic-gift.svg';
+import kitCard from './assets/kit-card.webp';
 import kitClosed from './assets/kit-closed.webp';
 import { assetSrc } from './shell';
 import { useTuning } from './tuning';
@@ -46,7 +47,9 @@ function useEnterContent() {
   const isReduced = useReducedMotion();
   const { stepDuration, stepDistance, contentDelay, rowStagger } = useTuning();
   return (order: number) => ({
-    initial: isReduced ? false : { opacity: 0, y: Math.round(stepDistance * 0.45) },
+    initial: isReduced
+      ? false
+      : { opacity: 0, y: Math.round(stepDistance * 0.45) },
     animate: { opacity: 1, y: 0 },
     transition: {
       duration: stepDuration * 0.65,
@@ -132,15 +135,27 @@ function TimeBadge({
 
 function BoxImage({ delay }: { delay: number }) {
   const isReduced = useReducedMotion();
+  const motionProps = {
+    initial: isReduced ? false : { opacity: 0, y: 16, scale: 0.96 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    transition: { duration: 1.6, delay: isReduced ? 0 : delay, ease: EASE },
+  };
+
   return (
-    <motion.img
-      alt="Sword Thrive welcome kit box"
-      src={assetSrc(kitClosed)}
-      className="pointer-events-none absolute top-2.5 -right-7 aspect-[1000/704] w-[216px] max-w-[42%] object-contain"
-      initial={isReduced ? false : { opacity: 0, y: 16, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 1.6, delay: isReduced ? 0 : delay, ease: EASE }}
-    />
+    <>
+      <motion.img
+        alt="Sword Thrive welcome kit box"
+        src={assetSrc(kitCard)}
+        className="pointer-events-none absolute top-[88px] left-1/2 h-[180px] w-[240px] -translate-x-1/2 object-cover md:hidden"
+        {...motionProps}
+      />
+      <motion.img
+        alt="Sword Thrive welcome kit box"
+        src={assetSrc(kitClosed)}
+        className="pointer-events-none absolute top-2.5 -right-7 hidden aspect-[1000/704] w-[216px] max-w-[42%] object-contain md:block"
+        {...motionProps}
+      />
+    </>
   );
 }
 
@@ -166,7 +181,7 @@ export function KitFinish() {
   return (
     <div className="flex flex-col">
       <div className="flex gap-4">
-        <div className="flex w-8 shrink-0 justify-center pt-1">
+        <div className="flex w-4 max-w-4 min-w-4 shrink-0 justify-center pt-1 md:w-8 md:max-w-8 md:min-w-8">
           <DoneMarker delay={doneDelay} />
         </div>
         <motion.p
@@ -195,13 +210,13 @@ export function KitFinish() {
               delay: isReduced ? 0 : railDelay,
             },
           }}
-          className="pointer-events-none absolute top-6 -bottom-1 left-[15px] z-0 w-0.5 rounded-full"
+          className="pointer-events-none absolute top-6 -bottom-1 left-[7px] z-0 w-0.5 rounded-full md:left-[15px]"
           style={{ backgroundImage: RAIL_GRADIENT }}
         />
 
         {[current, upcoming].map((step, index) => (
           <div key={step.title} className="relative z-10 flex gap-4">
-            <div className="flex w-8 shrink-0 justify-center pt-1">
+            <div className="flex w-4 max-w-4 min-w-4 shrink-0 justify-center pt-1 md:w-8 md:max-w-8 md:min-w-8">
               <Marker
                 state={step.state === 'upcoming' ? 'upcoming' : 'current'}
                 delay={markerDelays[index + 1]}
@@ -239,20 +254,20 @@ export function KitFinish() {
       </div>
 
       <div className="relative z-10 flex gap-4">
-        <div className="flex w-8 shrink-0 justify-center pt-2">
+        <div className="flex w-4 max-w-4 min-w-4 shrink-0 justify-center pt-2 md:w-8 md:max-w-8 md:min-w-8">
           <Marker state="kit" delay={markerDelays[3]} />
         </div>
         <motion.div
           {...enterContent(3)}
-          className="relative flex min-w-0 flex-1 flex-col gap-2 overflow-hidden rounded-3xl p-6"
+          className="relative flex h-[200px] min-w-0 flex-1 flex-col gap-1.5 overflow-hidden rounded-3xl p-5 md:h-auto md:gap-2 md:p-6"
           style={{ backgroundImage: PRIMARY_WASH }}
         >
-          <p className="text-title-medium-strong font-sans max-w-[min(240px,58%)]">
+          <p className="text-title-medium-strong font-sans md:max-w-[min(240px,58%)]">
             Your welcome kit
           </p>
-          <p className="text-body-medium-default text-foreground-neutral-default max-w-[min(240px,58%)]">
+          <p className="text-body-medium-default text-foreground-neutral-default md:max-w-[min(240px,58%)]">
             A gift from Sword with accessories to support you during your
-            program
+            program.
           </p>
           <BoxImage delay={markerDelays[3] + 0.08} />
         </motion.div>
