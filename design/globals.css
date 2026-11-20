@@ -98,6 +98,9 @@
       --color-border-neutral-faded: var(--color-gray-100);
       --color-border-neutral-subtle: var(--color-gray-200);
       --color-border-neutral-strong: var(--color-gray-400);
+      --color-foreground-negative-default: var(--color-red-700);
+      --color-foreground-positive-default: var(--color-green-800);
+      --color-background-positive-default: var(--color-green-800);
     }
   }
 
@@ -127,6 +130,9 @@
       --color-border-neutral-faded: var(--color-gray-100);
       --color-border-neutral-subtle: var(--color-gray-200);
       --color-border-neutral-strong: var(--color-gray-400);
+      --color-foreground-negative-default: var(--color-red-700);
+      --color-foreground-positive-default: var(--color-green-800);
+      --color-background-positive-default: var(--color-green-800);
     }
   }
 }
@@ -155,26 +161,9 @@
   --color-border-neutral-faded: var(--color-border-neutral-faded);
   --color-border-neutral-subtle: var(--color-border-neutral-subtle);
   --color-border-neutral-strong: var(--color-border-neutral-strong);
-  --color-green-50: var(--color-green-50);
-  --color-green-100: var(--color-green-100);
-  --color-green-200: var(--color-green-200);
-  --color-green-300: var(--color-green-300);
-  --color-green-400: var(--color-green-400);
-  --color-green-500: var(--color-green-500);
-  --color-green-600: var(--color-green-600);
-  --color-green-700: var(--color-green-700);
-  --color-green-800: var(--color-green-800);
-  --color-green-900: var(--color-green-900);
-  --color-red-50: var(--color-red-50);
-  --color-red-100: var(--color-red-100);
-  --color-red-200: var(--color-red-200);
-  --color-red-300: var(--color-red-300);
-  --color-red-400: var(--color-red-400);
-  --color-red-500: var(--color-red-500);
-  --color-red-600: var(--color-red-600);
-  --color-red-700: var(--color-red-700);
-  --color-red-800: var(--color-red-800);
-  --color-red-900: var(--color-red-900);
+  --color-foreground-negative-default: var(--color-foreground-negative-default);
+  --color-foreground-positive-default: var(--color-foreground-positive-default);
+  --color-background-positive-default: var(--color-background-positive-default);
 
   --font-sans: var(--font-figtree), ui-sans-serif;
   --font-serif: var(--font-lora), ui-serif;

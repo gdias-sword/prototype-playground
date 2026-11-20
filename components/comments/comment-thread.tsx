@@ -206,7 +206,7 @@ export function CommentComposer({
         ) : null}
       </div>
       {error ? (
-        <p className="text-body-small-default text-red-700">{error}</p>
+        <p className="text-body-small-default text-foreground-negative-default">{error}</p>
       ) : null}
     </form>
   );
