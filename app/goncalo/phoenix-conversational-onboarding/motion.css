@@ -233,44 +233,6 @@
   display: none;
 }
 
-/* Scroll-history (answer-edit B): hide the bar, fade only in the orb tuck. */
-.phoenix-scroll-history {
-  --phoenix-orb-tuck: 56px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 var(--phoenix-orb-tuck),
-    #000 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 var(--phoenix-orb-tuck),
-    #000 100%
-  );
-}
-
-.phoenix-scroll-history::-webkit-scrollbar {
-  display: none;
-}
-
-.phoenix-orb-history-fade {
-  pointer-events: none;
-  position: absolute;
-  inset: -42%;
-  z-index: 0;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  mask-image: radial-gradient(circle at 50% 52%, #000 26%, transparent 70%);
-  -webkit-mask-image: radial-gradient(
-    circle at 50% 52%,
-    #000 26%,
-    transparent 70%
-  );
-}
-
 .phoenix-rewind-selected {
   animation: phoenix-rewind-highlight 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

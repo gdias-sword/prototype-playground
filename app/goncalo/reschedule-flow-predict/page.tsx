@@ -2,8 +2,6 @@
 
 import { useMemo, useState } from 'react';
 
-// ── date helpers ─────────────────────────────────────────────────────────────
-
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -59,7 +57,6 @@ const TIME_SLOTS: TimeSlot[] = [
   { display: '4:30 pm', range: '4:30–5:00pm' },
 ];
 
-// April 2026 — available Mon–Sat days from the design
 const AVAILABLE_DAYS = new Set([
   1, 3, 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
   27, 28, 29, 30,
@@ -116,8 +113,6 @@ function buildGrid(year: number, month: number): DayCell[][] {
   for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
   return rows;
 }
-
-// ── icons ────────────────────────────────────────────────────────────────────
 
 function IconCalendar({ className }: { className?: string }) {
   return (
@@ -224,8 +219,6 @@ function IconMenu({ className }: { className?: string }) {
   );
 }
 
-// ── main ──────────────────────────────────────────────────────────────────────
-
 export default function RescheduleFlowPredict() {
   const [viewYear, setViewYear] = useState(2026);
   const [viewMonth, setViewMonth] = useState(3);
@@ -270,8 +263,6 @@ export default function RescheduleFlowPredict() {
   const selectedDayName = selectedDay
     ? DAY_NAMES_LONG[new Date(viewYear, viewMonth, selectedDay).getDay()]
     : null;
-
-  // ── sub-views ───────────────────────────────────────────────────────────────
 
   const eventInfoSection = (
     <div className="flex flex-col gap-6 p-6 md:p-8">
@@ -472,16 +463,12 @@ export default function RescheduleFlowPredict() {
 
   return (
     <div className="m-auto flex min-h-dvh w-full max-w-(--breakpoint-xl) items-center justify-center p-8">
-      {/* Scheduler card — fixed 960px width so layout stays stable */}
       <div className="border-border-neutral-faded bg-background-neutral-default w-full shrink-0 overflow-hidden rounded-2xl border shadow-[0px_6px_17px_rgba(31,34,44,0.07)]">
-        {/* ── Desktop: 3-column ────────────────────────────────────────────── */}
         <div className="hidden md:flex">
-          {/* Col 1: event info */}
           <div className="flex w-72 shrink-0 flex-col">{eventInfoSection}</div>
 
           <div className="bg-border-neutral-faded w-px shrink-0" />
 
-          {/* Col 2+3: calendar + time + bottom bar */}
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="border-border-neutral-faded border-b px-8 py-4">
               <span className="text-title-small-strong text-foreground-neutral-default">
@@ -518,7 +505,6 @@ export default function RescheduleFlowPredict() {
           </div>
         </div>
 
-        {/* ── Mobile: stacked ──────────────────────────────────────────────── */}
         <div className="flex flex-col md:hidden">
           {eventInfoSection}
 
