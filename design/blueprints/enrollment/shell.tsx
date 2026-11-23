@@ -29,7 +29,7 @@ export function Header() {
     <header className="relative z-20 flex h-16 shrink-0 items-center gap-12 px-6 lg:h-20 lg:px-16">
       <SwordLogo className="h-6 w-[97px]" />
       <div className="flex-1" />
-      <div className="hidden items-center gap-6 text-[14px] leading-5 font-semibold tracking-[0.2px] lg:flex">
+      <div className="text-body-medium-strong hidden items-center gap-6 tracking-[0.2px] lg:flex">
         <button
           type="button"
           className="flex cursor-pointer items-center gap-2"
@@ -87,7 +87,7 @@ export function Footer({
       className={cn(
         'absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-4 px-6 py-6 lg:py-8',
         isSolid &&
-          'bg-white/70 [mask-image:linear-gradient(to_bottom,transparent,black_24px)] backdrop-blur-xl',
+          'bg-background-neutral-default/70 [mask-image:linear-gradient(to_bottom,transparent,black_24px)] backdrop-blur-xl',
       )}
     >
       {note}
@@ -97,7 +97,7 @@ export function Footer({
             type="button"
             onClick={onPrevious}
             aria-label="Previous"
-            className="flex h-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#e8e8e8] text-[14px] leading-5 font-semibold tracking-[0.2px] transition-colors hover:bg-[#dedede] max-lg:w-12 lg:w-[180px] lg:rounded-2xl"
+            className="text-body-medium-strong flex h-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#e8e8e8] tracking-[0.2px] transition-colors hover:bg-[#dedede] max-lg:w-12 lg:w-[180px] lg:rounded-2xl"
           >
             <ArrowLeft className="size-5 lg:hidden" strokeWidth={1.75} />
             <span className="max-lg:hidden">Previous</span>
@@ -106,7 +106,7 @@ export function Footer({
         <button
           type="button"
           onClick={onContinue}
-          className="flex h-12 cursor-pointer items-center justify-center rounded-2xl bg-[#4a89e8] px-8 text-[14px] leading-5 font-semibold tracking-[0.2px] text-white transition-colors hover:bg-[#3f7bd6] max-lg:flex-1 lg:min-w-[180px]"
+          className="text-body-medium-strong flex h-12 cursor-pointer items-center justify-center rounded-2xl bg-[#4a89e8] px-8 tracking-[0.2px] text-white transition-colors hover:bg-[#3f7bd6] max-lg:flex-1 lg:min-w-[180px]"
         >
           {label}
         </button>

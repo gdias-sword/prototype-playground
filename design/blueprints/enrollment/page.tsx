@@ -24,7 +24,7 @@ export default function EnrollmentBlueprint() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative isolate flex h-dvh flex-col overflow-hidden bg-white text-[#0d0d0d]">
+      <div className="bg-background-neutral-default relative isolate flex h-dvh flex-col overflow-hidden text-[#0d0d0d]">
         <Header />
         <AnimatePresence mode="wait">
           <motion.main
@@ -42,7 +42,7 @@ export default function EnrollmentBlueprint() {
                 </>
               }
             >
-              <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-[#c2c2c2] text-[14px] leading-5 tracking-[0.2px] text-[#8f8f8f]">
+              <div className="text-body-medium-default flex h-40 items-center justify-center rounded-2xl border border-dashed border-[#c2c2c2] tracking-[0.2px] text-[#8f8f8f]">
                 Content
               </div>
             </Container>
