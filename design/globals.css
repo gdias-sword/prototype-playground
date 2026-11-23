@@ -34,6 +34,17 @@
     --color-lilac-800: oklch(0.4 0.1 310);
     --color-lilac-900: oklch(0.32 0.08 310);
 
+    --color-teal-50: oklch(0.96 0.02 180);
+    --color-teal-100: oklch(0.92 0.04 180);
+    --color-teal-200: oklch(0.88 0.06 180);
+    --color-teal-300: oklch(0.8 0.08 180);
+    --color-teal-400: oklch(0.72 0.1 180);
+    --color-teal-500: oklch(0.64 0.16 180);
+    --color-teal-600: oklch(0.56 0.14 180);
+    --color-teal-700: oklch(0.48 0.12 180);
+    --color-teal-800: oklch(0.4 0.1 180);
+    --color-teal-900: oklch(0.32 0.08 180);
+
     --color-gray-50: oklch(0.98 0.002 260);
     --color-gray-100: oklch(0.97 0.004 260);
     --color-gray-200: oklch(0.93 0.006 260);
