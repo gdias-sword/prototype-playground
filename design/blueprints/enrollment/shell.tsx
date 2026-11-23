@@ -97,7 +97,7 @@ export function Footer({
             type="button"
             onClick={onPrevious}
             aria-label="Previous"
-            className="flex h-12 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-[#e8e8e8] text-[14px] leading-5 font-semibold tracking-[0.2px] transition-colors hover:bg-[#dedede] max-lg:w-12 lg:w-[180px]"
+            className="flex h-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#e8e8e8] text-[14px] leading-5 font-semibold tracking-[0.2px] transition-colors hover:bg-[#dedede] max-lg:w-12 lg:w-[180px] lg:rounded-2xl"
           >
             <ArrowLeft className="size-5 lg:hidden" strokeWidth={1.75} />
             <span className="max-lg:hidden">Previous</span>
