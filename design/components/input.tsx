@@ -14,7 +14,7 @@ export function Input({ label, className, ...props }: InputProps) {
   return (
     <Field.Root
       data-slot={label != null ? 'input-field' : undefined}
-      className={label != null ? 'flex flex-col gap-2' : undefined}
+      className={label != null ? 'flex flex-col gap-3' : undefined}
     >
       {label != null ? (
         <Field.Label className="text-body-medium-strong text-foreground-neutral-default">

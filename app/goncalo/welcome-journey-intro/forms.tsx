@@ -116,7 +116,7 @@ export function AccountSetup() {
             Must be 8 characters long
           </p>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           <span className="text-body-medium-strong">Phone number</span>
           <div className="flex h-[52px] items-center gap-6 rounded-2xl border border-[#c2c2c2] bg-white px-4 text-[16px] focus-within:ring-2 focus-within:ring-[#4a89e8]">
             <span className="flex items-center gap-2 text-[14px]">
@@ -178,7 +178,7 @@ export function Address() {
           autoComplete="address-level2"
           className={FIELD}
         />
-        <label className="flex flex-col gap-2">
+        <label className="flex flex-col gap-3">
           <span className="text-body-medium-strong">Country</span>
           <span className="relative">
             <select

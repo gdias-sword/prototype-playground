@@ -13,7 +13,7 @@ export function Textarea({ label, className, ref, ...props }: TextareaProps) {
   return (
     <Field.Root
       data-slot={label != null ? 'textarea-field' : undefined}
-      className={label != null ? 'flex flex-col gap-2' : undefined}
+      className={label != null ? 'flex flex-col gap-3' : undefined}
     >
       {label != null ? (
         <Field.Label className="text-body-medium-strong text-foreground-neutral-default">

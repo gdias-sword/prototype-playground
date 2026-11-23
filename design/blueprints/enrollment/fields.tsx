@@ -13,7 +13,7 @@ export function TextField({
   return (
     <Input
       className={cn(
-        'text-body-medium-default h-[52px] rounded-2xl border-[#c2c2c2] px-3',
+        'text-body-medium-default h-[52px] rounded-2xl border-[#c2c2c2] px-4 py-4',
         className,
       )}
       {...props}
