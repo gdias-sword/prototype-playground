@@ -35,6 +35,7 @@ The only required input is `title`.
     - "image ticker for the website hero" → `Image Carousel Website Hero`
   - Only ask the user when the request gives you nothing to derive from.
 - **`description`**: take from the prompt if the user provided one (or anything that clearly reads as a one-line summary). If they didn't, **omit the field** from `meta.json` — it's optional in `lib/registry.ts`.
+- **`product`**: `thrive`, `bloom`, or `pulse`. Set it when the prototype is targeted for a single product. Omit it otherwise, the page will still inherit Thrive, which is the default product theme. Semantic brand color tokens (`bg-background-brand-*`, `text-foreground-brand-*`) follow this value automatically.
 - **`slug`**: derive from `title` via kebab-case (lowercase, non-alphanumerics → hyphens, collapse runs, trim leading/trailing hyphens).
 - **`created`**: today's date in `YYYY-MM-DD`. Use the system date; do not ask.
 - **`username`**: from `.playground` (`USERNAME`), unless the user explicitly named a different contributor in the prompt.
@@ -53,11 +54,12 @@ Create exactly two files. Do not create an `assets/` folder; create one only on 
 {
   "title": "<title>",
   "description": "<description>",
-  "created": "<YYYY-MM-DD>"
+  "created": "<YYYY-MM-DD>",
+  "product": "thrive"
 }
 ```
 
-Omit `description` entirely if not provided.
+Omit `description` if not provided. Omit `product` when no product was inferred.
 
 **`app/<username>/<slug>/page.tsx`**
 

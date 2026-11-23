@@ -1,9 +1,12 @@
 import path from 'node:path';
 
+import type { Product } from '@/playground/products';
+
 export interface Meta {
   title: string;
   created: string;
   description?: string;
+  product?: Product;
 }
 
 function toSlug(value: string): string {
@@ -74,6 +77,7 @@ const PLAYGROUND_USERNAME_ERROR =
 export function planPrototypeScaffold(input: {
   title: string;
   description?: string;
+  product?: Product;
   created: string;
   appRoot: string;
   username: string | null;
@@ -126,6 +130,9 @@ export function planPrototypeScaffold(input: {
   };
   if (input.description) {
     meta.description = input.description;
+  }
+  if (input.product) {
+    meta.product = input.product;
   }
 
   const pageSource = buildPrototypeSource({

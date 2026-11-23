@@ -48,9 +48,12 @@ Author teams are `Product Design`, `Product Management`, or `Engineering`. The t
 {
   "title": "Your New Prototype",
   "description": "What you're exploring",
-  "created": "2026-04-23"
+  "created": "2026-04-23",
+  "product": "bloom"
 }
 ```
+
+`product` is optional: `thrive`, `bloom`, or `pulse`. It selects that product's theme for the page. Omit it and the prototype uses Thrive, the default. Brand utilities (`bg-background-brand-default`, `text-foreground-brand-default`) follow the choice. Blue is Thrive, lilac is Bloom, teal is Pulse.
 
 ### `page.tsx`
 
@@ -102,7 +105,7 @@ design/
 └── lib/          # cn() and other DS utilities
 ```
 
-Tokens are exposed as Tailwind utilities (e.g. `bg-background-brand-default`, `text-body-medium-strong`). To use a component:
+Tokens are exposed as Tailwind utilities (e.g. `bg-background-brand-default`, `text-body-medium-strong`). Product themes remap the brand roles without changing component code. To use a component:
 
 ```tsx
 import { Button } from '@/phoenix/components/button';
