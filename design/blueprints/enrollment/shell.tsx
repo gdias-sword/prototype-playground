@@ -10,13 +10,11 @@ import { ArrowLeft, Menu } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
 
-export const EASE = [0.2, 0.8, 0, 1] as const;
-
 function rise(delay: number) {
   return {
     initial: { opacity: 0, y: 40 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 1.2, delay, ease: EASE },
+    transition: { duration: 0.8, delay, ease: [0.4, 0.8, 0.2, 1] as const },
   };
 }
 
@@ -118,12 +116,19 @@ export function Footer({
 export function Container({
   header,
   children,
+  className,
 }: {
   header: ReactNode;
   children?: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-(--breakpoint-md) flex-col gap-8 px-6 pt-6 pb-40 lg:gap-10 lg:pt-8">
+    <div
+      className={cn(
+        'mx-auto flex w-full max-w-(--breakpoint-md) flex-col gap-8 px-6 pt-6 pb-40 lg:gap-10 lg:pt-8',
+        className,
+      )}
+    >
       <motion.div {...rise(0.2)} className="flex flex-col gap-8 lg:gap-10">
         {header}
       </motion.div>
@@ -137,23 +142,37 @@ export function Container({
 }
 
 export function ProgressBar({
-  total,
-  current,
+  sections,
+  section,
+  step,
 }: {
-  total: number;
-  current: number;
+  sections: number[];
+  section: number;
+  step: number;
 }) {
   return (
     <div className="-mt-2 flex gap-1 lg:-mt-4">
-      {Array.from({ length: total }, (_, index) => (
-        <span
-          key={index}
-          className={cn(
-            'h-1 flex-1 rounded-full',
-            index <= current ? 'bg-[#4a89e8]' : 'bg-[#c2c2c2]',
-          )}
-        />
-      ))}
+      {sections.map((stepsInSection, index) => {
+        const fill =
+          index < section
+            ? 1
+            : index === section
+              ? (step + 1) / stepsInSection
+              : 0;
+        return (
+          <span
+            key={index}
+            className="relative h-1 flex-1 overflow-hidden rounded-full bg-[#c2c2c2]"
+          >
+            <motion.span
+              className="absolute inset-y-0 left-0 rounded-full bg-[#4a89e8]"
+              initial={false}
+              animate={{ width: `${fill * 100}%` }}
+              transition={{ duration: 0.8, ease: [0.4, 0.8, 0.2, 1] as const }}
+            />
+          </span>
+        );
+      })}
     </div>
   );
 }

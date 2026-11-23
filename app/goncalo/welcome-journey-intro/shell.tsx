@@ -7,16 +7,15 @@ import { cn } from '@/design/utils';
 import { ArrowLeft, Menu } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
-import { useTuning, type Tuning } from './tuning';
 
-function rise(tuning: Tuning, delay: number) {
+function rise(delay: number) {
   return {
-    initial: { opacity: 0, y: tuning.stepDistance },
+    initial: { opacity: 0, y: 40 },
     animate: { opacity: 1, y: 0 },
     transition: {
-      duration: tuning.stepDuration,
+      duration: 1.6,
       delay,
-      ease: [0.2, 0.8, 0, 1] as const,
+      ease: [0.4, 0.8, 0.2, 1] as const,
     },
   };
 }
@@ -78,14 +77,13 @@ export function Footer({
   label = 'Continue',
   note,
   isSolid = true,
-  delay,
+  delay = 1.2,
   onPrevious,
   onContinue,
 }: FooterProps) {
-  const tuning = useTuning();
   return (
     <motion.div
-      {...rise(tuning, delay ?? tuning.footerDelay)}
+      {...rise(delay)}
       className={cn(
         'absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-4 px-6 py-6 lg:py-8',
         isSolid &&
@@ -124,20 +122,13 @@ export function Container({
   header: ReactNode;
   children?: ReactNode;
 }) {
-  const tuning = useTuning();
   return (
     <div className="mx-auto flex w-full max-w-[608px] flex-col gap-8 px-6 pt-6 pb-40 lg:gap-10 lg:pt-8">
-      <motion.div
-        {...rise(tuning, tuning.headerDelay)}
-        className="flex flex-col gap-8 lg:gap-10"
-      >
+      <motion.div {...rise(0.2)} className="flex flex-col gap-8 lg:gap-10">
         {header}
       </motion.div>
       {children && (
-        <motion.div
-          {...rise(tuning, tuning.contentDelay)}
-          className="flex flex-col gap-8 lg:gap-10"
-        >
+        <motion.div {...rise(0.6)} className="flex flex-col gap-8 lg:gap-10">
           {children}
         </motion.div>
       )}
