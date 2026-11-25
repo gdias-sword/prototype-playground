@@ -8,6 +8,7 @@ import { Button, buttonVariants } from '@/design/components/button';
 import { Input } from '@/design/components/input';
 import { Textarea } from '@/design/components/textarea';
 import { cn } from '@/design/utils';
+import { labels, products } from '@/playground/products';
 import { Dialog } from '@base-ui/react/dialog';
 import { Plus } from 'lucide-react';
 import { useActionState, useState } from 'react';
@@ -52,6 +53,32 @@ function CreatePrototypeForm({
         rows={3}
         placeholder="One line about what you are exploring"
       />
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-body-medium-strong text-foreground-neutral-default">
+          Product
+        </legend>
+        <div className="grid grid-cols-3 gap-2">
+          {products.map((product) => (
+            <label
+              key={product}
+              data-product={product}
+              className="border-border-neutral-default has-checked:border-background-brand-default has-checked:ring-background-brand-default flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2.5 has-checked:ring-2"
+            >
+              <input
+                type="radio"
+                name="product"
+                value={product}
+                defaultChecked={product === 'thrive'}
+                className="sr-only"
+              />
+              <span className="bg-background-brand-default size-2.5 rounded-full" />
+              <span className="text-body-medium-strong text-foreground-neutral-default">
+                {labels[product]}
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
       {state.error ? (
         <p
           className="text-body-small-default text-foreground-brand-strong"

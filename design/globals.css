@@ -83,8 +83,51 @@
     --color-black: oklch(0 0 0);
   }
 
+  :root,
+  [data-product='thrive'] {
+    --color-product-50: var(--color-blue-50);
+    --color-product-100: var(--color-blue-100);
+    --color-product-200: var(--color-blue-200);
+    --color-product-300: var(--color-blue-300);
+    --color-product-400: var(--color-blue-400);
+    --color-product-500: var(--color-blue-500);
+    --color-product-600: var(--color-blue-600);
+    --color-product-700: var(--color-blue-700);
+    --color-product-800: var(--color-blue-800);
+    --color-product-900: var(--color-blue-900);
+  }
+
+  [data-product='bloom'] {
+    --color-product-50: var(--color-lilac-50);
+    --color-product-100: var(--color-lilac-100);
+    --color-product-200: var(--color-lilac-200);
+    --color-product-300: var(--color-lilac-300);
+    --color-product-400: var(--color-lilac-400);
+    --color-product-500: var(--color-lilac-500);
+    --color-product-600: var(--color-lilac-600);
+    --color-product-700: var(--color-lilac-700);
+    --color-product-800: var(--color-lilac-800);
+    --color-product-900: var(--color-lilac-900);
+  }
+
+  [data-product='pulse'] {
+    --color-product-50: var(--color-teal-50);
+    --color-product-100: var(--color-teal-100);
+    --color-product-200: var(--color-teal-200);
+    --color-product-300: var(--color-teal-300);
+    --color-product-400: var(--color-teal-400);
+    --color-product-500: var(--color-teal-500);
+    --color-product-600: var(--color-teal-600);
+    --color-product-700: var(--color-teal-700);
+    --color-product-800: var(--color-teal-800);
+    --color-product-900: var(--color-teal-900);
+  }
+
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root,
+    [data-product='thrive'],
+    [data-product='bloom'],
+    [data-product='pulse'] {
       color-scheme: dark;
 
       --color-background-neutral-default: var(--color-white);
@@ -92,19 +135,19 @@
       --color-background-neutral-subtle: var(--color-gray-100);
       --color-background-neutral-strong: var(--color-gray-300);
       --color-background-neutral-inverse: var(--color-gray-950);
-      --color-background-brand-default: var(--color-blue-500);
-      --color-background-brand-faded: var(--color-blue-200);
-      --color-background-brand-subtle: var(--color-blue-300);
-      --color-background-brand-strong: var(--color-blue-400);
+      --color-background-brand-default: var(--color-product-500);
+      --color-background-brand-faded: var(--color-product-200);
+      --color-background-brand-subtle: var(--color-product-300);
+      --color-background-brand-strong: var(--color-product-400);
       --color-foreground-neutral-default: var(--color-gray-900);
       --color-foreground-neutral-faded: var(--color-gray-600);
       --color-foreground-neutral-subtle: var(--color-gray-700);
       --color-foreground-neutral-strong: var(--color-gray-800);
       --color-foreground-neutral-inverse: var(--color-gray-50);
-      --color-foreground-brand-default: var(--color-blue-500);
-      --color-foreground-brand-faded: var(--color-blue-200);
-      --color-foreground-brand-subtle: var(--color-blue-300);
-      --color-foreground-brand-strong: var(--color-blue-400);
+      --color-foreground-brand-default: var(--color-product-500);
+      --color-foreground-brand-faded: var(--color-product-200);
+      --color-foreground-brand-subtle: var(--color-product-300);
+      --color-foreground-brand-strong: var(--color-product-400);
       --color-border-neutral-default: var(--color-gray-300);
       --color-border-neutral-faded: var(--color-gray-100);
       --color-border-neutral-subtle: var(--color-gray-200);
@@ -124,19 +167,19 @@
       --color-background-neutral-subtle: var(--color-gray-100);
       --color-background-neutral-strong: var(--color-gray-300);
       --color-background-neutral-inverse: var(--color-gray-950);
-      --color-background-brand-default: var(--color-blue-500);
-      --color-background-brand-faded: var(--color-blue-200);
-      --color-background-brand-subtle: var(--color-blue-300);
-      --color-background-brand-strong: var(--color-blue-400);
+      --color-background-brand-default: var(--color-product-500);
+      --color-background-brand-faded: var(--color-product-200);
+      --color-background-brand-subtle: var(--color-product-300);
+      --color-background-brand-strong: var(--color-product-400);
       --color-foreground-neutral-default: var(--color-gray-900);
       --color-foreground-neutral-faded: var(--color-gray-600);
       --color-foreground-neutral-subtle: var(--color-gray-700);
       --color-foreground-neutral-strong: var(--color-gray-800);
       --color-foreground-neutral-inverse: var(--color-gray-50);
-      --color-foreground-brand-default: var(--color-blue-500);
-      --color-foreground-brand-faded: var(--color-blue-200);
-      --color-foreground-brand-subtle: var(--color-blue-300);
-      --color-foreground-brand-strong: var(--color-blue-400);
+      --color-foreground-brand-default: var(--color-product-500);
+      --color-foreground-brand-faded: var(--color-product-200);
+      --color-foreground-brand-subtle: var(--color-product-300);
+      --color-foreground-brand-strong: var(--color-product-400);
       --color-border-neutral-default: var(--color-gray-300);
       --color-border-neutral-faded: var(--color-gray-100);
       --color-border-neutral-subtle: var(--color-gray-200);

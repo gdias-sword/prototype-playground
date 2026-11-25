@@ -1,6 +1,7 @@
 'use server';
 
 import { readPlaygroundUsername } from '@/playground/identity';
+import { isProduct } from '@/playground/products';
 import { planPrototypeScaffold } from '@/playground/scaffold';
 import { redirect } from 'next/navigation';
 import fs from 'node:fs';
@@ -21,6 +22,8 @@ export async function createPrototype(
   const title = String(formData.get('title') ?? '').trim();
   const descriptionRaw = String(formData.get('description') ?? '').trim();
   const description = descriptionRaw || undefined;
+  const productRaw = String(formData.get('product') ?? '');
+  const product = isProduct(productRaw) ? productRaw : undefined;
 
   if (!title) {
     return { error: 'Enter a title.' };
@@ -31,6 +34,7 @@ export async function createPrototype(
   const planned = planPrototypeScaffold({
     title,
     description,
+    product,
     created,
     appRoot,
     username: readPlaygroundUsername(),

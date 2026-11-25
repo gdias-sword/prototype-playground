@@ -1,8 +1,10 @@
 import '@/design/globals.css';
 import type { Metadata } from 'next';
 import { Figtree, Lora } from 'next/font/google';
+import { headers } from 'next/headers';
 
 import { CommentLayer } from '@/components/comments/comment-layer';
+import { readPrototypeProduct } from '@/playground/product-theme';
 
 const sans = Figtree({ subsets: ['latin'], variable: '--font-figtree' });
 
@@ -16,14 +18,20 @@ export const metadata: Metadata = {
   description: 'From idea to live prototype, built on Sword design system.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headerStore = await headers();
+  const product = readPrototypeProduct(headerStore.get('x-pathname') ?? '');
+
   return (
     <html lang="en" className={`${sans.variable} ${serif.variable}`}>
-      <body className="bg-background-neutral-default text-foreground-neutral-default relative min-h-dvh font-sans antialiased">
+      <body
+        data-product={product}
+        className="bg-background-neutral-default text-foreground-neutral-default relative min-h-dvh font-sans antialiased"
+      >
         {children}
         <CommentLayer />
       </body>

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { isProduct, type Product } from '@/playground/products';
 import { teams, type Team } from '@/playground/teams';
 
 export type Prototype = {
@@ -13,6 +14,7 @@ export type Prototype = {
   title: string;
   description?: string;
   created: string;
+  product?: Product;
 };
 
 export type Contributor = {
@@ -66,11 +68,13 @@ export function getPrototypes(): Prototype[] {
       if (!fs.existsSync(metaPath)) continue;
 
       const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+      const product = isProduct(meta.product) ? meta.product : undefined;
       prototypes.push({
         username: contributor.username,
         author,
         slug,
         ...meta,
+        product,
       });
     }
   }

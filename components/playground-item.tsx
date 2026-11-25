@@ -1,4 +1,5 @@
 import type { Prototype } from '@/playground/prototypes';
+import { labels } from '@/playground/products';
 import { Avatar, AvatarFallback } from '@/design/components/avatar';
 import Link from 'next/link';
 
@@ -48,6 +49,15 @@ export function PlaygroundItem({ prototype }: PlaygroundItemProps) {
         </div>
         <div className="text-body-small-default text-foreground-neutral-faded flex items-center gap-3">
           <span>{formatCreatedDate(prototype.created)}</span>
+          {prototype.product ? (
+            <span
+              data-product={prototype.product}
+              className="inline-flex items-center gap-1.5"
+            >
+              <span className="bg-background-brand-default size-2 rounded-full" />
+              {labels[prototype.product]}
+            </span>
+          ) : null}
         </div>
       </Link>
     </li>
